@@ -1,0 +1,16 @@
+[book]
+authors = ["Sytse Reitsma"]
+multilingual = false
+src = "src"
+title = "mdBook E2E test book"
+
+[output.plantuml]
+plantuml-cmd="plantuml.exe"
+
+[[output.plantuml.sources]]
+src=["../uml1/*.puml"]
+output-dir="class-diagrams"
+
+[[output.plantuml.sources]]
+src=["../uml2/*.uml"]
+output-dir="state-diagrams"

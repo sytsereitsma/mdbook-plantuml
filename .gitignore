@@ -1,0 +1,3 @@
+/target/
+*.sublime*
+tests/e2e_test/test_book/book/
