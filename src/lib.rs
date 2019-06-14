@@ -1,4 +1,4 @@
-//! A `mdbook` backend which will check all links in a document are valid.
+//! A `mdbook` preprocessor to render PlantUML diagrams into the book dir as images
 
 #[macro_use]
 extern crate failure;
@@ -47,6 +47,9 @@ pub fn render(cfg: &mdbook::Config) -> Result<(), Error> {
     Ok(())
 }
 
+/// Return the absolute path of the output path.
+/// The output path is assumed to be relative to the book build dir.
+/// If the output path is already an absolute path this path is used.
 fn get_source_output_dir(output_path: &PathBuf, build_dir: &PathBuf) -> Result<PathBuf, Error> {
     let mut output_dir = PathBuf::from(&build_dir);
     output_dir.push(output_path);
@@ -61,6 +64,7 @@ fn get_source_output_dir(output_path: &PathBuf, build_dir: &PathBuf) -> Result<P
     Ok(abs_path)
 }
 
+/// Create the output directory
 fn create_output_directory(output_dir: &PathBuf) -> Result<(), Error> {
     match fs::create_dir_all(output_dir) {
         Err(e) => {
@@ -77,6 +81,7 @@ fn create_output_directory(output_dir: &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
+/// Get the PlantUMLConfig from the book config
 fn get_plantuml_config(cfg: &mdbook::Config) -> Result<PlantUMLConfig, Error> {
     match cfg.get("output.plantuml") {
         Some(raw) => raw
@@ -88,6 +93,7 @@ fn get_plantuml_config(cfg: &mdbook::Config) -> Result<PlantUMLConfig, Error> {
     }
 }
 
+/// Check the config for errors
 fn check_config(cfg: &PlantUMLConfig) -> Result<(), Error> {
     if cfg.sources.is_empty() {
         bail!("Nothing to do, please specify on or more source sections.");
@@ -100,6 +106,7 @@ fn check_config(cfg: &PlantUMLConfig) -> Result<(), Error> {
     Ok(())
 }
 
+/// Check a config source entry for errors
 fn check_config_source_entry(entry: &PlantUMLSource) -> Result<(), Error> {
     if entry.src.is_empty() {
         bail!(
@@ -124,6 +131,7 @@ fn check_config_source_entry(entry: &PlantUMLSource) -> Result<(), Error> {
     Ok(())
 }
 
+/// Get the command line for rendering the given source entry
 fn get_cmd_arguments(
     src: &PlantUMLSource,
     plantuml_cmd: &String,
@@ -142,6 +150,7 @@ fn get_cmd_arguments(
     Ok(args)
 }
 
+/// Render the given source entry using PlantUML
 fn render_source(
     src: &PlantUMLSource,
     plantuml_cmd: &String,

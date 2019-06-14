@@ -33,7 +33,8 @@ Available configuration options for the `[[output.plantuml.sources]]` array:
 - **src:** A list of source files, directories or globs you'd normally pass to PlantUML.
 - **output-dir:** Output directory of the image files relative to the book output directory.
 
-For the example config above the PlantUML executable would be called twice like so (assuming the book output dir is /foo/bar):
+For the example config above the PlantUML executable would be called twice (assuming the book output dir is /foo/bar):
+
 On windows (linux is the same, only with ```sh -c``` instead of ```cmd /C```)
 ```bat
 cmd /C java -jar plantuml.jar -o \foo\bar\class-diagrams ..\uml1\*.puml
