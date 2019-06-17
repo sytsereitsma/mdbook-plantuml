@@ -8,7 +8,7 @@
 )
 
 :SETUP_ENV:
-set PATH=%~dp0\..\..\target\debug\;%PATH%
+@set PATH=%~dp0\..\..\target\debug\;%PATH%
 
 :RUN_TESTS
 @cd %~dp0\..\..

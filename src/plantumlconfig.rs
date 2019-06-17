@@ -30,14 +30,16 @@ pub struct PlantUMLConfig {
     /// By default it is assumed plantuml.jar is on the path
     /// Use plantuml_cmd if it is not on the path, or if you
     /// have some additional parameters.
-    pub plantuml_cmd: String,
+    pub plantuml_cmd: Option<String>,
+    pub extra_flags: Vec<String>,
 }
 
 impl Default for PlantUMLConfig {
     fn default() -> PlantUMLConfig {
         PlantUMLConfig {
             sources: Vec::new(),
-            plantuml_cmd: String::from("java -jar plantuml.jar"),
+            plantuml_cmd: None::<String>,
+            extra_flags: Vec::new(),
         }
     }
 }
@@ -51,6 +53,6 @@ mod tests {
     fn default() {
         let cfg = PlantUMLConfig::default();
         assert_eq!(cfg.sources.len(), 0);
-        assert_eq!(cfg.plantuml_cmd, "java -jar plantuml.jar");
+        assert_eq!(cfg.plantuml_cmd, None);
     }
 }
