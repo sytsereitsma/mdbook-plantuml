@@ -2,9 +2,13 @@ use pulldown_cmark::{Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::fmt::cmark;
 
 pub trait PlantUMLCodeBlockRenderer {
+    ///Renders the given code block and returns some HTML (compatible) code to replace
+    ///the PlantUML code block
     fn render(&self, code_block: String) -> String;
 }
 
+/// Process all markdown 'events' detecting and transforming PlantUML code blocks
+/// along the way.
 pub fn render_plantuml_code_blocks(
     markdown: &str,
     processor: &impl PlantUMLCodeBlockRenderer,
@@ -17,8 +21,8 @@ pub fn render_plantuml_code_blocks(
 
     let events = parser.map(|event| match event {
         Event::Start(Tag::CodeBlock(code)) => {
-            //Nested code blocks are supported by commonmark
-            //How to deal with these?
+            //TODO: Nested code blocks are supported by commonmark
+            //      How to deal with these?
             if code.clone().into_string() == "plantuml" {
                 debug!("Started PlantUML code block");
                 in_plantuml_code_block = true;

@@ -95,32 +95,4 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
         None => PlantUMLConfig::default(),
     }
 }
-/*
-#[cfg(test)]
-mod test {
-    use super::*;
 
-    #[test]
-    fn adds_mermaid() {
-        let content = r#"# Chapter
-
-```plantuml
-@startuml
-A --|> B
-@enduml
-```
-
-Text
-"#;
-
-        let expected = r#"# Chapter
-
-<svg class="plantuml">
-</svg>
-
-Text"#;
-
-        assert_eq!(expected, add_mermaid(content).unwrap());
-    }
-}
-*/

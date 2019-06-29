@@ -10,8 +10,8 @@ use std::io;
 use std::process;
 
 pub fn make_app() -> App<'static, 'static> {
-    App::new("nop-preprocessor")
-        .about("A mdbook preprocessor which does precisely nothing")
+    App::new("plantuml-preprocessor")
+        .about("A mdbook preprocessor which renders PlantUML code blocks to inline SVG diagrams")
         .subcommand(
             SubCommand::with_name("supports")
                 .arg(Arg::with_name("renderer").required(true))
