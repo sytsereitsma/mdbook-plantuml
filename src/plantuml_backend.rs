@@ -6,56 +6,48 @@ use std::process::Command;
 use failure::Error;
 use tempfile::tempdir;
 
-pub trait PlantUMLRenderer {
-    /// Render files given a list of files, direcotories, globs, etc.
-    /// Simply the same file arguments you'd use invoke plantuml from the command line.
-    fn render_files(&self, files: &Vec<String>, output_dir: Option<PathBuf>) -> Result<(), Error>;
+use plantumlconfig::PlantUMLConfig;
 
+pub trait PlantUMLBackend {
     /// Render a string and return the SVG diagram as a String
     fn render_svg_from_string(&self, s: &String) -> Result<String, Error>;
 }
 
-pub struct PlantUML {
+pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
+    let cmd = match &cfg.plantuml_cmd {
+        Some(s) => s.clone(),
+        None => String::from("java -jar plantuml.jar"),
+    };
+
+    if cmd.contains("http://") || cmd.contains("https://") {
+        //TODO: create HTTP version
+    }
+
+    Box::new(PlantUMLShell { plantuml_cmd: cmd })
+}
+
+pub struct PlantUMLShell {
     plantuml_cmd: String,
 }
 
-impl PlantUML {
-    // Another static method, taking two arguments:
-    pub fn new(plantuml_cmd: &Option<String>) -> PlantUML {
-        let plantuml_cmd = match plantuml_cmd {
-            Some(s) => s.clone(),
-            None => String::from("java -jar plantuml.jar"),
-        };
-
-        PlantUML { plantuml_cmd }
-    }
-
+impl PlantUMLShell {
     /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(
-        &self,
-        files: &Vec<String>,
-        output_dir: Option<PathBuf>,
-    ) -> Result<Vec<String>, Error> {
+    fn get_cmd_arguments(&self, file: PathBuf) -> Result<Vec<String>, Error> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
         args.push(String::from("-tsvg"));
-        if output_dir.is_some() {
-            let path_str = output_dir.unwrap();
-            let path_str = path_str.to_str().expect("Failed to get output dir");
-            args.push(String::from("-o"));
-            args.push(String::from(path_str));
-        }
-
-        for f in files {
-            args.push(f.clone());
+        args.push(String::from("-nometadata"));
+        match file.to_str() {
+            Some(s) => args.push(String::from(s)),
+            None => {
+                bail!("Failed to stringify temporary PlantUML file path.");
+            }
         }
 
         Ok(args)
     }
-}
 
-impl PlantUMLRenderer for PlantUML {
-    fn render_files(&self, files: &Vec<String>, output_dir: Option<PathBuf>) -> Result<(), Error> {
+    fn render_file(&self, file: PathBuf) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -66,7 +58,7 @@ impl PlantUMLRenderer for PlantUML {
             cmd
         };
 
-        let args = self.get_cmd_arguments(files, output_dir)?;
+        let args = self.get_cmd_arguments(file)?;
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
@@ -99,25 +91,25 @@ impl PlantUMLRenderer for PlantUML {
 
         Ok(())
     }
+}
 
-    fn render_svg_from_string(&self, s: &String) -> Result<String, Error> {
+impl PlantUMLBackend for PlantUMLShell {
+    fn render_svg_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
         let dir = tempdir().or_else(|e| {
             bail!("Failed to create temp dir for inline diagram ({}).", e);
         })?;
 
         // Write diagram file for rendering
         let file_path = dir.path().join("source.puml");
-        fs::write(file_path, s.as_str()).or_else(|e| {
+        fs::write(file_path, plantuml_code.as_str()).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
 
         // Render the diagram
         let file_path = dir.path().join("source.puml");
-        let str_file_path = file_path.to_str().unwrap();
-        self.render_files(&vec![String::from(str_file_path)], None)
-            .or_else(|e| {
-                bail!("Failed to render inline diagram ({}).", e);
-            })?;
+        self.render_file(file_path).or_else(|e| {
+            bail!("Failed to render inline diagram ({}).", e);
+        })?;
 
         // Read the SVG data
         let file_path = dir.path().join("source.svg");
@@ -135,11 +127,31 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn new_initializes_command() {
-        let plant = PlantUML::new(&None::<String>);
-        assert_eq!(plant.plantuml_cmd, "java -jar plantuml.jar");
+    fn shell_command_line_arguments() {
+        let shell = PlantUMLShell {
+            plantuml_cmd: String::from("plantumlcmd"),
+        };
+        let file = PathBuf::from("froboz.puml");
+        assert_eq!(
+            vec![
+                String::from("plantumlcmd"),
+                String::from("-tsvg"),
+                String::from("-nometadata"),
+                String::from("froboz.puml")
+            ],
+            shell.get_cmd_arguments(file).unwrap()
+        );
+    }
 
-        let plant = PlantUML::new(&Some(String::from("froboz electric")));
-        assert_eq!(plant.plantuml_cmd, "froboz electric");
+    #[test]
+    fn command_failure() {
+        let shell = PlantUMLShell {
+            plantuml_cmd: String::from("invalid-plantuml-executable"),
+        };
+
+        match shell.render_svg_from_string (&String::from("@startuml\nA--|>B\n@enduml")) {
+            Ok(_svg) => assert!(false, "Expected the command to fail"),
+            Err(_) => ()
+        };
     }
 }
