@@ -39,13 +39,6 @@ impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
 
 pub struct PlantUMLPreprocessor;
 
-fn render_chapter(
-    plantuml_renderer: &impl PlantUMLCodeBlockRenderer,
-    chapter: &str,
-) -> Result<String, Error> {
-    Ok(render_plantuml_code_blocks(chapter, plantuml_renderer))
-}
-
 impl Preprocessor for PlantUMLPreprocessor {
     fn name(&self) -> &str {
         "plantuml"
@@ -77,6 +70,13 @@ impl Preprocessor for PlantUMLPreprocessor {
     fn supports_renderer(&self, renderer: &str) -> bool {
         renderer != "not-supported"
     }
+}
+
+fn render_chapter(
+    plantuml_renderer: &impl PlantUMLCodeBlockRenderer,
+    chapter: &str,
+) -> Result<String, Error> {
+    Ok(render_plantuml_code_blocks(chapter, plantuml_renderer))
 }
 
 fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {

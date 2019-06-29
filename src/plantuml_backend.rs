@@ -9,19 +9,17 @@ use tempfile::tempdir;
 use plantumlconfig::PlantUMLConfig;
 
 pub trait PlantUMLBackend {
-    /// Render a string and return the SVG diagram as a String
+    /// Render a PlantUML string and return the SVG diagram as a String
     fn render_svg_from_string(&self, s: &String) -> Result<String, Error>;
 }
 
+/// Create an instance of the PlantUMLBackend
+/// For now only a PlantUMLShell instance is created, later server support will be added
 pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
         None => String::from("java -jar plantuml.jar"),
     };
-
-    if cmd.contains("http://") || cmd.contains("https://") {
-        //TODO: create HTTP version
-    }
 
     Box::new(PlantUMLShell { plantuml_cmd: cmd })
 }
@@ -30,6 +28,7 @@ pub struct PlantUMLShell {
     plantuml_cmd: String,
 }
 
+/// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
     /// Get the command line for rendering the given source entry
     fn get_cmd_arguments(&self, file: PathBuf) -> Result<Vec<String>, Error> {
@@ -47,6 +46,8 @@ impl PlantUMLShell {
         Ok(args)
     }
 
+    /// Render a single file. PlantUML will create the rendered diagram next to the specified file.
+    // The rendered diagram file has the same basename as the source file.
     fn render_file(&self, file: PathBuf) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
@@ -149,9 +150,9 @@ mod tests {
             plantuml_cmd: String::from("invalid-plantuml-executable"),
         };
 
-        match shell.render_svg_from_string (&String::from("@startuml\nA--|>B\n@enduml")) {
+        match shell.render_svg_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
-            Err(_) => ()
+            Err(_) => (),
         };
     }
 }
