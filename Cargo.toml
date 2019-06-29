@@ -14,7 +14,7 @@ path = "src/bin/mdbook-plantuml.rs"
 doc = false
 
 [dependencies]
-mdbook = { version = "0.2.3", default-features = false }
+mdbook = "0.3.0"
 serde = "1.0.92"
 serde_json = "1.0.39"
 structopt = "0.2.16"
@@ -27,7 +27,11 @@ glob = "0.3.0"
 failure_derive = "0.1.5"
 path-absolutize = "1.1.5"
 tempfile = "3.0.8"
+pulldown-cmark = "0.5.2"
+pulldown-cmark-to-cmark = { git="https://github.com/sytsereitsma/pulldown-cmark-to-cmark.git", branch="pulldown-cmark-0.5" }
+clap = "2.33.0"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
 toml = "0.5.1"
+simulacrum = "0.3.1"
