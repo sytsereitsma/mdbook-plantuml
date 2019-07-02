@@ -1,9 +1,9 @@
+#![warn(unused_extern_crates)]
 #[macro_use]
 extern crate log;
 extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
-extern crate serde;
 extern crate tempfile;
 #[macro_use]
 extern crate failure;
