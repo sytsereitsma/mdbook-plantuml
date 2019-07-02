@@ -18,7 +18,14 @@ pub trait PlantUMLBackend {
 pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
-        None => String::from("java -jar plantuml.jar"),
+        None => {
+            if cfg!(target_os = "windows") {
+                String::from("java -jar plantuml.jar")
+            }
+            else {
+                String::from("/usr/bin/plantuml")
+            }
+        },
     };
 
     Box::new(PlantUMLShell { plantuml_cmd: cmd })
@@ -121,7 +128,7 @@ impl PlantUMLBackend for PlantUMLShell {
         let file_path = dir.path().join("source.svg");
         let svg = String::from_utf8(fs::read(file_path)?).or_else(|e| {
             bail!("Failed to read generated inline diagram file ({}).", e);
-        })?;
+        })? + "<br />";
 
         Ok(svg)
     }
