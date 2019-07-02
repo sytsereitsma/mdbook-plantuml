@@ -33,4 +33,4 @@ Some more text.
 The plantuml code block will be replaced with inline SVG data.
 
 ## Options
-- **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar").
+- **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
