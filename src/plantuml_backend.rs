@@ -67,7 +67,12 @@ impl PlantUMLShell {
         );
 
         let output = cmd
-            .args(args)
+            // We're invoking through the shell, so call it like this:
+            // ```sh -c "<args>"```
+            // If not done this way sh -c will ignore all data after the first
+            // argument (e.g. ```sh -c plantuml source.puml``` will become
+            // ```sh -c plantuml```.
+            .arg(args.join(" "))
             .output()
             .expect("Failed to start PlantUML application");
 
