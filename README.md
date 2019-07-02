@@ -16,7 +16,7 @@ title = "mdBook PlantUML preprocessor"
 plantuml-cmd="plantuml.exe"
 ```
 
-The simply add a PlantUML code block in your book text:
+Then simply add a PlantUML code block in your book text:
 ````markdown
 Some text here
 
@@ -30,6 +30,7 @@ Some more text.
 
 ````
 
+The plantuml code block will be replaced with inline SVG data.
+
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar").
-

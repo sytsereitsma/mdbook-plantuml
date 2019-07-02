@@ -95,4 +95,3 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
         None => PlantUMLConfig::default(),
     }
 }
-
