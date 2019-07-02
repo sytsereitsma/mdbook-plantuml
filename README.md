@@ -16,13 +16,15 @@ title = "mdBook PlantUML preprocessor"
 plantuml-cmd="plantuml.exe"
 ```
 
+The above assumes both the mdbook-preprocessor and the plantuml executable are on your path.
+
 Then simply add a PlantUML code block in your book text:
 ````markdown
 Some text here
 
 ```plantuml
 @startuml
-A --|>B
+A --|> B
 @enduml
 ```
 
