@@ -23,7 +23,6 @@ fn main() {
     let matches = make_app().get_matches();
 
     let preprocessor = PlantUMLPreprocessor;
-
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         handle_supports(&preprocessor, sub_args);
     } else if let Err(e) = handle_preprocessing(&preprocessor) {

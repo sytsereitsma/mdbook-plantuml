@@ -21,11 +21,10 @@ pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
         None => {
             if cfg!(target_os = "windows") {
                 String::from("java -jar plantuml.jar")
-            }
-            else {
+            } else {
                 String::from("/usr/bin/plantuml")
             }
-        },
+        }
     };
 
     Box::new(PlantUMLShell { plantuml_cmd: cmd })
@@ -126,11 +125,15 @@ impl PlantUMLBackend for PlantUMLShell {
 
         // Read the SVG data
         let file_path = dir.path().join("source.svg");
-        let svg = String::from_utf8(fs::read(file_path)?).or_else(|e| {
-            bail!("Failed to read generated inline diagram file ({}).", e);
-        })? + "<br />";
+        let file_data = fs::read(file_path).or_else(|e| {
+            bail!("Failed to read the generated inline diagram file ({})\nPossibly you forgot to wrap the diagram text in a @startuml/@enduml block (see PlantUML manual).", e);
+        })?;
 
-        Ok(svg)
+        let svg = String::from_utf8(file_data).or_else(|e| {
+            bail!("Failed to decode generated inline diagram file ({}).", e);
+        })?;
+
+        Ok(format!("<div class='plantuml'>{}</div>", svg))
     }
 }
 

@@ -31,7 +31,7 @@ impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
             Ok(svg) => svg,
             Err(e) => {
                 error!("Failed to generate PlantUML diagram.");
-                String::from(format!("<pre>{}</pre>", e))
+                String::from(format!("<pre>PlantUML rendering error:\n{}</pre>", e))
             }
         }
     }
