@@ -1,8 +1,8 @@
 [package]
 name = "mdbook-plantuml"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Sytse Reitsma <mdbook-plantuml@sreitsma.nl>"]
-description = "A preprocessor for mdbook which will convert plantuml code blocks into SVG diagrams"
+description = "A preprocessor for mdbook which will convert plantuml code blocks into inline SVG diagrams"
 license = "MIT"
 documentation = "https://docs.rs/mdbook-plantuml"
 repository = "https://github.com/sytsereitsma/mdbook-plantuml"
@@ -28,7 +28,7 @@ serde_derive = "1.0.92"
 failure_derive = "0.1.5"
 tempfile = "3.0.8"
 pulldown-cmark = "0.5.2"
-pulldown-cmark-to-cmark = { git="https://github.com/sytsereitsma/pulldown-cmark-to-cmark.git", branch="pulldown-cmark-0.5" }
+pulldown-cmark-to-cmark = "1.2.2"
 clap = "2.33.0"
 
 [dev-dependencies]
