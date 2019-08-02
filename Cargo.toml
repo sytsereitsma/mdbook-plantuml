@@ -26,11 +26,12 @@ env_logger = "0.6.1"
 failure = "0.1.5"
 serde_derive = "1.0.92"
 failure_derive = "0.1.5"
-tempfile = "3.0.8"
 pulldown-cmark = "0.5.2"
 pulldown-cmark-to-cmark = "1.2.2"
 clap = "2.33.0"
+uuid = { version = "0.7.4", features = ["v4"] }
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
 simulacrum = "0.3.1"
+tempfile = "3.0.8"

@@ -4,7 +4,7 @@ extern crate log;
 extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
-extern crate tempfile;
+extern crate uuid;
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -13,6 +13,8 @@ extern crate serde_derive;
 extern crate pretty_assertions;
 #[cfg(test)]
 extern crate simulacrum;
+#[cfg(test)]
+extern crate tempfile;
 
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
@@ -27,11 +29,11 @@ use plantumlconfig::PlantUMLConfig;
 
 impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
     fn render(&self, code_block: String) -> String {
-        match self.render_svg_from_string(&code_block) {
-            Ok(svg) => svg,
+        match self.render_from_string(&code_block) {
+            Ok(image_path) => format!("<div><img class='plantuml' src='{}' /></div>\n", image_path),
             Err(e) => {
                 error!("Failed to generate PlantUML diagram.");
-                String::from(format!("<pre>PlantUML rendering error:\n{}</pre>", e))
+                String::from(format!("<pre>\nPlantUML rendering error:\n{}</pre>\n", e))
             }
         }
     }
@@ -50,7 +52,7 @@ impl Preprocessor for PlantUMLPreprocessor {
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
-        let plantuml_cmd = plantuml_backend::create(&cfg);
+        let plantuml_cmd = plantuml_backend::create(&cfg, &ctx.config.build.build_dir);
 
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {

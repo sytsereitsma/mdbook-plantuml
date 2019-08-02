@@ -21,3 +21,18 @@ Error, forgot @startuml @enduml block
 ```plantuml
 C --|> D
 ```
+
+And some ditaa
+```plantuml
+@startditaa
++--------+   +-------+    +-------+
+|        +---+ ditaa +--> |       |
+|  Text  |   +-------+    |diagram|
+|Document|   |!magic!|    |       |
+|     {d}|   |       |    |       |
++---+----+   +-------+    +-------+
+	:                         ^
+	|       Lots of work      |
+	+-------------------------+
+@endditaa
+```

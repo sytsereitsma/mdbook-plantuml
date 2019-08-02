@@ -4,18 +4,18 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use failure::Error;
-use tempfile::tempdir;
-
 use plantumlconfig::PlantUMLConfig;
+use uuid::Uuid;
 
 pub trait PlantUMLBackend {
-    /// Render a PlantUML string and return the SVG diagram as a String
-    fn render_svg_from_string(&self, s: &String) -> Result<String, Error>;
+    /// Render a PlantUML string and return the diagram file path (as a String)
+    /// for use in an anchor tag
+    fn render_from_string(&self, s: &String) -> Result<String, Error>;
 }
 
 /// Create an instance of the PlantUMLBackend
 /// For now only a PlantUMLShell instance is created, later server support will be added
-pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
+pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
         None => {
@@ -27,20 +27,48 @@ pub fn create(cfg: &PlantUMLConfig) -> Box<PlantUMLBackend> {
         }
     };
 
-    Box::new(PlantUMLShell { plantuml_cmd: cmd })
+    let mut img_root = book_root.clone();
+    img_root.push("img");
+
+    fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
+    // fs::create_dir_all(&img_root)?.or_else(|e| {
+    //     return Box::new(PlantUMLError {
+    //         error: format!("Failed to create image output dir ({}).", e)
+    //     });
+    // });
+
+    Box::new(PlantUMLShell {
+        plantuml_cmd: cmd,
+        img_root: img_root,
+    })
 }
+
+/// When the backend setup fails there is no way to communicate this to mdBook,
+/// because it uses pre defined errors, none of which can be used by us.
+/// This is an error backend basically always returning the same error message
+/// (which will be rendered as inline text)
+// pub struct PlantUMLError {
+//     error: String,
+// }
+
+// impl PlantUMLBackend for PlantUMLError {
+//     fn render_svg_from_string(&self, _plantuml_code: &String) -> Result<String, Error> {
+//         bail!("Cannot render diagrams {}", self.error)
+//     }
+// }
 
 pub struct PlantUMLShell {
     plantuml_cmd: String,
+    img_root: PathBuf,
 }
 
 /// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
     /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: PathBuf) -> Result<Vec<String>, Error> {
+    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
-        args.push(String::from("-tsvg"));
+        args.push(format!("-t{}", extension));
         args.push(String::from("-nometadata"));
         match file.to_str() {
             Some(s) => args.push(String::from(s)),
@@ -54,7 +82,7 @@ impl PlantUMLShell {
 
     /// Render a single file. PlantUML will create the rendered diagram next to the specified file.
     // The rendered diagram file has the same basename as the source file.
-    fn render_file(&self, file: PathBuf) -> Result<(), Error> {
+    fn render_file(&self, file: &PathBuf, extension: &String) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -65,7 +93,7 @@ impl PlantUMLShell {
             cmd
         };
 
-        let args = self.get_cmd_arguments(file)?;
+        let args = self.get_cmd_arguments(&file, extension)?;
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
@@ -103,37 +131,58 @@ impl PlantUMLShell {
 
         Ok(())
     }
+
+    /// Create the source and image names with the appropriate extensions
+    /// The file base names are a UUID to avoid collisions with exsisting
+    /// files
+    fn get_filenames(&self, extension: &String) -> (PathBuf, PathBuf) {
+        let mut output_file = self.img_root.clone();
+        output_file.push(Uuid::new_v4().to_string());
+        output_file.set_extension(extension);
+
+        let mut source_file = output_file.clone();
+        source_file.set_extension("puml");
+
+        (source_file, output_file)
+    }
 }
 
 impl PlantUMLBackend for PlantUMLShell {
-    fn render_svg_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
-        let dir = tempdir().or_else(|e| {
-            bail!("Failed to create temp dir for inline diagram ({}).", e);
-        })?;
+    fn render_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
+        let extension = get_extension(plantuml_code);
+        let (source_file, output_file) = self.get_filenames(&extension);
 
-        // Write diagram file for rendering
-        let file_path = dir.path().join("source.puml");
-        fs::write(file_path, plantuml_code.as_str()).or_else(|e| {
+        // Write diagram source file for rendering
+        fs::write(source_file.as_path(), plantuml_code.as_str()).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
 
-        // Render the diagram
-        let file_path = dir.path().join("source.puml");
-        self.render_file(file_path).or_else(|e| {
+        // Render the diagram, PlantUML will create a file with the same base
+        // name, and the image extension
+        self.render_file(&source_file, &extension).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;
 
-        // Read the SVG data
-        let file_path = dir.path().join("source.svg");
-        let file_data = fs::read(file_path).or_else(|e| {
-            bail!("Failed to read the generated inline diagram file ({})\nPossibly you forgot to wrap the diagram text in a @startuml/@enduml block (see PlantUML manual).", e);
-        })?;
+        if !output_file.exists() {
+            bail!(
+                "PlantUML did not generate an image, did you forget the @startuml, @enduml block?"
+            );
+        }
 
-        let svg = String::from_utf8(file_data).or_else(|e| {
-            bail!("Failed to decode generated inline diagram file ({}).", e);
-        })?;
+        // Cannot use PathBuf here, because on windows this would include back
+        // slashes instead of forward slashes as the separator.
+        Ok(format!(
+            "img/{}",
+            output_file.file_name().unwrap().to_str().unwrap()
+        ))
+    }
+}
 
-        Ok(format!("<div class='plantuml'>{}</div>", svg))
+fn get_extension(plantuml_code: &String) -> String {
+    if plantuml_code.contains("@startditaa") {
+        String::from("png")
+    } else {
+        String::from("svg")
     }
 }
 
@@ -141,21 +190,29 @@ impl PlantUMLBackend for PlantUMLShell {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    //use tempfile::tempdir;
+
+    // let dir = tempdir().or_else(|e| {
+    //     bail!("Failed to create temp dir for inline diagram ({}).", e);
+    // })?;
 
     #[test]
     fn shell_command_line_arguments() {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("plantumlcmd"),
+            img_root: PathBuf::from(""),
         };
         let file = PathBuf::from("froboz.puml");
         assert_eq!(
             vec![
                 String::from("plantumlcmd"),
-                String::from("-tsvg"),
+                String::from("-tsome_supported_extension"),
                 String::from("-nometadata"),
                 String::from("froboz.puml")
             ],
-            shell.get_cmd_arguments(file).unwrap()
+            shell
+                .get_cmd_arguments(&file, &String::from("some_supported_extension"))
+                .unwrap()
         );
     }
 
@@ -163,9 +220,10 @@ mod tests {
     fn command_failure() {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("invalid-plantuml-executable"),
+            img_root: PathBuf::from(""),
         };
 
-        match shell.render_svg_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {
+        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
             Err(_) => (),
         };
