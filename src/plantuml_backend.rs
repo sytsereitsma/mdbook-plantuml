@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::any::Any;
 
 use failure::Error;
 use plantumlconfig::PlantUMLConfig;
@@ -31,58 +32,27 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
     img_root.push("img");
 
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
-    // fs::create_dir_all(&img_root)?.or_else(|e| {
-    //     return Box::new(PlantUMLError {
-    //         error: format!("Failed to create image output dir ({}).", e)
-    //     });
-    // });
 
     Box::new(PlantUMLShell {
         plantuml_cmd: cmd,
         img_root: img_root,
+        cmd_executor: Box::new(RealCommand),
     })
 }
 
-/// When the backend setup fails there is no way to communicate this to mdBook,
-/// because it uses pre defined errors, none of which can be used by us.
-/// This is an error backend basically always returning the same error message
-/// (which will be rendered as inline text)
-// pub struct PlantUMLError {
-//     error: String,
-// }
-
-// impl PlantUMLBackend for PlantUMLError {
-//     fn render_svg_from_string(&self, _plantuml_code: &String) -> Result<String, Error> {
-//         bail!("Cannot render diagrams {}", self.error)
-//     }
-// }
-
-pub struct PlantUMLShell {
-    plantuml_cmd: String,
-    img_root: PathBuf,
+/// A trait class for wrapping the actual rendering command
+/// Only here to make unit testing the renderer possbile, this is cheating a
+/// bit, but the other option is not testing it at all, or partially through
+/// integration tests
+trait CommandWrapper {
+    fn execute(&self, args: &Vec<String>) -> Result<(), Error>;
+    fn as_any(&self) -> &dyn Any;
 }
 
-/// Invokes PlantUML as a shell/cmd program.
-impl PlantUMLShell {
-    /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
-        let mut args: Vec<String> = Vec::new();
-        args.push(self.plantuml_cmd.clone());
-        args.push(format!("-t{}", extension));
-        args.push(String::from("-nometadata"));
-        match file.to_str() {
-            Some(s) => args.push(String::from(s)),
-            None => {
-                bail!("Failed to stringify temporary PlantUML file path.");
-            }
-        }
+struct RealCommand;
 
-        Ok(args)
-    }
-
-    /// Render a single file. PlantUML will create the rendered diagram next to the specified file.
-    // The rendered diagram file has the same basename as the source file.
-    fn render_file(&self, file: &PathBuf, extension: &String) -> Result<(), Error> {
+impl CommandWrapper for RealCommand {
+    fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -93,7 +63,6 @@ impl PlantUMLShell {
             cmd
         };
 
-        let args = self.get_cmd_arguments(&file, extension)?;
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
@@ -129,6 +98,43 @@ impl PlantUMLShell {
             bail!(msg);
         }
 
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+struct PlantUMLShell {
+    plantuml_cmd: String,
+    img_root: PathBuf,
+    cmd_executor: Box<CommandWrapper>,
+}
+
+/// Invokes PlantUML as a shell/cmd program.
+impl PlantUMLShell {
+    /// Get the command line for rendering the given source entry
+    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
+        let mut args: Vec<String> = Vec::new();
+        args.push(self.plantuml_cmd.clone());
+        args.push(format!("-t{}", extension));
+        args.push(String::from("-nometadata"));
+        match file.to_str() {
+            Some(s) => args.push(String::from(s)),
+            None => {
+                bail!("Failed to stringify temporary PlantUML file path.");
+            }
+        }
+
+        Ok(args)
+    }
+
+    /// Render a single file. PlantUML will create the rendered diagram next to the specified file.
+    // The rendered diagram file has the same basename as the source file.
+    fn render_file(&self, file: &PathBuf, extension: &String) -> Result<(), Error> {
+        let args = self.get_cmd_arguments(&file, extension)?;
+        self.cmd_executor.execute(&args)?;
         Ok(())
     }
 
@@ -195,13 +201,38 @@ mod tests {
     // let dir = tempdir().or_else(|e| {
     //     bail!("Failed to create temp dir for inline diagram ({}).", e);
     // })?;
+    struct FakeCommand {
+        result : Result <(), Error>,
+        args: Vec<String>,
+    }
+
+    impl FakeCommand {
+        fn new(r : Result <(), Error>) -> FakeCommand {
+            FakeCommand {
+                result: r,
+                args: vec! []
+            }
+        }
+    }
+
+    impl CommandWrapper for FakeCommand {
+        fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
+            self.result
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
 
     #[test]
     fn shell_command_line_arguments() {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("plantumlcmd"),
             img_root: PathBuf::from(""),
+            cmd_executor: Box::new (FakeCommand::new(Ok(()))),
         };
+
         let file = PathBuf::from("froboz.puml");
         assert_eq!(
             vec![
@@ -221,7 +252,13 @@ mod tests {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("invalid-plantuml-executable"),
             img_root: PathBuf::from(""),
+            cmd_executor: Box::new (CommandMock::new()),
         };
+
+        mock_command
+            .expect_execute();
+            // .called_once()
+            // .returning(|_| Ok(()));
 
         match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
