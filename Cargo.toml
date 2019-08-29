@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-plantuml"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Sytse Reitsma <mdbook-plantuml@sreitsma.nl>"]
 description = "A preprocessor for mdbook which will convert plantuml code blocks into inline SVG diagrams"
 license = "MIT"

@@ -31,31 +31,12 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
     img_root.push("img");
 
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
-    // fs::create_dir_all(&img_root)?.or_else(|e| {
-    //     return Box::new(PlantUMLError {
-    //         error: format!("Failed to create image output dir ({}).", e)
-    //     });
-    // });
 
     Box::new(PlantUMLShell {
         plantuml_cmd: cmd,
         img_root: img_root,
     })
 }
-
-/// When the backend setup fails there is no way to communicate this to mdBook,
-/// because it uses pre defined errors, none of which can be used by us.
-/// This is an error backend basically always returning the same error message
-/// (which will be rendered as inline text)
-// pub struct PlantUMLError {
-//     error: String,
-// }
-
-// impl PlantUMLBackend for PlantUMLError {
-//     fn render_svg_from_string(&self, _plantuml_code: &String) -> Result<String, Error> {
-//         bail!("Cannot render diagrams {}", self.error)
-//     }
-// }
 
 pub struct PlantUMLShell {
     plantuml_cmd: String,
@@ -190,11 +171,7 @@ fn get_extension(plantuml_code: &String) -> String {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    //use tempfile::tempdir;
-
-    // let dir = tempdir().or_else(|e| {
-    //     bail!("Failed to create temp dir for inline diagram ({}).", e);
-    // })?;
+    use tempfile::tempdir;
 
     #[test]
     fn shell_command_line_arguments() {
@@ -218,9 +195,10 @@ mod tests {
 
     #[test]
     fn command_failure() {
+        let output_dir = tempdir().unwrap();
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("invalid-plantuml-executable"),
-            img_root: PathBuf::from(""),
+            img_root: output_dir.into_path(),
         };
 
         match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {

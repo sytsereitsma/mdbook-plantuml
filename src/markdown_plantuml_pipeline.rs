@@ -17,7 +17,7 @@ pub fn render_plantuml_code_blocks(
     let parser = Parser::new_ext(markdown, options);
 
     let mut in_plantuml_code_block = false;
-    let mut plantuml_code = String::from("");
+    let mut plantuml_source = String::from("");
 
     let events = parser.map(|event| match event {
         Event::Start(Tag::CodeBlock(code)) => {
@@ -33,7 +33,7 @@ pub fn render_plantuml_code_blocks(
         }
         Event::Text(text) => {
             if in_plantuml_code_block {
-                plantuml_code = processor.render(text.into_string());
+                plantuml_source.push_str(&text.into_string());
                 Event::Text("".into())
             } else {
                 Event::Text(text)
@@ -42,6 +42,9 @@ pub fn render_plantuml_code_blocks(
         Event::End(Tag::CodeBlock(code)) => {
             if code.clone().into_string() == "plantuml" {
                 in_plantuml_code_block = false;
+                let plantuml_code = processor.render(plantuml_source.clone());
+                plantuml_source = String::from("");
+
                 Event::Text(plantuml_code.clone().into())
             } else {
                 Event::End(Tag::CodeBlock(code))
@@ -100,14 +103,5 @@ mod test {
         mock_renderer.expect_render().called_never();
         let result = render_plantuml_code_blocks(&markdown, &mock_renderer);
         assert_eq!(markdown, result);
-    }
-
-    #[test]
-    fn incomplete_code_block_is_eaten() {
-        let markdown = String::from("#Some markdown\n\n````plantuml\n");
-        let mut mock_renderer = RendererMock::new();
-        mock_renderer.expect_render().called_never();
-        let result = render_plantuml_code_blocks(&markdown, &mock_renderer);
-        assert_eq!(String::from("#Some markdown\n\n"), result);
     }
 }
