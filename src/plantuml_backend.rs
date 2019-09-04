@@ -38,32 +38,18 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
     })
 }
 
-pub struct PlantUMLShell {
-    plantuml_cmd: String,
-    img_root: PathBuf,
+/// A trait class for wrapping the actual rendering command
+/// Only here to make unit testing the renderer possbile, this is cheating a
+/// bit, but the other option is not testing it at all, or partially through
+/// integration tests
+trait CommandExecutor {
+    fn execute(&self, args: &Vec<String>) -> Result<(), Error>;
 }
 
-/// Invokes PlantUML as a shell/cmd program.
-impl PlantUMLShell {
-    /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
-        let mut args: Vec<String> = Vec::new();
-        args.push(self.plantuml_cmd.clone());
-        args.push(format!("-t{}", extension));
-        args.push(String::from("-nometadata"));
-        match file.to_str() {
-            Some(s) => args.push(String::from(s)),
-            None => {
-                bail!("Failed to stringify temporary PlantUML file path.");
-            }
-        }
+struct RealCommandExecutor;
 
-        Ok(args)
-    }
-
-    /// Render a single file. PlantUML will create the rendered diagram next to the specified file.
-    // The rendered diagram file has the same basename as the source file.
-    fn render_file(&self, file: &PathBuf, extension: &String) -> Result<(), Error> {
+impl CommandExecutor for RealCommandExecutor {
+    fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -74,7 +60,6 @@ impl PlantUMLShell {
             cmd
         };
 
-        let args = self.get_cmd_arguments(&file, extension)?;
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
@@ -112,6 +97,30 @@ impl PlantUMLShell {
 
         Ok(())
     }
+}
+
+pub struct PlantUMLShell {
+    plantuml_cmd: String,
+    img_root: PathBuf,
+}
+
+/// Invokes PlantUML as a shell/cmd program.
+impl PlantUMLShell {
+    /// Get the command line for rendering the given source entry
+    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
+        let mut args: Vec<String> = Vec::new();
+        args.push(self.plantuml_cmd.clone());
+        args.push(format!("-t{}", extension));
+        args.push(String::from("-nometadata"));
+        match file.to_str() {
+            Some(s) => args.push(String::from(s)),
+            None => {
+                bail!("Failed to stringify temporary PlantUML file path.");
+            }
+        }
+
+        Ok(args)
+    }
 
     /// Create the source and image names with the appropriate extensions
     /// The file base names are a UUID to avoid collisions with exsisting
@@ -126,10 +135,12 @@ impl PlantUMLShell {
 
         (source_file, output_file)
     }
-}
 
-impl PlantUMLBackend for PlantUMLShell {
-    fn render_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
+    fn render_from_string(
+        &self,
+        plantuml_code: &String,
+        command_executor: &CommandExecutor,
+    ) -> Result<String, Error> {
         let extension = get_extension(plantuml_code);
         let (source_file, output_file) = self.get_filenames(&extension);
 
@@ -140,7 +151,8 @@ impl PlantUMLBackend for PlantUMLShell {
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension
-        self.render_file(&source_file, &extension).or_else(|e| {
+        let args = self.get_cmd_arguments(&source_file, &extension)?;
+        command_executor.execute(&args).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;
 
@@ -150,12 +162,15 @@ impl PlantUMLBackend for PlantUMLShell {
             );
         }
 
-        // Cannot use PathBuf here, because on windows this would include back
-        // slashes instead of forward slashes as the separator.
-        Ok(format!(
-            "img/{}",
-            output_file.file_name().unwrap().to_str().unwrap()
-        ))
+        // On windows the path contains backslashes, an URL uses forward slashes
+        Ok(output_file.to_str().unwrap().replace("\\", "/"))
+    }
+}
+
+impl PlantUMLBackend for PlantUMLShell {
+    fn render_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
+        let executor = RealCommandExecutor {};
+        self.render_from_string(plantuml_code, &executor)
     }
 }
 
@@ -170,8 +185,33 @@ fn get_extension(plantuml_code: &String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use failure::err_msg;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
+
+    struct FakeCommandExecutor {
+        error: bool,
+        create_file: bool,
+    }
+
+    impl CommandExecutor for FakeCommandExecutor {
+        fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
+            if self.error {
+                Err(err_msg("Whoops"))
+            } else {
+                // Last argument is file name
+                if self.create_file {
+                    let mut filename = PathBuf::from(args.last().unwrap());
+                    let source = &fs::read(filename.clone())?;
+
+                    //Simply copy the contents of source to the output file
+                    filename.set_extension("svg");
+                    fs::write(filename.as_path(), source)?;
+                }
+                Ok(())
+            }
+        }
+    }
 
     #[test]
     fn shell_command_line_arguments() {
@@ -197,13 +237,64 @@ mod tests {
     fn command_failure() {
         let output_dir = tempdir().unwrap();
         let shell = PlantUMLShell {
-            plantuml_cmd: String::from("invalid-plantuml-executable"),
+            plantuml_cmd: String::from(""),
             img_root: output_dir.into_path(),
         };
 
-        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml")) {
+        let executor = FakeCommandExecutor {
+            error: true,
+            create_file: false,
+        };
+        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
-            Err(_) => (),
+            Err(e) => assert!(
+                e.to_string().contains("Failed to render inline diagram"),
+                "Wrong error returned"
+            ),
+        };
+    }
+
+    #[test]
+    fn no_image_file_created() {
+        let output_dir = tempdir().unwrap();
+        let shell = PlantUMLShell {
+            plantuml_cmd: String::from(""),
+            img_root: output_dir.into_path(),
+        };
+
+        let executor = FakeCommandExecutor {
+            error: false,
+            create_file: false,
+        };
+        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
+            Ok(_svg) => assert!(false, "Expected the command to fail"),
+            Err(e) => assert!(
+                e.to_string().contains("PlantUML did not generate an image"),
+                "Wrong error returned"
+            ),
+        };
+    }
+
+    #[test]
+    fn returns_image_file_path_on_success() {
+        let output_dir = tempdir().unwrap();
+        let shell = PlantUMLShell {
+            plantuml_cmd: String::from(""),
+            img_root: output_dir.into_path(),
+        };
+
+        let executor = FakeCommandExecutor {
+            error: false,
+            create_file: true,
+        };
+        let source = String::from("@startuml\nA--|>B\n@enduml");
+        match shell.render_from_string(&source, &executor) {
+            Ok(filename) => {
+                let raw_source = fs::read(filename).unwrap();
+                let copied_source = String::from_utf8_lossy(&raw_source);
+                assert_eq!(source, copied_source)
+            }
+            Err(e) => assert!(false, e.to_string()),
         };
     }
 }
