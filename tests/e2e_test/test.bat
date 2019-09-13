@@ -17,6 +17,9 @@
 @cd %~dp0\test_book
 @mdbook build
 
+@cd %~dp0\test_server
+@mdbook build
+
 :END
 @cd %__MDBOOK_PLANTUML_E2E_CD__%
 @set __MDBOOK_PLANTUML_E2E_CD__=

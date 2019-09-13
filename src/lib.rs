@@ -4,7 +4,9 @@ extern crate log;
 extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
+extern crate url;
 extern crate uuid;
+
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -18,6 +20,8 @@ extern crate tempfile;
 
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
+mod plantuml_server_backend;
+mod plantuml_shell_backend;
 mod plantumlconfig;
 
 use failure::Error;

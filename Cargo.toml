@@ -30,6 +30,8 @@ pulldown-cmark = "0.5.2"
 pulldown-cmark-to-cmark = "1.2.2"
 clap = "2.33.0"
 uuid = { version = "0.7.4", features = ["v4"] }
+url = "2.1.0"
+log4rs = "0.8.3"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
