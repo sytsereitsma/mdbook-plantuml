@@ -14,7 +14,11 @@ use std::process;
 use std::error::Error;
 
 pub fn make_app() -> App<'static, 'static> {
-    App::new("plantuml-preprocessor")
+    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+    App::new("mdBook PlantUML preprocessor")
+        .version(VERSION)
+        .author("Sytse Reitsma")
         .about("A mdbook preprocessor which renders PlantUML code blocks to inline SVG diagrams")
         .subcommand(
             SubCommand::with_name("supports")

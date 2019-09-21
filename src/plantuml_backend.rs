@@ -38,3 +38,4 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
         Box::new(PlantUMLShell::new(cmd, img_root))
     }
 }
+
