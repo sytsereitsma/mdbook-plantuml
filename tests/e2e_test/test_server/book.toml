@@ -5,4 +5,4 @@ src = "src"
 title = "mdBook E2E test book"
 
 [preprocessor.plantuml]
-plantuml-cmd="http://localhost"
+plantuml-cmd="http://localhost:8080/plantuml"

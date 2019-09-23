@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use failure::Error;
-use plantuml_backend::PlantUMLBackend;
+use plantuml_backend::{get_extension, PlantUMLBackend};
 use uuid::Uuid;
 
 /// A trait class for wrapping the actual rendering command
@@ -134,12 +134,14 @@ impl PlantUMLShell {
 
         if !output_file.exists() {
             bail!(
-                "PlantUML did not generate an image, did you forget the @startuml, @enduml block?"
+                format!("PlantUML did not generate an image, did you forget the @startuml, @enduml block ({})?", args.join(" "))
             );
         }
 
-        // On windows the path contains backslashes, an URL uses forward slashes
-        Ok(output_file.to_str().unwrap().replace("\\", "/"))
+        Ok(format!(
+            "img/{}",
+            output_file.file_name().unwrap().to_str().unwrap()
+        ))
     }
 }
 
@@ -147,14 +149,6 @@ impl PlantUMLBackend for PlantUMLShell {
     fn render_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
         let executor = RealCommandExecutor {};
         self.render_from_string(plantuml_code, &executor)
-    }
-}
-
-fn get_extension(plantuml_code: &String) -> String {
-    if plantuml_code.contains("@startditaa") {
-        String::from("png")
-    } else {
-        String::from("svg")
     }
 }
 
@@ -265,7 +259,10 @@ mod tests {
         };
         let source = String::from("@startuml\nA--|>B\n@enduml");
         match shell.render_from_string(&source, &executor) {
-            Ok(filename) => {
+            Ok(relative_url) => {
+                let mut filename = shell.img_root.clone();
+                filename.push(relative_url.replace("img/", ""));
+
                 let raw_source = fs::read(filename).unwrap();
                 let copied_source = String::from_utf8_lossy(&raw_source);
                 assert_eq!(source, copied_source)

@@ -5,12 +5,20 @@ use failure::Error;
 use plantuml_server_backend::PlantUMLServer;
 use plantuml_shell_backend::PlantUMLShell;
 use plantumlconfig::PlantUMLConfig;
-use url::Url;
+use reqwest::Url;
 
 pub trait PlantUMLBackend {
     /// Render a PlantUML string and return the diagram file path (as a String)
     /// for use in an anchor tag
     fn render_from_string(&self, s: &String) -> Result<String, Error>;
+}
+
+pub fn get_extension(plantuml_code: &String) -> String {
+    if plantuml_code.contains("@startditaa") {
+        String::from("png")
+    } else {
+        String::from("svg")
+    }
 }
 
 /// Create an instance of the PlantUMLBackend
@@ -38,4 +46,3 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
         Box::new(PlantUMLShell::new(cmd, img_root))
     }
 }
-

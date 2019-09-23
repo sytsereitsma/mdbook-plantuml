@@ -1,10 +1,11 @@
 #![warn(unused_extern_crates)]
 #[macro_use]
 extern crate log;
+extern crate deflate;
 extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
-extern crate url;
+extern crate reqwest;
 extern crate uuid;
 
 #[macro_use]
@@ -18,6 +19,7 @@ extern crate simulacrum;
 #[cfg(test)]
 extern crate tempfile;
 
+mod base64_plantuml;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_server_backend;

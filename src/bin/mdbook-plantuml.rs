@@ -9,9 +9,9 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_plantuml::PlantUMLPreprocessor;
+use std::error::Error;
 use std::io;
 use std::process;
-use std::error::Error;
 
 pub fn make_app() -> App<'static, 'static> {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -33,16 +33,15 @@ fn main() {
     let preprocessor = PlantUMLPreprocessor;
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         handle_supports(&preprocessor, sub_args);
-    }
-    else {
+    } else {
         if let Err(e) = setup_logging() {
-           eprintln!("{}", e);
-           process::exit(2);
+            eprintln!("{}", e);
+            process::exit(2);
         }
 
         if let Err(e) = handle_preprocessing(&preprocessor) {
-           eprintln!("{}", e);
-           process::exit(1);
+            eprintln!("{}", e);
+            process::exit(1);
         }
     }
 }
@@ -82,18 +81,16 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 fn setup_logging() -> Result<(), Box<Error>> {
     use log::LevelFilter;
     use log4rs::append::file::FileAppender;
-    use log4rs::encode::pattern::PatternEncoder;
     use log4rs::config::{Appender, Config, Root};
+    use log4rs::encode::pattern::PatternEncoder;
 
     let logfile = FileAppender::builder()
-            .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-            .build("D:\\Projects\\mdBook-plantuml\\output.log")?;
+        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .build("D:\\Projects\\mdBook-plantuml\\output.log")?;
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(Root::builder()
-                   .appender("logfile")
-                   .build(LevelFilter::Info))?;
+        .build(Root::builder().appender("logfile").build(LevelFilter::Info))?;
 
     log4rs::init_config(config)?;
 
