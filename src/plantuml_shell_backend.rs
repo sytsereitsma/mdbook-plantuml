@@ -4,8 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use failure::Error;
-use plantuml_backend::{get_extension, PlantUMLBackend};
-use uuid::Uuid;
+use plantuml_backend::{get_extension, get_image_filename, PlantUMLBackend};
 
 /// A trait class for wrapping the actual rendering command
 /// Only here to make unit testing the renderer possbile, this is cheating a
@@ -102,9 +101,7 @@ impl PlantUMLShell {
     /// The file base names are a UUID to avoid collisions with exsisting
     /// files
     fn get_filenames(&self, extension: &String) -> (PathBuf, PathBuf) {
-        let mut output_file = self.img_root.clone();
-        output_file.push(Uuid::new_v4().to_string());
-        output_file.set_extension(extension);
+        let output_file = get_image_filename(&self.img_root, &extension);
 
         let mut source_file = output_file.clone();
         source_file.set_extension("puml");

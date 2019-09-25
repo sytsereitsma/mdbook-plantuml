@@ -1,28 +1,33 @@
 # Chapter 1
 
-Some text
+## Some text
+```python
+def a():
+    pass
+```
 
+## Some text
 ```plantuml
 @startuml
 A --|> B
 @enduml
 ```
 
-Some more text
-
+## Some more text
 ```plantuml
 @startuml
-C --|> D
+PlantUML --|> Server
 @enduml
 ```
 
-Error, forgot @startuml @enduml block
+## Error
+The diagram source below is not valid PlantUML syntax
 
 ```plantuml
-C --|> D
+E --|>
 ```
 
-And some ditaa
+## And some ditaa
 ```plantuml
 @startditaa
 +--------+   +-------+    +-------+

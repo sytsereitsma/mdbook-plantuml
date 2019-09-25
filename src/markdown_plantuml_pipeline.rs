@@ -68,7 +68,7 @@ mod test {
     create_mock! {
         impl PlantUMLCodeBlockRenderer for RendererMock (self) {
             expect_render("render"):
-            fn render(&self, code_block : String) -> String;
+                fn render(&self, code_block : String) -> String;
         }
     }
 

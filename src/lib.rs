@@ -36,10 +36,10 @@ use plantumlconfig::PlantUMLConfig;
 impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
     fn render(&self, code_block: String) -> String {
         match self.render_from_string(&code_block) {
-            Ok(image_path) => format!("<div><img class='plantuml' src='{}' /></div>\n", image_path),
+            Ok(image_path) => format!("![{}]({})\n\n", image_path, image_path),
             Err(e) => {
                 error!("Failed to generate PlantUML diagram.");
-                String::from(format!("<pre>\nPlantUML rendering error:\n{}</pre>\n", e))
+                String::from(format!("```\nPlantUML rendering error:\n{}```\n\n", e))
             }
         }
     }
