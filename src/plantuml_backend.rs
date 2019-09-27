@@ -153,7 +153,7 @@ impl PlantUMLBackend for PlantUMLShell {
         // Cannot use PathBuf here, because on windows this would include back
         // slashes instead of forward slashes as the separator.
         Ok(format!(
-            "img/{}",
+            "/img/{}",
             output_file.file_name().unwrap().to_str().unwrap()
         ))
     }
