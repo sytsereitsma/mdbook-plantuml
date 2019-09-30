@@ -6,3 +6,11 @@ tests/e2e_test/test_server/book/img/
 tests/e2e_test/test_server/book/
 
 *.log
+
+tests/e2e_test/book/
+
+tests/e2e_test/server_book/
+
+tests/e2e_test/shell_book/
+
+tests/e2e_test/book.toml

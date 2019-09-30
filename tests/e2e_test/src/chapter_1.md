@@ -7,6 +7,7 @@ def a():
 ```
 
 ## Some text
+
 ```plantuml
 @startuml
 A --|> B
@@ -14,20 +15,20 @@ A --|> B
 ```
 
 ## Some more text
+
 ```plantuml
 @startuml
-PlantUML --|> Server
+C --|> D
 @enduml
 ```
 
-## Error
-The diagram source below is not valid PlantUML syntax
+## Error, forgot @startuml @enduml block
 
 ```plantuml
-E --|>
+C --|> D
 ```
 
-## And some ditaa
+## Ditaa support
 ```plantuml
 @startditaa
 +--------+   +-------+    +-------+
@@ -42,7 +43,7 @@ E --|>
 @endditaa
 ```
 
-And graphviz diagrams
+## Graphviz diagram support
 ```plantuml
 @startdot
 digraph foo {
