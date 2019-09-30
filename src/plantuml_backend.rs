@@ -162,7 +162,6 @@ impl PlantUMLShell {
             );
         }
 
-        // On windows the path contains backslashes, an URL uses forward slashes
         Ok(output_file.to_str().unwrap().replace("\\", "/"))
     }
 }
