@@ -22,10 +22,18 @@ C --|> D
 @enduml
 ```
 
-## Error, forgot @startuml @enduml block
+## Error, forgot @startuml @enduml block (shell error only)
 
 ```plantuml
 C --|> D
+```
+
+## Error in PlantUML diagram source
+
+```plantuml
+@startuml
+C --|>
+@enduml
 ```
 
 ## Ditaa support
