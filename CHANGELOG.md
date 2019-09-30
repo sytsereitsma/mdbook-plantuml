@@ -1,3 +1,10 @@
+## 0.4.0 (2019-09-25)
+* PlantUML server support, woot!
+* Fixed issue where all markdown after the first PlantUML image was not
+  rendered anymore (preprocessors cannot output HTML apparently).
+ * Images in nested chapters now have the correct URL (thanks @rafasf).
+ * Allow logging to file to troubleshoot preprocessor issues.
+
 ## 0.3.0 (2019-08-29)
 * Generate SVG image files rather than inline svg
 * For ditaa images revert to png, because PlantUML does not support svg for

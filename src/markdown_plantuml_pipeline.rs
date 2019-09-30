@@ -2,16 +2,19 @@ use pulldown_cmark::{Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::fmt::cmark;
 
 pub trait PlantUMLCodeBlockRenderer {
-    ///Renders the given code block and returns some HTML (compatible) code to replace
-    ///the PlantUML code block
-    fn render(&self, code_block: String) -> String;
+    ///Renders the given code block and returns a markdown link to the generated
+    ///image. E.g. ![image](/img/foobar.svg).
+    ///Note that the prepocessor can never output HTML! mdBook will not render
+    ///anything after HTML code for some reason. So markdown in, markdown out.
+    fn render(&self, code_block: String, rel_image_url: &String) -> String;
 }
 
 /// Process all markdown 'events' detecting and transforming PlantUML code blocks
-/// along the way.
+/// along the way using the PlantUMLCodeBlockRenderer.
 pub fn render_plantuml_code_blocks(
     markdown: &str,
-    processor: &impl PlantUMLCodeBlockRenderer,
+    renderer: &impl PlantUMLCodeBlockRenderer,
+    rel_image_url: &String,
 ) -> String {
     let options = Options::all();
     let parser = Parser::new_ext(markdown, options);
@@ -42,7 +45,7 @@ pub fn render_plantuml_code_blocks(
         Event::End(Tag::CodeBlock(code)) => {
             if code.clone().into_string() == "plantuml" {
                 in_plantuml_code_block = false;
-                let plantuml_code = processor.render(plantuml_source.clone());
+                let plantuml_code = renderer.render(plantuml_source.clone(), rel_image_url);
                 plantuml_source = String::from("");
 
                 Event::Text(plantuml_code.clone().into())
@@ -68,7 +71,7 @@ mod test {
     create_mock! {
         impl PlantUMLCodeBlockRenderer for RendererMock (self) {
             expect_render("render"):
-            fn render(&self, code_block : String) -> String;
+                fn render(&self, code_block : String, rel_img_utl : &String) -> String;
         }
     }
 
@@ -76,7 +79,11 @@ mod test {
     fn no_code_blocks() {
         let mut mock_renderer = RendererMock::new();
         mock_renderer.expect_render().called_never();
-        let result = render_plantuml_code_blocks(&String::from("#Some markdown"), &mock_renderer);
+        let result = render_plantuml_code_blocks(
+            &String::from("#Some markdown"),
+            &mock_renderer,
+            &String::new(),
+        );
         assert_eq!("#Some markdown", result);
     }
 
@@ -89,7 +96,7 @@ mod test {
             .expect_render()
             .called_once()
             .returning(|_| String::from("froboz"));
-        let result = render_plantuml_code_blocks(&markdown, &mock_renderer);
+        let result = render_plantuml_code_blocks(&markdown, &mock_renderer, &String::new());
         assert_eq!("#Some markdown\n\nfroboz", result);
     }
 
@@ -101,7 +108,7 @@ mod test {
         let markdown = String::from("#Some markdown\n\n````mermaid\nbloob\n````");
         let mut mock_renderer = RendererMock::new();
         mock_renderer.expect_render().called_never();
-        let result = render_plantuml_code_blocks(&markdown, &mock_renderer);
+        let result = render_plantuml_code_blocks(&markdown, &mock_renderer, &String::new());
         assert_eq!(markdown, result);
     }
 }

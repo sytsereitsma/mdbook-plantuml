@@ -1,6 +1,12 @@
 # Chapter 1
 
-Some text
+## Some text
+```python
+def a():
+    pass
+```
+
+## Some text
 
 ```plantuml
 @startuml
@@ -8,7 +14,7 @@ A --|> B
 @enduml
 ```
 
-Some more text
+## Some more text
 
 ```plantuml
 @startuml
@@ -16,13 +22,13 @@ C --|> D
 @enduml
 ```
 
-Error, forgot @startuml @enduml block
+## Error, forgot @startuml @enduml block
 
 ```plantuml
 C --|> D
 ```
 
-And some ditaa
+## Ditaa support
 ```plantuml
 @startditaa
 +--------+   +-------+    +-------+
@@ -37,7 +43,7 @@ And some ditaa
 @endditaa
 ```
 
-And graphviz diagrams
+## Graphviz diagram support
 ```plantuml
 @startdot
 digraph foo {

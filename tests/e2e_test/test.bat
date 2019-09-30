@@ -14,8 +14,21 @@
 @cd %~dp0\..\..
 @cargo build
 
-@cd %~dp0\test_book
+@cd %~dp0
+
+echo Test plantuml shell (output book to plantuml_shell directory)
+@copy /Y plantuml_shell.toml book.toml
 @mdbook build
+@rmdir /s /q shell_book
+@move book shell_book
+@start shell_book\index.html
+
+echo Test plantuml server (output book to plantuml_server directory)
+@copy /Y plantuml_server.toml book.toml
+@mdbook build
+@rmdir /s /q server_book
+@move book server_book
+@start server_book\index.html
 
 :END
 @cd %__MDBOOK_PLANTUML_E2E_CD__%

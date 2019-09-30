@@ -1,6 +1,6 @@
 # mdBook PlantUML
 
-mdBook preprocessor to render [PlantUML](http://plantuml.com/) code blocks to embedded SVG in your book.
+mdBook preprocessor to render [PlantUML](http://plantuml.com/) code blocks as images in your book.
 
 ## Usage
 
@@ -32,7 +32,46 @@ Some more text.
 
 ````
 
-The plantuml code block will be replaced with inline SVG data.
+The plantuml code block will be replaced an image reference to an SVG image if
+possible, or png if PlantUML does not support svg for the requested diagram type
+(i.e. ditaa).
 
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
+  When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
+
+## Example server configuration
+
+Below is an example server configuration.
+
+You can test your server by appending the URL with "/png/SoWkIImgAStDuGh8ISmh2VNrKT3LhR5J24ujAaijud98pKi1IW80", in this example you'd end up with [this URL](http://localhost:8080/plantuml/png/SoWkIImgAStDuGh8ISmh2VNrKT3LhR5J24ujAaijud98pKi1IW80). When it is working correctly you should see the following image:
+![](doc/img/server_output.png)
+
+```toml
+[book]
+authors = ["Dzjengis Khan"]
+multilingual = false
+src = "src"
+title = "mdBook PlantUML preprocessor"
+
+[preprocessor.plantuml]
+plantuml-cmd="http://localhost:8080/plantuml"
+```
+
+## Troubleshooting rendering issues
+mdBook communicates to the preprocessor using stdio. As a result no log output
+from the preprocessor is printed to screen. When the preprocessor's markdown error 
+output is insufficient for you it is also to redirect logging to the file ./output.log.
+by using the command line switch -l. See the config below for an example:
+
+```toml
+[book]
+authors = ["Sytse Reitsma"]
+multilingual = false
+src = "src"
+title = "mdBook E2E test book"
+
+[preprocessor.plantuml]
+plantuml-cmd="http://localhost:8080/plantuml"
+command = "mdbook-plantuml -l"
+```

@@ -1,6 +1,0 @@
-@startuml
-class Foo
-class Bar
-
-Bar --|> Foo
-@enduml
