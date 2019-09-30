@@ -14,3 +14,5 @@ tests/e2e_test/server_book/
 tests/e2e_test/shell_book/
 
 tests/e2e_test/book.toml
+
+tests/e2e_test/config.json
