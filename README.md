@@ -57,3 +57,21 @@ title = "mdBook PlantUML preprocessor"
 [preprocessor.plantuml]
 plantuml-cmd="http://localhost:8080/plantuml"
 ```
+
+## Troubleshooting rendering issues
+mdBook communicates to the preprocessor using stdio. As a result no log output
+from the preprocessor is printed to screen. When the preprocessor's markdown error 
+output is insufficient for you it is also to redirect logging to the file ./output.log.
+by using the command line switch -l. See the config below for an example:
+
+```toml
+[book]
+authors = ["Sytse Reitsma"]
+multilingual = false
+src = "src"
+title = "mdBook E2E test book"
+
+[preprocessor.plantuml]
+plantuml-cmd="http://localhost:8080/plantuml"
+command = "mdbook-plantuml -l"
+```

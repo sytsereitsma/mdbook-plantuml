@@ -20,6 +20,11 @@ pub fn make_app() -> App<'static, 'static> {
         .version(VERSION)
         .author("Sytse Reitsma")
         .about("A mdbook preprocessor which renders PlantUML code blocks to inline SVG diagrams")
+        .arg(
+            Arg::with_name("log")
+                .short("l")
+                .help("Log to './output.log' (may help troubleshooting rendering issues)."),
+        )
         .subcommand(
             SubCommand::with_name("supports")
                 .arg(Arg::with_name("renderer").required(true))
@@ -34,9 +39,11 @@ fn main() {
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         handle_supports(&preprocessor, sub_args);
     } else {
-        if let Err(e) = setup_logging() {
-            eprintln!("{}", e);
-            process::exit(2);
+        if matches.is_present("log") {
+            if let Err(e) = setup_logging() {
+                eprintln!("{}", e);
+                process::exit(2);
+            }
         }
 
         if let Err(e) = handle_preprocessing(&preprocessor) {
@@ -86,12 +93,15 @@ fn setup_logging() -> Result<(), Box<Error>> {
 
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build("D:\\Projects\\mdBook-plantuml\\output.log")?;
+        .build("output.log")?;
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(Root::builder().appender("logfile").build(LevelFilter::Info))?;
-
+        .build(
+            Root::builder()
+                .appender("logfile")
+                .build(LevelFilter::Debug),
+        )?;
     log4rs::init_config(config)?;
 
     info!("--- Started preprocessor ---");
