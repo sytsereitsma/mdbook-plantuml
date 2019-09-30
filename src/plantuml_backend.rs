@@ -9,11 +9,14 @@ use reqwest::Url;
 use uuid::Uuid;
 
 pub trait PlantUMLBackend {
-    /// Render a PlantUML string and return the diagram file path (as a String)
-    /// for use in an anchor tag
-    fn render_from_string(&self, s: &String) -> Result<String, Error>;
+    ///Render a PlantUML string to file and return the diagram URL path to this
+    ///file (as a String) for use in a link.
+    fn render_from_string(&self, s: &String, rel_img_url: &String) -> Result<String, Error>;
 }
 
+///Get the preferred extension. Default is svg to allow maximum resolution on
+///all zoom levels. Some diagrams, like ditaa, cannot be rendered in svg by
+///PlantUML, so we return 'png' for these.
 pub fn get_extension(plantuml_code: &String) -> String {
     if plantuml_code.contains("@startditaa") {
         String::from("png")

@@ -109,9 +109,11 @@ impl PlantUMLShell {
         (source_file, output_file)
     }
 
+    ///Generate an image file from the given plantuml code.
     fn render_from_string(
         &self,
         plantuml_code: &String,
+        rel_img_url: &String,
         command_executor: &CommandExecutor,
     ) -> Result<String, Error> {
         let extension = get_extension(plantuml_code);
@@ -136,16 +138,21 @@ impl PlantUMLShell {
         }
 
         Ok(format!(
-            "img/{}",
+            "{}/{}",
+            rel_img_url,
             output_file.file_name().unwrap().to_str().unwrap()
         ))
     }
 }
 
 impl PlantUMLBackend for PlantUMLShell {
-    fn render_from_string(&self, plantuml_code: &String) -> Result<String, Error> {
+    fn render_from_string(
+        &self,
+        plantuml_code: &String,
+        rel_img_url: &String,
+    ) -> Result<String, Error> {
         let executor = RealCommandExecutor {};
-        self.render_from_string(plantuml_code, &executor)
+        self.render_from_string(plantuml_code, rel_img_url, &executor)
     }
 }
 
@@ -212,7 +219,11 @@ mod tests {
             error: true,
             create_file: false,
         };
-        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
+        match shell.render_from_string(
+            &String::from("@startuml\nA--|>B\n@enduml"),
+            &String::new(),
+            &executor,
+        ) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("Failed to render inline diagram"),
@@ -233,7 +244,11 @@ mod tests {
             error: false,
             create_file: false,
         };
-        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
+        match shell.render_from_string(
+            &String::from("@startuml\nA--|>B\n@enduml"),
+            &String::new(),
+            &executor,
+        ) {
             Ok(_svg) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("PlantUML did not generate an image"),
@@ -255,11 +270,13 @@ mod tests {
             create_file: true,
         };
         let source = String::from("@startuml\nA--|>B\n@enduml");
-        match shell.render_from_string(&source, &executor) {
+        let rel_img_url = String::from("abc/def/img");
+        match shell.render_from_string(&source, &rel_img_url, &executor) {
             Ok(relative_url) => {
                 let mut filename = shell.img_root.clone();
-                filename.push(relative_url.replace("img/", ""));
+                assert!(relative_url.starts_with(&rel_img_url), "Wrong image url");
 
+                filename.push(PathBuf::from(relative_url).file_name().unwrap());
                 let raw_source = fs::read(filename).unwrap();
                 let copied_source = String::from_utf8_lossy(&raw_source);
                 assert_eq!(source, copied_source)

@@ -26,20 +26,20 @@ mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
 
-use failure::Error;
 use markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use plantuml_backend::PlantUMLBackend;
 use plantumlconfig::PlantUMLConfig;
+use std::path::PathBuf;
 
 impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
-    fn render(&self, code_block: String) -> String {
-        match self.render_from_string(&code_block) {
+    fn render(&self, code_block: String, rel_img_url: &String) -> String {
+        match self.render_from_string(&code_block, rel_img_url) {
             Ok(image_path) => format!("![{}]({})\n\n", image_path, image_path),
             Err(e) => {
                 error!("Failed to generate PlantUML diagram.");
-                String::from(format!("```\nPlantUML rendering error:\n{}```\n\n", e))
+                String::from(format!("\nPlantUML rendering error:\n{}\n\n", e))
             }
         }
     }
@@ -63,12 +63,9 @@ impl Preprocessor for PlantUMLPreprocessor {
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
-                match render_chapter(&plantuml_cmd, &chapter.content) {
-                    Ok(md) => chapter.content = md,
-                    Err(_) => {
-                        return;
-                    }
-                };
+                let rel_image_url = get_relative_img_url(&chapter.path);
+                chapter.content =
+                    render_plantuml_code_blocks(&chapter.content, &plantuml_cmd, &rel_image_url);
             }
         });
 
@@ -80,11 +77,15 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn render_chapter(
-    plantuml_renderer: &impl PlantUMLCodeBlockRenderer,
-    chapter: &str,
-) -> Result<String, Error> {
-    Ok(render_plantuml_code_blocks(chapter, plantuml_renderer))
+fn get_relative_img_url(chapter_path: &PathBuf) -> String {
+    let nesting_level = chapter_path.components().count();
+    let mut rel_image_url = String::new();
+    for _ in 1..nesting_level {
+        rel_image_url.push_str("../");
+    }
+    rel_image_url.push_str("img");
+
+    rel_image_url
 }
 
 fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
@@ -101,5 +102,29 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
             })
             .unwrap_or(PlantUMLConfig::default()),
         None => PlantUMLConfig::default(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_get_relative_img_url() {
+        assert_eq!(
+            String::from("img"),
+            get_relative_img_url(&PathBuf::from("chapter 1"))
+        );
+
+        assert_eq!(
+            String::from("../img"),
+            get_relative_img_url(&PathBuf::from("chapter 1/nested 1"))
+        );
+
+        assert_eq!(
+            String::from("../../img"),
+            get_relative_img_url(&PathBuf::from("chapter 1/nested 1/nested 2"))
+        );
     }
 }
