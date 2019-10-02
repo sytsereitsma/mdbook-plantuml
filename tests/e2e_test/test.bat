@@ -1,5 +1,11 @@
 @set __MDBOOK_PLANTUML_E2E_CD__=%cd%
 
+@for /f "delims=" %%i in ('where mdbook-plantuml.exe 2^> NUL ^| findstr .cargo') do @(
+    @echo mdbook-plantuml is installed in %%i, e2e test cannot run because mdbook ^
+will not invoke the locally build preprocessor.
+    @goto END
+)
+
 @if "%__MDBOOK_PLANTUML_E2E_ENV__%" == "" (
 	@set __MDBOOK_PLANTUML_E2E_ENV__=1
 ) else (
@@ -30,6 +36,14 @@ echo Test plantuml server (output book to plantuml_server directory)
 @move book server_book
 @start server_book\index.html
 
+echo Test plantuml alternative command (output book to plantuml_alt directory)
+del plantuml_alt.jar
+mklink 
+@copy /Y plantuml_server.toml book.toml
+@mdbook build
+@rmdir /s /q server_book
+@move book server_book
+@start server_book\index.html
 :END
 @cd %__MDBOOK_PLANTUML_E2E_CD__%
 @set __MDBOOK_PLANTUML_E2E_CD__=
