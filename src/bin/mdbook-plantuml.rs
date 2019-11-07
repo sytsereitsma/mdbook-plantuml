@@ -85,7 +85,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
     }
 }
 
-fn setup_logging() -> Result<(), Box<Error>> {
+fn setup_logging() -> Result<(), Box<dyn Error>> {
     use log::LevelFilter;
     use log4rs::append::file::FileAppender;
     use log4rs::config::{Appender, Config, Root};

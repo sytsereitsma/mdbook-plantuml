@@ -38,7 +38,7 @@ pub fn get_image_filename(img_root: &PathBuf, extension: &String) -> PathBuf {
 
 /// Create an instance of the PlantUMLBackend
 /// For now only a PlantUMLShell instance is created, later server support will be added
-pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend> {
+pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf) -> Box<dyn PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
         None => {
@@ -51,14 +51,12 @@ pub fn create(cfg: &PlantUMLConfig, book_root: &PathBuf) -> Box<PlantUMLBackend>
     };
 
     //Always create the image output dir
-    let mut img_root = book_root.clone();
-    img_root.push("img");
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
 
     if let Ok(server_url) = Url::parse(&cmd) {
-        Box::new(PlantUMLServer::new(server_url, img_root))
+        Box::new(PlantUMLServer::new(server_url, img_root.clone()))
     } else {
-        Box::new(PlantUMLShell::new(cmd, img_root))
+        Box::new(PlantUMLShell::new(cmd, img_root.clone()))
     }
 }
 

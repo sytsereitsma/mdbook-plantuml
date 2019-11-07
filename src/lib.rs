@@ -32,8 +32,9 @@ use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use plantuml_backend::PlantUMLBackend;
 use plantumlconfig::PlantUMLConfig;
 use std::path::PathBuf;
+use mdbook::utils::fs::remove_dir_content;
 
-impl PlantUMLCodeBlockRenderer for Box<PlantUMLBackend> {
+impl PlantUMLCodeBlockRenderer for Box<dyn PlantUMLBackend> {
     fn render(&self, code_block: String, rel_img_url: &String) -> String {
         match self.render_from_string(&code_block, rel_img_url) {
             Ok(image_path) => format!("![{}]({})\n\n", image_path, image_path),
@@ -58,7 +59,12 @@ impl Preprocessor for PlantUMLPreprocessor {
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
-        let plantuml_cmd = plantuml_backend::create(&cfg, &ctx.config.build.build_dir);
+        let img_output_dir = &ctx.root.join (&ctx.config.book.src).join("mdbook-plantuml-img");
+        if img_output_dir.exists() {
+            remove_dir_content(&img_output_dir)?;
+        }
+
+        let plantuml_cmd = plantuml_backend::create(&cfg, &img_output_dir);
 
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
@@ -83,7 +89,7 @@ fn get_relative_img_url(chapter_path: &PathBuf) -> String {
     for _ in 1..nesting_level {
         rel_image_url.push_str("../");
     }
-    rel_image_url.push_str("img");
+    rel_image_url.push_str("mdbook-plantuml-img");
 
     rel_image_url
 }
