@@ -130,7 +130,3 @@ Make sure you have libssl-dev and pkg-config installed:
 sudo apt update
 sudo apt install libssl-dev pkg-config
 ```
-
-Also, deflate 0.8.0 does not compile under a 32 bit Linux distribution.
-The maintainer of deflate has patched the library, when a new version is
-released I'll update it.
