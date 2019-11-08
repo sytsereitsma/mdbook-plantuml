@@ -90,8 +90,12 @@ command = "mdbook-plantuml -l"
 
 ## Change log
 
-### 0.4.1 (2019-10-01)
-* deflate 0.8.0 updated to 0.8.1 (0.8.0 did not build on 32 bit Linux)
+### 0.5.0 (2019-11-08)
+* mdBook from v0.3.2 on deletes the book output directory when rendering starts,
+  causing all generated preprocessor output to be deleted too. The only workaround
+  at the moment is outputting the images to the src directory. This is ugly, but
+  a temporary solution until mdBook allows for other ways of adding resources
+  from a preprocessor.
 * More thorough README.md
 
 ### 0.4.0 (2019-09-25)

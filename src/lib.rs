@@ -29,10 +29,10 @@ mod plantumlconfig;
 use markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+use mdbook::utils::fs::remove_dir_content;
 use plantuml_backend::PlantUMLBackend;
 use plantumlconfig::PlantUMLConfig;
 use std::path::PathBuf;
-use mdbook::utils::fs::remove_dir_content;
 
 impl PlantUMLCodeBlockRenderer for Box<dyn PlantUMLBackend> {
     fn render(&self, code_block: String, rel_img_url: &String) -> String {
@@ -59,7 +59,10 @@ impl Preprocessor for PlantUMLPreprocessor {
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
-        let img_output_dir = &ctx.root.join (&ctx.config.book.src).join("mdbook-plantuml-img");
+        let img_output_dir = &ctx
+            .root
+            .join(&ctx.config.book.src)
+            .join("mdbook-plantuml-img");
         if img_output_dir.exists() {
             remove_dir_content(&img_output_dir)?;
         }
@@ -119,17 +122,17 @@ mod tests {
     #[test]
     fn test_get_relative_img_url() {
         assert_eq!(
-            String::from("img"),
+            String::from("mdbook-plantuml-img"),
             get_relative_img_url(&PathBuf::from("chapter 1"))
         );
 
         assert_eq!(
-            String::from("../img"),
+            String::from("../mdbook-plantuml-img"),
             get_relative_img_url(&PathBuf::from("chapter 1/nested 1"))
         );
 
         assert_eq!(
-            String::from("../../img"),
+            String::from("../../mdbook-plantuml-img"),
             get_relative_img_url(&PathBuf::from("chapter 1/nested 1/nested 2"))
         );
     }

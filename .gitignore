@@ -16,3 +16,5 @@ tests/e2e_test/shell_book/
 tests/e2e_test/book.toml
 
 tests/e2e_test/config.json
+
+tests/e2e_test/src/mdbook-plantuml-img/
