@@ -114,7 +114,7 @@ impl PlantUMLShell {
         &self,
         plantuml_code: &String,
         rel_img_url: &String,
-        command_executor: &CommandExecutor,
+        command_executor: &dyn CommandExecutor,
     ) -> Result<String, Error> {
         let extension = get_extension(plantuml_code);
         let (source_file, output_file) = self.get_filenames(&extension);

@@ -82,7 +82,7 @@ impl PlantUMLServer {
         &self,
         plantuml_code: &String,
         rel_img_url: &String,
-        downloader: &ImageDownloader,
+        downloader: &dyn ImageDownloader,
     ) -> Result<String, Error> {
         let encoded = encode_diagram_source(plantuml_code);
         let extension = get_extension(plantuml_code);
