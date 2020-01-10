@@ -6,6 +6,8 @@ extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
 extern crate reqwest;
+extern crate serde_json;
+extern crate sha1;
 extern crate uuid;
 
 #[macro_use]
@@ -20,6 +22,7 @@ extern crate simulacrum;
 extern crate tempfile;
 
 mod base64_plantuml;
+mod cache;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_server_backend;
