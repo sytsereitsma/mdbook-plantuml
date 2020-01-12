@@ -72,7 +72,7 @@ plantuml-cmd="http://localhost:8080/plantuml"
 ## Troubleshooting rendering issues
 mdBook communicates to the preprocessor using stdio. As a result log output
 from the preprocessor is not printed to the screen. When the preprocessor's
-markdown error output is insufficient for you it is posibble to redirect 
+markdown error output is insufficient for you it is possible to redirect 
 logging to the file ./output.log by using the command line switch -l. See the
 config below for an example:
 
