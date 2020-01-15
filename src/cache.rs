@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha1;
 use std::cell::Cell;
+use std::clone::Clone;
 use std::collections::HashMap;
 use std::fs;
 use std::io::BufReader;
@@ -10,7 +11,7 @@ use std::path::PathBuf;
 use std::string::String;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct CacheEntry {
     hash: String,     // sha1 hash of code block
     filename: String, // UUID4 generated filename for uniqueness
@@ -89,6 +90,7 @@ impl Cache {
         }
     }
 
+    /// Returns the full path to the cache (table) file, cache.json
     fn cache_file_path(&self) -> PathBuf {
         let mut p = self.cache_path.clone();
         p.push("cache.json");
@@ -183,26 +185,29 @@ impl Cache {
 
         Ok(())
     }
-}
 
-impl Drop for Cache {
-    /// Save the cache to disk
-    fn drop(&mut self) {
+    fn remove_entry_file(&self, entry: &CacheEntry) {
+        if let Some(p) = self.get_image_path(&entry.filename) {
+            if let Err(e) = fs::remove_file(&p) {
+                error!(
+                    "Failed to remove cache file '{}' ({}).",
+                    p.to_string_lossy(),
+                    e
+                );
+            }
+        }
+    }
+
+    fn save(&self) {
         let used_entries = {
             let mut entries: HashMap<String, CacheEntry> = HashMap::new();
-            self.entries
-                .iter()
-                .filter(|&(_, v)| v.used.get())
-                .map(|(k, v)| {
-                    entries.insert(
-                        k.clone(),
-                        CacheEntry {
-                            hash: v.hash.clone(),
-                            filename: v.filename.clone(),
-                            used: Cell::new(true),
-                        },
-                    )
-                });
+            for (key, entry) in &self.entries {
+                if entry.used.get() {
+                    entries.insert(key.clone(), entry.clone());
+                } else {
+                    self.remove_entry_file(entry);
+                }
+            }
             entries
         };
 
@@ -214,6 +219,13 @@ impl Drop for Cache {
                 e
             );
         }
+    }
+}
+
+impl Drop for Cache {
+    /// Save the cache to disk (cache.json in the cache dir)
+    fn drop(&mut self) {
+        self.save();
     }
 }
 
@@ -595,5 +607,64 @@ mod tests {
 
         let cache = Cache::new(&invalid_dirname);
         assert!(cache.is_err());
+    }
+
+    #[test]
+    fn unused_entries_are_removed_on_save() {
+        let ctx = TestContext::new();
+        let expected_json;
+        let cache_file;
+        let file_to_be_removed;
+        {
+            let mut cache = ctx.create_cache();
+            assert!(ctx
+                .create_cache_entry(
+                    &mut cache,
+                    &PathBuf::from("keep_me"),
+                    1,
+                    &String::from("please")
+                )
+                .is_ok());
+
+            expected_json = json!(cache.entries).to_string();
+
+            assert!(ctx
+                .create_cache_entry(
+                    &mut cache,
+                    &PathBuf::from("remove_me"),
+                    2,
+                    &String::from("please")
+                )
+                .is_ok());
+
+            let entry_to_be_removed =
+                cache.get_cached_image(&PathBuf::from("remove_me"), 2, &String::from("please"));
+
+            assert!(entry_to_be_removed.is_some());
+            file_to_be_removed = entry_to_be_removed.unwrap();
+
+            cache_file = cache.cache_file_path();
+        }
+
+        assert!(file_to_be_removed.is_file());
+
+        // Reload the cache, only reference the keep_me entry, the other one should be discarded
+        {
+            let cache = Cache::new(&ctx.path_buf());
+            assert!(cache.is_ok());
+            assert!(cache
+                .unwrap()
+                .get_cached_image(&PathBuf::from("keep_me"), 1, &String::from("please"))
+                .is_some());
+        }
+
+        assert!(!file_to_be_removed.is_file());
+
+        assert!(cache_file.is_file());
+        let saved_cache_data = match fs::read(&cache_file) {
+            Ok(u8_data) => String::from(String::from_utf8_lossy(&u8_data)),
+            Err(e) => format!("Failed to read cache file ({})", e),
+        };
+        assert_eq!(expected_json, saved_cache_data);
     }
 }
