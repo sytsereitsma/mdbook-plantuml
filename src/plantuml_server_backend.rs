@@ -62,18 +62,13 @@ impl PlantUMLServer {
     fn save_downloaded_image(
         &self,
         image_buffer: &Vec<u8>,
-        rel_img_url: &String,
         extension: &String,
-    ) -> Result<String, Error> {
+    ) -> Result<PathBuf, Error> {
         let filename = get_image_filename(&self.img_root, extension);
         let mut output_file = fs::File::create(&filename)?;
         output_file.write_all(&image_buffer)?;
 
-        Ok(format!(
-            "{}/{}",
-            rel_img_url,
-            filename.file_name().unwrap().to_str().unwrap()
-        ))
+        Ok(filename)
     }
 
     /// The business end of this struct, generate the image using the server and
@@ -81,15 +76,14 @@ impl PlantUMLServer {
     fn render_string(
         &self,
         plantuml_code: &String,
-        rel_img_url: &String,
         downloader: &dyn ImageDownloader,
-    ) -> Result<String, Error> {
+    ) -> Result<PathBuf, Error> {
         let encoded = encode_diagram_source(plantuml_code);
         let extension = get_extension(plantuml_code);
         let request_url = self.get_url(&extension, &encoded)?;
 
         match downloader.download_image(&request_url) {
-            Ok(image_buffer) => self.save_downloaded_image(&image_buffer, rel_img_url, &extension),
+            Ok(image_buffer) => self.save_downloaded_image(&image_buffer, &extension),
             Err(e) => Err(e),
         }
     }
@@ -104,13 +98,9 @@ fn encode_diagram_source(plantuml_code: &String) -> String {
 }
 
 impl PlantUMLBackend for PlantUMLServer {
-    fn render_from_string(
-        &self,
-        plantuml_code: &String,
-        rel_img_url: &String,
-    ) -> Result<String, Error> {
+    fn render_from_string(&self, plantuml_code: &String) -> Result<PathBuf, Error> {
         let downloader = RealImageDownloader {};
-        self.render_string(plantuml_code, rel_img_url, &downloader)
+        self.render_string(plantuml_code, &downloader)
     }
 }
 
@@ -157,17 +147,11 @@ mod tests {
         let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap(), output_path.clone());
 
         let data: Vec<u8> = b"totemizer".iter().cloned().collect();
-        let rel_img_url = String::from("def/ghi/img");
         let img_path = srv
-            .save_downloaded_image(&data, &rel_img_url, &String::from("ext"))
+            .save_downloaded_image(&data, &String::from("ext"))
             .unwrap();
 
-        assert!(img_path.starts_with(&rel_img_url));
-        let filename = img_path.replace(&rel_img_url, "");
-
-        let fs_image_path =
-            PathBuf::from(format!("{}/{}", output_path.to_str().unwrap(), filename));
-        let raw_source = fs::read(fs_image_path).unwrap();
+        let raw_source = fs::read(img_path).unwrap();
         assert_eq!("totemizer", String::from_utf8_lossy(&raw_source));
     }
 
@@ -191,16 +175,11 @@ mod tests {
             //.with(...) How to test the correct Url here?
             .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
 
-        let rel_img_url = String::from("def/ghi/img");
         let img_path = srv
-            .render_string(&String::from("C --|> D"), &rel_img_url, &mock_downloader)
+            .render_string(&String::from("C --|> D"), &mock_downloader)
             .unwrap();
-        assert!(img_path.starts_with(&rel_img_url));
-        let filename = img_path.replace(&rel_img_url, "");
 
-        let fs_image_path =
-            PathBuf::from(format!("{}/{}", output_path.to_str().unwrap(), filename));
-        let raw_source = fs::read(fs_image_path).unwrap();
+        let raw_source = fs::read(img_path).unwrap();
         assert_eq!("the rendered image", String::from_utf8_lossy(&raw_source));
     }
 }

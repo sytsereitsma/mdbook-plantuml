@@ -106,7 +106,7 @@ impl Cache {
     ///
     /// # Arguments
     /// * `code_block_src` - The present source of the code block, if it does not match with the cached code block None is returned
-    pub fn get_cached_image(&self, code_block_src: &String) -> Option<PathBuf> {
+    pub fn get_entry(&self, code_block_src: &String) -> Option<PathBuf> {
         let key = format_key(code_block_src);
         if let Some(entry) = self.entries.get(&key) {
             let image_path = self.get_image_path(&key);
@@ -122,7 +122,7 @@ impl Cache {
     /// # Arguments
     /// * `code_block_src` - The present source of the code block, if it does not match with the cached code block None is returned
     /// * `image_path` - The path to the image to cache (a copy of the file will be saved in the cache directory)
-    fn add_entry(&mut self, code_block_src: &String, image_path: &PathBuf) -> Result<(), Error> {
+    pub fn add_entry(&mut self, code_block_src: &String, image_path: &PathBuf) -> bool {
         let key = format_key(code_block_src);
 
         let cache_path = {
@@ -130,13 +130,22 @@ impl Cache {
             p.push(&key);
             p
         };
-        if let Err(e) = fs::copy(image_path, cache_path) {
-            bail!("Failed to copy source image file ({}).", e);
+
+        let result;
+        if let Err(e) = fs::copy(&image_path, &cache_path) {
+            eprintln!(
+                "Failed to copy source image file '{}' to '{}' ({}).",
+                image_path.to_string_lossy(),
+                cache_path.to_string_lossy(),
+                e
+            );
+            result = false;
+        } else {
+            self.entries.insert(key, Cell::new(true));
+            result = true;
         }
 
-        self.entries.insert(key, Cell::new(true));
-
-        Ok(())
+        result
     }
 
     /// Saves the cache file (simple JSON array of all the files)
@@ -214,7 +223,7 @@ mod tests {
             self.cached_image_dir.path().to_path_buf()
         }
 
-        fn create_cache_entry(&self, cache: &mut Cache, code: &String) -> Result<(), Error> {
+        fn create_cache_entry(&self, cache: &mut Cache, code: &String) -> bool {
             //Create the source image file (this file is overwritten each time
             //create_cache_entry is called!)
             let test_img_path = self.test_img_path();
@@ -256,7 +265,7 @@ mod tests {
     fn empty_cache_returns_none() {
         let ctx = TestContext::new();
         let cache = ctx.create_cache();
-        assert!(cache.get_cached_image(&String::from("some code")).is_none())
+        assert!(cache.get_entry(&String::from("some code")).is_none())
     }
 
     #[test]
@@ -265,10 +274,7 @@ mod tests {
         let mut cache = ctx.create_cache();
 
         //Add an entry with a non existing source file
-        match cache.add_entry(&String::from("code block"), &PathBuf::from("nonexisting")) {
-            Ok(_) => assert!(false, "Expected failure"),
-            Err(_) => (),
-        }
+        assert!(!cache.add_entry(&String::from("code block"), &PathBuf::from("nonexisting")));
     }
 
     #[test]
@@ -276,11 +282,7 @@ mod tests {
         let ctx = TestContext::new();
         let mut cache = ctx.create_cache();
 
-        match ctx.create_cache_entry(&mut cache, &String::from("code block")) {
-            Ok(_) => (),
-            Err(e) => assert!(false, format!("Expected success ({}).", e)),
-        }
-
+        assert!(ctx.create_cache_entry(&mut cache, &String::from("code block")));
         assert_is_cache_entry!(&ctx, &cache, &String::from("code block"));
     }
 
@@ -289,13 +291,9 @@ mod tests {
         let ctx = TestContext::new();
         let mut cache = ctx.create_cache();
 
-        assert!(ctx
-            .create_cache_entry(&mut cache, &String::from("totemizer"))
-            .is_ok());
+        assert!(ctx.create_cache_entry(&mut cache, &String::from("totemizer")));
 
-        assert!(ctx
-            .create_cache_entry(&mut cache, &String::from("wizard repellant"))
-            .is_ok());
+        assert!(ctx.create_cache_entry(&mut cache, &String::from("wizard repellant")));
 
         assert_is_cache_entry!(&ctx, &cache, &String::from("totemizer"));
 
@@ -308,21 +306,17 @@ mod tests {
         let cache = {
             let mut cache = ctx.create_cache();
 
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("totemizer"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("totemizer")));
 
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("wizard repellant"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("wizard repellant")));
 
             cache
         };
 
-        let froboz_entry = cache.get_cached_image(&String::from("totemizer"));
+        let froboz_entry = cache.get_entry(&String::from("totemizer"));
         assert!(froboz_entry.is_some());
 
-        let electric_entry = cache.get_cached_image(&String::from("wizard repellant"));
+        let electric_entry = cache.get_entry(&String::from("wizard repellant"));
         assert!(electric_entry.is_some());
     }
 
@@ -332,15 +326,11 @@ mod tests {
         let cache = {
             let mut cache = ctx.create_cache();
 
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("totemizer"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("totemizer")));
             cache
         };
 
-        assert!(cache
-            .get_cached_image(&String::from("not cached"))
-            .is_none());
+        assert!(cache.get_entry(&String::from("not cached")).is_none());
     }
 
     #[test]
@@ -349,18 +339,16 @@ mod tests {
         let cache = {
             let mut cache = ctx.create_cache();
 
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("totemizer"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("totemizer")));
             cache
         };
 
-        let cached_image_path = cache.get_cached_image(&String::from("totemizer"));
+        let cached_image_path = cache.get_entry(&String::from("totemizer"));
         assert!(cached_image_path.is_some());
 
         //Delete the cached image, this should also yield None
         assert!(fs::remove_file(cached_image_path.unwrap()).is_ok());
-        assert!(cache.get_cached_image(&String::from("totemizer")).is_none());
+        assert!(cache.get_entry(&String::from("totemizer")).is_none());
     }
 
     #[test]
@@ -369,9 +357,7 @@ mod tests {
         {
             //Create the cache (and save on drop when exiting this scope)
             let mut cache = ctx.create_cache();
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("totemizer"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("totemizer")));
         }
 
         let cache = Cache::new(&ctx.path_buf());
@@ -379,7 +365,7 @@ mod tests {
         let cache = cache.unwrap();
         assert_is_cache_entry!(&ctx, &cache, &String::from("totemizer"));
 
-        assert!(cache.get_cached_image(&String::from("totemizer")).is_some());
+        assert!(cache.get_entry(&String::from("totemizer")).is_some());
     }
 
     #[test]
@@ -401,15 +387,11 @@ mod tests {
         let file_to_be_removed;
         {
             let mut cache = ctx.create_cache();
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("keep me"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("keep me")));
 
-            assert!(ctx
-                .create_cache_entry(&mut cache, &String::from("remove me"))
-                .is_ok());
+            assert!(ctx.create_cache_entry(&mut cache, &String::from("remove me")));
 
-            let entry_to_be_removed = cache.get_cached_image(&String::from("remove me"));
+            let entry_to_be_removed = cache.get_entry(&String::from("remove me"));
 
             assert!(entry_to_be_removed.is_some());
             file_to_be_removed = entry_to_be_removed.unwrap();
@@ -421,10 +403,7 @@ mod tests {
         {
             let cache = Cache::new(&ctx.path_buf());
             assert!(cache.is_ok());
-            assert!(cache
-                .unwrap()
-                .get_cached_image(&String::from("keep me"))
-                .is_some());
+            assert!(cache.unwrap().get_entry(&String::from("keep me")).is_some());
         }
 
         assert!(!file_to_be_removed.is_file());
