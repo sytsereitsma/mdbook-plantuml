@@ -18,3 +18,9 @@ tests/e2e_test/book.toml
 tests/e2e_test/config.json
 
 tests/e2e_test/src/mdbook-plantuml-img/
+
+tests/e2e_test/.plantuml-cache/
+
+tests/e2e_test/alt_book/
+
+tests/e2e_test/cache_book/

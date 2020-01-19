@@ -6,14 +6,14 @@ use plantuml_shell_backend::PlantUMLShell;
 use plantumlconfig::PlantUMLConfig;
 use reqwest::Url;
 use std::fs;
-use std::cell::UnsafeCell;
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 /// Create an instance of the PlantUMLBackend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
-pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf) -> Box<dyn PlantUMLBackend> {
+pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> Box<dyn PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
         None => {
@@ -28,22 +28,55 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf) -> Box<dyn PlantUMLBacke
     //Always create the image output dir
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
 
+    let mut backend : Box <dyn PlantUMLBackend>;
     if let Ok(server_url) = Url::parse(&cmd) {
-        Box::new(PlantUMLServer::new(server_url, img_root.clone()))
+        backend = Box::new(PlantUMLServer::new(server_url, img_root.clone()));
     } else {
-        Box::new(PlantUMLShell::new(cmd, img_root.clone()))
+        backend = Box::new(PlantUMLShell::new(cmd, img_root.clone()));
     }
+
+    if cfg.enable_cache.unwrap_or(false) {
+        let cache_dir = {
+            if let Some(c) = &cfg.cache_dir {
+                PathBuf::from(c)
+            }
+            else {
+                book_dir.join(".plantuml-cache")
+            }
+        };
+
+        match Cache::new (&cache_dir, cfg.clean_cache.unwrap_or(true)) {
+            Ok(cache) => {
+                backend = Box::new(CachingBackendDecorator {
+                    cache: RefCell::new(cache),
+                    img_root: img_root.clone(),
+                    real_backend: backend,
+                });
+            }
+            Err(e) => {
+                eprintln!("Failed to instantiate cache ({}), cache is disabled!", e);
+            }
+        };
+
+    }
+
+    backend
 }
 
+/// A backend that tries to load a cached image first and calls the real PlantUML
+/// backend when that fails.
 struct CachingBackendDecorator {
-    cache: Cache,
+    /// The image cache
+    cache: RefCell<Cache>,
+    /// The path where to save the images to
     img_root: PathBuf,
+    /// The fallback backend to use when a cache entry is not found
     real_backend: Box<dyn PlantUMLBackend>,
 }
 
 impl CachingBackendDecorator {
     fn render_from_string(&self, plantuml_code: &String) -> Result<PathBuf, Error> {
-        if let Some(cached_image_path) = self.cache.get_entry(plantuml_code) {
+        if let Some(cached_image_path) = self.cache.borrow().get_entry(plantuml_code) {
             let extension = get_extension(plantuml_code);
             let filename = get_image_filename(&self.img_root, &extension);
             match fs::copy(&cached_image_path, &filename) {
@@ -63,8 +96,7 @@ impl CachingBackendDecorator {
 
         match self.real_backend.render_from_string(plantuml_code) {
             Ok(img_file_path) => {
-                bail!("Not implemented");
-                //self.cache.add_entry(plantuml_code, &img_file_path);
+                self.cache.borrow_mut().add_entry(plantuml_code, &img_file_path);
                 return Ok(img_file_path);
             }
             Err(e) => {

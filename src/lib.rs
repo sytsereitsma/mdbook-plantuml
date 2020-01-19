@@ -78,7 +78,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             remove_dir_content(&img_output_dir)?;
         }
 
-        let plantuml_cmd = plantuml_backend_factory::create(&cfg, &img_output_dir);
+        let plantuml_cmd = plantuml_backend_factory::create(&cfg, &img_output_dir, &ctx.root);
 
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
