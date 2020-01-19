@@ -41,9 +41,19 @@ del plantuml_alt.jar
 mklink 
 @copy /Y plantuml_server.toml book.toml
 @mdbook build
-@rmdir /s /q server_book
-@move book server_book
-@start server_book\index.html
+@rmdir /s /q alt_book
+@move book alt_book
+@start alt_book\index.html
+
+echo Test caching
+del plantuml_alt.jar
+mklink 
+@copy /Y plantuml_cache.toml book.toml
+@mdbook build
+@rmdir /s /q cache_book
+@move book cache_book
+@start cache_book\index.html
+
 :END
 @cd %__MDBOOK_PLANTUML_E2E_CD__%
 @set __MDBOOK_PLANTUML_E2E_CD__=

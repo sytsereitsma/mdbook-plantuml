@@ -1,17 +1,15 @@
-use std::fs;
-use std::path::PathBuf;
-
 use failure::Error;
-use plantuml_server_backend::PlantUMLServer;
-use plantuml_shell_backend::PlantUMLShell;
-use plantumlconfig::PlantUMLConfig;
-use reqwest::Url;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 pub trait PlantUMLBackend {
     ///Render a PlantUML string to file and return the diagram URL path to this
     ///file (as a String) for use in a link.
-    fn render_from_string(&self, s: &String, rel_img_url: &String) -> Result<String, Error>;
+    /// # Arguments
+    /// * `plantuml_code` - The present source of the code block, if it does not match with the cached code block None is returned
+    /// * `image_path` - The path to the image to cache (a copy of the file will be saved in the cache directory)
+    /// TODO: Return image filename rather than full href path, handle the href somewhere else
+    fn render_from_string(&self, plantuml_code: &String) -> Result<PathBuf, Error>;
 }
 
 ///Get the preferred extension. Default is svg to allow maximum resolution on
@@ -34,30 +32,6 @@ pub fn get_image_filename(img_root: &PathBuf, extension: &String) -> PathBuf {
     output_file.set_extension(extension);
 
     output_file
-}
-
-/// Create an instance of the PlantUMLBackend
-/// For now only a PlantUMLShell instance is created, later server support will be added
-pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf) -> Box<dyn PlantUMLBackend> {
-    let cmd = match &cfg.plantuml_cmd {
-        Some(s) => s.clone(),
-        None => {
-            if cfg!(target_os = "windows") {
-                String::from("java -jar plantuml.jar")
-            } else {
-                String::from("/usr/bin/plantuml")
-            }
-        }
-    };
-
-    //Always create the image output dir
-    fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
-
-    if let Ok(server_url) = Url::parse(&cmd) {
-        Box::new(PlantUMLServer::new(server_url, img_root.clone()))
-    } else {
-        Box::new(PlantUMLShell::new(cmd, img_root.clone()))
-    }
 }
 
 #[cfg(test)]

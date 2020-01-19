@@ -6,6 +6,8 @@ extern crate mdbook;
 extern crate pulldown_cmark;
 extern crate pulldown_cmark_to_cmark;
 extern crate reqwest;
+extern crate serde_json;
+extern crate sha1;
 extern crate uuid;
 
 #[macro_use]
@@ -20,8 +22,10 @@ extern crate simulacrum;
 extern crate tempfile;
 
 mod base64_plantuml;
+mod cache;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
+mod plantuml_backend_factory;
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
@@ -36,8 +40,15 @@ use std::path::PathBuf;
 
 impl PlantUMLCodeBlockRenderer for Box<dyn PlantUMLBackend> {
     fn render(&self, code_block: String, rel_img_url: &String) -> String {
-        match self.render_from_string(&code_block, rel_img_url) {
-            Ok(image_path) => format!("![{}]({})\n\n", image_path, image_path),
+        match self.render_from_string(&code_block) {
+            Ok(image_path) => {
+                let img_url = format!(
+                    "{}/{}",
+                    rel_img_url,
+                    image_path.file_name().unwrap().to_str().unwrap()
+                );
+                format!("![{}]({})\n\n", img_url, img_url)
+            }
             Err(e) => {
                 error!("Failed to generate PlantUML diagram.");
                 String::from(format!("\nPlantUML rendering error:\n{}\n\n", e))
@@ -67,7 +78,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             remove_dir_content(&img_output_dir)?;
         }
 
-        let plantuml_cmd = plantuml_backend::create(&cfg, &img_output_dir);
+        let plantuml_cmd = plantuml_backend_factory::create(&cfg, &img_output_dir, &ctx.root);
 
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {

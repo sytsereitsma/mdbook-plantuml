@@ -33,6 +33,7 @@ uuid = { version = "0.8.1", features = ["v4"] }
 log4rs = "0.8.3"
 reqwest = "0.9.22"
 deflate = "0.8.2"
+sha1 = { version = "0.6.0", features = ["std"] }
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
