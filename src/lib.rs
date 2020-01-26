@@ -3,7 +3,9 @@
 extern crate log;
 extern crate deflate;
 extern crate mdbook;
+#[cfg(feature = "legacy-markdown-parser")]
 extern crate pulldown_cmark;
+#[cfg(feature = "legacy-markdown-parser")]
 extern crate pulldown_cmark_to_cmark;
 extern crate reqwest;
 extern crate serde_json;
@@ -23,14 +25,21 @@ extern crate tempfile;
 
 mod base64_plantuml;
 mod cache;
+#[cfg(not(feature = "legacy-markdown-parser"))]
 mod markdown_plantuml_pipeline;
+#[cfg(feature = "legacy-markdown-parser")]
+mod legacy_markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_backend_factory;
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
 
+#[cfg(feature = "legacy-markdown-parser")]
+use legacy_markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
+#[cfg(not(feature = "legacy-markdown-parser"))]
 use markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
+
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::utils::fs::remove_dir_content;

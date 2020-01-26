@@ -1,13 +1,6 @@
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::fmt::cmark;
-
-pub trait PlantUMLCodeBlockRenderer {
-    ///Renders the given code block and returns a markdown link to the generated
-    ///image. E.g. ![image](/img/foobar.svg).
-    ///Note that the prepocessor can never output HTML! mdBook will not render
-    ///anything after HTML code for some reason. So markdown in, markdown out.
-    fn render(&self, code_block: String, rel_image_url: &String) -> String;
-}
+use markdown_plantuml_pipeline::PlantUMLCodeBlockRenderer;
 
 /// Process all markdown 'events' detecting and transforming PlantUML code blocks
 /// along the way using the PlantUMLCodeBlockRenderer.
