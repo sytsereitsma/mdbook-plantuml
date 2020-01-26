@@ -47,7 +47,7 @@ possible, or png if PlantUML does not support svg for the requested diagram type
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
-- **enable-cache:** Optional flag to enable caching (defaults to false for now). When enabled, repetitive book generation is significantly faster.
+- **enable-cache:** Optional flag to enable caching (defaults to false for now). When enabled, repetitive book generation is significantly faster, because only the changed PlantUML code blocks are regenerated.
 - **cache-dir:** The directory where to store the cache (defaults to '.plantuml-cache' in the book root dir).
    This option can be used to have a central location for use with multiple books (e.g. same book on different version branches). Protection for parallel use of the cache with a shared cache dir is something on the todo list. So when sharing the cache dir between projects make sure you do not generate the books in parallel, this will likely corrupt the cache.
 - **clean-cache:** When true (default) the unused cache entries are removed after the preprocessor is run. Typically set to false when you share a cache between books, see the 'cache-dir' option.
