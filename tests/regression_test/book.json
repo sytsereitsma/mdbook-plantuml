@@ -1,0 +1,54 @@
+[
+  {
+    "root": "D:\\Projects\\mdBook-plantuml\\tests\\regression_test",
+    "config": {
+      "book": {
+        "authors": [
+          "Sytse Reitsma"
+        ],
+        "language": "en",
+        "multilingual": false,
+        "src": "test_output",
+        "title": "mdBook E2E test book"
+      },
+      "preprocessor": {
+        "plantuml": {}
+      }
+    },
+    "renderer": "html",
+    "mdbook_version": "0.3.4"
+  },
+  {
+    "sections": [
+      {
+        "Chapter": {
+          "name": "Chapter 1",
+          "content": "# Chapter 1\r\n\r\n## Some text\r\n```python\r\ndef a():\r\n    pass\r\n```\r\n\r\n## Some text\r\n\r\n```plantuml\r\n@startuml\r\nA --|> B\r\n@enduml\r\n```\r\n\r\n## Some more text\r\n\r\n```plantuml\r\n@startuml\r\nC --|> D\r\n@enduml\r\n```\r\n\r\n## Error, forgot @startuml @enduml block (shell error only)\r\n\r\n```plantuml\r\nC --|> D\r\n```\r\n\r\n## Error in PlantUML diagram source\r\n\r\n```plantuml\r\n@startuml\r\nC --|>\r\n@enduml\r\n```\r\n\r\n## Ditaa support\r\n```plantuml\r\n@startditaa\r\n+--------+   +-------+    +-------+\r\n|        +---+ ditaa +--> |       |\r\n|  Text  |   +-------+    |diagram|\r\n|Document|   |!magic!|    |       |\r\n|     {d}|   |       |    |       |\r\n+---+----+   +-------+    +-------+\r\n\t:                         ^\r\n\t|       Lots of work      |\r\n\t+-------------------------+\r\n@endditaa\r\n```\r\n\r\n## Graphviz diagram support\r\n```plantuml\r\n@startdot\r\ndigraph foo {\r\n  node [style=rounded]\r\n  node1 [shape=box]\r\n  node2 [fillcolor=yellow, style=\"rounded,filled\", shape=diamond]\r\n  node3 [shape=record, label=\"{ a | b | c }\"]\r\n\r\n  node1 -> node2 -> node3\r\n}\r\n@enddot\r\n```",
+          "number": [
+            1
+          ],
+          "sub_items": [
+            {
+              "Chapter": {
+                "name": "Nested page",
+                "content": "# A nested chapter\r\n\r\n## Some text\r\n\r\n```plantuml\r\n@startuml\r\nA --|> B\r\n@enduml\r\n```\r\n\r\n## Some more text\r\n\r\n```plantuml\r\n@startuml\r\nC --|> D\r\n@enduml\r\n```\r\n",
+                "number": [
+                  1,
+                  1
+                ],
+                "sub_items": [],
+                "path": "nested/nested_chapter.md",
+                "parent_names": [
+                  "Chapter 1"
+                ]
+              }
+            }
+          ],
+          "path": "chapter_1.md",
+          "parent_names": []
+        }
+      }
+    ],
+    "__non_exhaustive": null
+  }
+]

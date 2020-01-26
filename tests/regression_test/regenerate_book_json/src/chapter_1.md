@@ -1,8 +1,5 @@
 # Chapter 1
 
-## MathJax
-\\( \int x dx = \frac{x^2}{2} + C \\)
-
 ## Some text
 ```python
 def a():

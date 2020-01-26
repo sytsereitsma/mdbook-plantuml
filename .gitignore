@@ -24,3 +24,11 @@ tests/e2e_test/.plantuml-cache/
 tests/e2e_test/alt_book/
 
 tests/e2e_test/cache_book/
+
+tests/regression_test/__pycache__/
+
+tests/regression_test/regenerate_book_json/book/
+
+tests/regression_test/venv/
+
+tests/regression_test/test_output/
