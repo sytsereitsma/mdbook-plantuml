@@ -53,16 +53,25 @@ fn next_line(bytes: &[u8], start : usize) -> usize {
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `start` - The start offset for the search
-/// * `min_length` - Optional length of the code fence to find (used for finding the closing)
-/// TODO: Closing fence should have same character as opening fence
-fn find_next_code_fence(bytes: &[u8], start: usize, min_length : Option <usize>) -> Option<(usize,usize)> {
+/// * `min_length` - Optional length of the code fence to find (used for finding the closing fence)
+/// * `fence_char` - Optional fence char to match (used for finding the closing fence)
+fn find_next_code_fence(bytes: &[u8], start: usize, min_length : Option <usize>, fence_char : Option<u8>) -> Option<(usize,usize)> {
     if bytes.len() < 3 {
         return None;
     }
 
     let mut pos : usize = start;
 
-    let is_fence_char = |c| (c == b'`' || c == b'~');
+    let is_fence_char = |c| {
+        // TODO: there is probably a more optimal way of doing this
+        if let Some(expected) = fence_char {
+            expected == c
+        }
+        else {
+            (c == b'`' || c == b'~')
+        }
+    };
+
     let is_fence = |s, e| {
         if let Some(l) = min_length {
             (e - s) >= l
@@ -168,10 +177,10 @@ impl<'a> PlantUMLCodeProcessor<'a> {
 
     fn get_next_code_block(&self, start_pos: usize) -> Option <CodeBlock> {
         let bytes = self.markdown.as_bytes();
-        if let Some((s, e)) = find_next_code_fence(bytes, start_pos, None) {
+        if let Some((s, e)) = find_next_code_fence(bytes, start_pos, None, None) {
             let info_string = get_info_string(bytes, e);
             let code_start = next_line(bytes, e);
-            let fence_end = find_next_code_fence(bytes, e, None);
+            let fence_end = find_next_code_fence(bytes, e, Some(e - s), Some(bytes[s]));
             let (code_end, end_pos) = self.get_end_positions(bytes, fence_end);
 
             return Some(CodeBlock {
@@ -236,9 +245,9 @@ mod test {
     #[test]
     fn test_find_next_code_fence() {
         macro_rules! assert_find_next_code_fence {
-            ($expected_slice_opt:expr, $markdown:expr, $start:expr, $min_length: expr) => {{
+            ($expected_slice_opt:expr, $markdown:expr, $start:expr, $min_length: expr, $fence_char: expr) => {{
                 let bytes = $markdown.as_bytes();
-                let fence_range = find_next_code_fence(bytes, $start, $min_length);
+                let fence_range = find_next_code_fence(bytes, $start, $min_length, $fence_char);
                 if let Some((s, e)) = $expected_slice_opt {
                     assert!(fence_range.is_some());
                     assert_eq!((s, e), fence_range.unwrap());
@@ -248,29 +257,31 @@ mod test {
             }};
         };
 
-        assert_find_next_code_fence!(None, "", 0, None);
-        assert_find_next_code_fence!(None, "a\n\n", 0, None);
-        assert_find_next_code_fence!(None, "``", 0, None);
-        assert_find_next_code_fence!(None, "a```", 0, None);
-        assert_find_next_code_fence!(Some((0, 3)), "```", 0, None);
-        assert_find_next_code_fence!(Some((0, 3)), "``` ```", 0, None);
-        assert_find_next_code_fence!(Some((0, 4)), "````", 0, None);
-        assert_find_next_code_fence!(Some((1, 4)), " ```", 0, None);
-        assert_find_next_code_fence!(None, "\\```", 0, None);
-        assert_find_next_code_fence!(None, "\\ ```", 0, None);
-        assert_find_next_code_fence!(Some((0, 3)), "~~~", 0, None);
-        assert_find_next_code_fence!(Some((0, 4)), "~~~~", 0, None);
-        assert_find_next_code_fence!(None, "``~~~", 0, None);
-        assert_find_next_code_fence!(Some((3, 6)), "   ~~~", 0, None);
-        assert_find_next_code_fence!(None, "    ~~~", 0, None);
-        assert_find_next_code_fence!(Some((4, 7)), "abc\n~~~", 0, None);
-        assert_find_next_code_fence!(Some((10, 14)), "abc\n~~\n\n  ````", 0, None);
-        assert_find_next_code_fence!(Some((4, 8)), "```\n````", 0, Some(4));
-        assert_find_next_code_fence!(Some((4, 10)), "```\n``````", 0, Some(4));
+        assert_find_next_code_fence!(None, "", 0, None, None);
+        assert_find_next_code_fence!(None, "a\n\n", 0, None, None);
+        assert_find_next_code_fence!(None, "``", 0, None, None);
+        assert_find_next_code_fence!(None, "a```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), "```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), "``` ```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), "````", 0, None, None);
+        assert_find_next_code_fence!(Some((1, 4)), " ```", 0, None, None);
+        assert_find_next_code_fence!(None, "\\```", 0, None, None);
+        assert_find_next_code_fence!(None, "\\ ```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), "~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), "~~~~", 0, None, None);
+        assert_find_next_code_fence!(None, "``~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((3, 6)), "   ~~~", 0, None, None);
+        assert_find_next_code_fence!(None, "    ~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((4, 7)), "abc\n~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((10, 14)), "abc\n~~\n\n  ````", 0, None, None);
+        assert_find_next_code_fence!(Some((4, 8)), "```\n````", 0, Some(4), None);
+        assert_find_next_code_fence!(Some((4, 10)), "```\n``````", 0, Some(4), None);
 
-        assert_find_next_code_fence!(Some((13, 16)), "plantuml\nfoo\n```", 0, None);
+        assert_find_next_code_fence!(Some((13, 16)), "plantuml\nfoo\n```", 0, None, None);
 
-        assert_find_next_code_fence!(Some((5, 8)), "```  ```", 3, None);
+        assert_find_next_code_fence!(Some((5, 8)), "```  ```", 3, None, None);
+
+        assert_find_next_code_fence!(Some((8, 11)), "```\n~~~\n```", 3, Some(3), Some(b'`'));
     }
 
     #[test]
