@@ -45,7 +45,6 @@ fn main() {
                 process::exit(2);
             }
         }
-
         if let Err(e) = handle_preprocessing(&preprocessor) {
             eprintln!("{}", e);
             process::exit(1);
@@ -67,7 +66,6 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
             ctx.mdbook_version
         );
     }
-
     let processed_book = pre.run(&ctx, book)?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
     Ok(())

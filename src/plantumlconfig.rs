@@ -15,12 +15,12 @@ pub struct PlantUMLConfig {
     /// something  on the todo list. So when sharing the cache dir between
     /// projects make sure you do not generate the books in parallel, this will
     ///  likely corrupt the cache.
-    pub cache_dir: Option <String>,
+    pub cache_dir: Option<String>,
     /// When true (default), unused entries are removed from the cache when the
     /// application closes.
     /// You'd typically set this option to false when you have cache directory
     /// that is used for multiple books (i.e. you override the cache dir)
-    pub clean_cache: Option <bool>,
+    pub clean_cache: Option<bool>,
 }
 
 impl Default for PlantUMLConfig {

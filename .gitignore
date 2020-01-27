@@ -32,3 +32,7 @@ tests/regression_test/regenerate_book_json/book/
 tests/regression_test/venv/
 
 tests/regression_test/test_output/
+
+tests/e2e_test/cache_book_1st/
+
+tests/e2e_test/cache_book_2nd/

@@ -20,7 +20,6 @@ doc = false
 [features]
 # no features by default
 default = []
-legacy-markdown-parser = ["pulldown-cmark", "pulldown-cmark-to-cmark"]
 
 [dependencies]
 mdbook = "0.3.4"
@@ -31,8 +30,6 @@ env_logger = "0.7.1"
 failure = "0.1.6"
 serde_derive = "1.0.102"
 failure_derive = "0.1.6"
-pulldown-cmark = {version = "0.5.0", optional = true }
-pulldown-cmark-to-cmark = {version = "1.2.3", optional = true }
 clap = "2.33.0"
 uuid = { version = "0.8.1", features = ["v4"] }
 log4rs = "0.8.3"

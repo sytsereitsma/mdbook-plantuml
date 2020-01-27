@@ -4,5 +4,8 @@ multilingual = false
 src = "src"
 title = "mdBook E2E test book"
 
+[output.html]
+mathjax-support = true
+
 [preprocessor.plantuml]
 plantuml-cmd="http://localhost:8080/plantuml"
