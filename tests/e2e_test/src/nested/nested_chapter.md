@@ -4,7 +4,15 @@
 
 ```plantuml
 @startuml
-A --|> B
+
+[*] --> State1
+State1 --> [*]
+State1 : this is a string
+State1 : this is another string
+
+State1 -> State2
+State2 --> [*]
+
 @enduml
 ```
 
@@ -12,6 +20,11 @@ A --|> B
 
 ```plantuml
 @startuml
-C --|> D
+
+(First usecase)
+(Another usecase) as (UC2)  
+usecase UC3
+usecase (Last\nusecase) as UC4
+
 @enduml
 ```

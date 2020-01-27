@@ -5,15 +5,19 @@ use plantuml_server_backend::PlantUMLServer;
 use plantuml_shell_backend::PlantUMLShell;
 use plantumlconfig::PlantUMLConfig;
 use reqwest::Url;
-use std::fs;
 use std::cell::RefCell;
+use std::fs;
 use std::path::PathBuf;
 
 /// Create an instance of the PlantUMLBackend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
-pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> Box<dyn PlantUMLBackend> {
+pub fn create(
+    cfg: &PlantUMLConfig,
+    img_root: &PathBuf,
+    book_dir: &PathBuf,
+) -> Box<dyn PlantUMLBackend> {
     let cmd = match &cfg.plantuml_cmd {
         Some(s) => s.clone(),
         None => {
@@ -28,7 +32,7 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> B
     //Always create the image output dir
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
 
-    let mut backend : Box <dyn PlantUMLBackend>;
+    let mut backend: Box<dyn PlantUMLBackend>;
     if let Ok(server_url) = Url::parse(&cmd) {
         backend = Box::new(PlantUMLServer::new(server_url, img_root.clone()));
     } else {
@@ -39,13 +43,12 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> B
         let cache_dir = {
             if let Some(c) = &cfg.cache_dir {
                 PathBuf::from(c)
-            }
-            else {
+            } else {
                 book_dir.join(".plantuml-cache")
             }
         };
 
-        match Cache::new (&cache_dir, cfg.clean_cache.unwrap_or(true)) {
+        match Cache::new(&cache_dir, cfg.clean_cache.unwrap_or(true)) {
             Ok(cache) => {
                 backend = Box::new(CachingBackendDecorator {
                     cache: RefCell::new(cache),
@@ -57,7 +60,6 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> B
                 eprintln!("Failed to instantiate cache ({}), cache is disabled!", e);
             }
         };
-
     }
 
     backend
@@ -96,7 +98,9 @@ impl CachingBackendDecorator {
 
         match self.real_backend.render_from_string(plantuml_code) {
             Ok(img_file_path) => {
-                self.cache.borrow_mut().add_entry(plantuml_code, &img_file_path);
+                self.cache
+                    .borrow_mut()
+                    .add_entry(plantuml_code, &img_file_path);
                 return Ok(img_file_path);
             }
             Err(e) => {

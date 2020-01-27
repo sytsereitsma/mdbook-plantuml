@@ -9,7 +9,6 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::string::String;
 
-
 pub struct Cache {
     /// A map of (hashed plantuml code, used flag) pairs. The key is generated
     ///by format_key function, the sued flag is used to remove enries that are

@@ -3,8 +3,6 @@
 extern crate log;
 extern crate deflate;
 extern crate mdbook;
-extern crate pulldown_cmark;
-extern crate pulldown_cmark_to_cmark;
 extern crate reqwest;
 extern crate serde_json;
 extern crate sha1;
@@ -31,6 +29,7 @@ mod plantuml_shell_backend;
 mod plantumlconfig;
 
 use markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
+
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::utils::fs::remove_dir_content;
