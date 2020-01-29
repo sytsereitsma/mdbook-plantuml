@@ -1,8 +1,10 @@
 #![warn(unused_extern_crates)]
 #[macro_use]
 extern crate log;
+#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
 extern crate deflate;
 extern crate mdbook;
+#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
 extern crate reqwest;
 extern crate serde_json;
 extern crate sha1;
@@ -24,6 +26,7 @@ mod cache;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_backend_factory;
+#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
