@@ -98,7 +98,7 @@ class EndToEndShellTester(unittest.TestCase):
 
         # TODO: This is lame. Use a custom plantuml command the second time to
         # make sure it is not called
-        self.assertLess(cached_time < uncached_time / 5)
+        self.assertLess(cached_time, uncached_time / 5)
 
 
     def test_shell_has_no_server(self):
