@@ -17,6 +17,11 @@ name = "mdbook-plantuml"
 path = "src/bin/mdbook-plantuml.rs"
 doc = false
 
+[features]
+default = ["plantuml-ssl-server"]
+plantuml-server=["reqwest", "deflate"]
+plantuml-ssl-server=["reqwest/default-tls", "deflate"]
+
 [dependencies]
 mdbook = "0.3.4"
 serde = "1.0.102"
@@ -31,9 +36,9 @@ pulldown-cmark-to-cmark = "1.2.3"
 clap = "2.33.0"
 uuid = { version = "0.8.1", features = ["v4"] }
 log4rs = "0.8.3"
-reqwest = "0.9.22"
-deflate = "0.8.2"
+deflate = { version = "0.8.2", optional = true }
 sha1 = { version = "0.6.0", features = ["std"] }
+reqwest = {version = "0.9.22", optional = true, default-features = false}
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"

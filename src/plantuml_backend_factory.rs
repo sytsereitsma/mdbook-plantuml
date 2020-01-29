@@ -1,9 +1,11 @@
 use cache::Cache;
 use failure::Error;
 use plantuml_backend::{get_extension, get_image_filename, PlantUMLBackend};
+#[cfg(any(feature = "plantuml-ssl-server", feature="plantuml-server"))]
 use plantuml_server_backend::PlantUMLServer;
 use plantuml_shell_backend::PlantUMLShell;
 use plantumlconfig::PlantUMLConfig;
+#[cfg(any(feature = "plantuml-ssl-server", feature="plantuml-server"))]
 use reqwest::Url;
 use std::fs;
 use std::cell::RefCell;
@@ -28,13 +30,7 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> B
     //Always create the image output dir
     fs::create_dir_all(&img_root).expect("Failed to create image output dir.");
 
-    let mut backend : Box <dyn PlantUMLBackend>;
-    if let Ok(server_url) = Url::parse(&cmd) {
-        backend = Box::new(PlantUMLServer::new(server_url, img_root.clone()));
-    } else {
-        backend = Box::new(PlantUMLShell::new(cmd, img_root.clone()));
-    }
-
+    let mut backend = create_backend(&cmd, &img_root);
     if cfg.enable_cache.unwrap_or(false) {
         let cache_dir = {
             if let Some(c) = &cfg.cache_dir {
@@ -61,6 +57,20 @@ pub fn create(cfg: &PlantUMLConfig, img_root: &PathBuf, book_dir: &PathBuf) -> B
     }
 
     backend
+}
+
+#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
+fn create_backend(cmd: &String, img_root: &PathBuf) -> Box <dyn PlantUMLBackend> {
+    if let Ok(server_url) = Url::parse(cmd) {
+        Box::new(PlantUMLServer::new(server_url, img_root.clone()))
+    } else {
+        Box::new(PlantUMLShell::new(cmd.clone(), img_root.clone()))
+    }
+}
+
+#[cfg(not(any(feature = "plantuml-ssl-server",feature = "plantuml-server")))]
+fn create_backend(cmd: &String, img_root: &PathBuf) -> Box <dyn PlantUMLBackend> {
+    Box::new(PlantUMLShell::new(cmd.clone(), img_root.clone()))
 }
 
 /// A backend that tries to load a cached image first and calls the real PlantUML
