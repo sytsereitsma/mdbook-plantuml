@@ -6,8 +6,13 @@ from parameterized import parameterized
 from preprocessor_runner import *
 from file_locations import get_shell_calls_file, get_test_output_dir
 import markdown_snippets
+import preprocessor_builder
 
 class ShellBackendTester(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        assert preprocessor_builder.build_shell()
+
     def setUp(self):
         if os.path.isdir(get_test_output_dir()):
             shutil.rmtree(get_test_output_dir())

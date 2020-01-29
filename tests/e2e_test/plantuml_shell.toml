@@ -4,6 +4,9 @@ multilingual = false
 src = "src"
 title = "mdBook E2E test book"
 
+[build]
+build-dir = "plantuml_shell"
+
 [output.html]
 mathjax-support = true
 

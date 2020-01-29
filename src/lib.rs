@@ -21,6 +21,7 @@ extern crate simulacrum;
 #[cfg(test)]
 extern crate tempfile;
 
+#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
 mod base64_plantuml;
 mod cache;
 mod markdown_plantuml_pipeline;
