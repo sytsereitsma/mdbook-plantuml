@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-plantuml"
-version = "0.5.0"
+version = "0.6.0-beta"
 authors = ["Sytse Reitsma <mdbook-plantuml@sreitsma.nl>"]
 description = "A preprocessor for mdbook which will convert plantuml code blocks into inline SVG diagrams"
 license = "MIT"
@@ -23,18 +23,18 @@ plantuml-server=["reqwest", "deflate"]
 plantuml-ssl-server=["reqwest/default-tls", "deflate"]
 
 [dependencies]
-mdbook = "0.3.4"
-serde = "1.0.102"
-serde_json = "1.0.41"
+mdbook = "0.3.5"
+serde = "1.0.104"
+serde_json = "1.0.45"
 log = "0.4.8"
 env_logger = "0.7.1"
 failure = "0.1.6"
-serde_derive = "1.0.102"
+serde_derive = "1.0.104"
 failure_derive = "0.1.6"
 clap = "2.33.0"
 uuid = { version = "0.8.1", features = ["v4"] }
-log4rs = "0.8.3"
-reqwest = {version = "0.9.22", optional = true, default-features = false}
+log4rs = "0.9.0"
+reqwest = {version = "0.9.24", optional = true, default-features = false}
 deflate = { version = "0.8.2", optional = true }
 sha1 = { version = "0.6.0", features = ["std"] }
 

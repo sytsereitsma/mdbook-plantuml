@@ -52,6 +52,20 @@ possible, or png if PlantUML does not support svg for the requested diagram type
    This option can be used to have a central location for use with multiple books (e.g. same book on different version branches). Protection for parallel use of the cache with a shared cache dir is something on the todo list. So when sharing the cache dir between projects make sure you do not generate the books in parallel, this will likely corrupt the cache.
 - **clean-cache:** When true (default) the unused cache entries are removed after the preprocessor is run. Typically set to false when you share a cache between books, see the 'cache-dir' option.
 
+## Features
+- **plantuml-server** Add http server support only
+- **plantuml-ssl-server** Add https server support (default)
+
+Examples:
+Install without server support:
+```cargo install mdbook-plantuml --no-default-features```
+
+Install with http server support:
+```cargo install mdbook-plantuml --no-default-features --features plantuml-server```
+
+Install with https server support:
+```cargo install mdbook-plantuml --no-default-features --features plantuml-ssl-server```
+
 ## Example server configuration
 
 Below is an example server configuration.
@@ -94,12 +108,22 @@ command = "mdbook-plantuml -l"
 
 ## Change log
 
+### 0.6.0-beta (2020-01-29)
+* 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.
+* Feature gated the PlantUML server and ssl server (default is ssl server).
+  [Issue #16](https://github.com/sytsereitsma/mdbook-plantuml/issues/16)
+* Dropped pulldown-cmark in favor of a home grown markdown parser. The conversion
+  from markdown and back caused changes in the document.
+  [Issue #15](https://github.com/sytsereitsma/mdbook-plantuml/issues/15)
+* These are pretty major changes, hence the beta label.
+
 ### 0.5.0 (2019-11-08)
 * mdBook from v0.3.2 on deletes the book output directory when rendering starts,
   causing all generated preprocessor output to be deleted too. The only workaround
   at the moment is outputting the images to the src directory. This is ugly, but
   a temporary solution until mdBook allows for other ways of adding resources
   from a preprocessor.
+  See [this issue](https://github.com/rust-lang/mdBook/issues/1087)
 * More thorough README.md
 
 ### 0.4.0 (2019-09-25)
