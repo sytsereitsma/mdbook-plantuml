@@ -34,6 +34,14 @@ pub struct PlantUMLServer {
 
 impl PlantUMLServer {
     pub fn new(server_url: Url, img_root: PathBuf) -> PlantUMLServer {
+        // Make sure the server_url path ends with a / so Url::join works as expected later.
+        let path = server_url.path();
+        let server_url = if path.ends_with("/") { server_url } else {
+            let mut repath = server_url.clone();
+            repath.set_path(format!("{}/", path).as_str());
+            repath
+        };
+
         PlantUMLServer {
             server_url: server_url,
             img_root: img_root,
@@ -42,17 +50,12 @@ impl PlantUMLServer {
 
     /// Format the PlantUML server URL using the encoded diagram and extension
     fn get_url(&self, extension: &String, encoded_diagram: &String) -> Result<Url, Error> {
-        let formatted_url = format!(
-            "{}/{}/{}",
-            self.server_url.as_str(),
-            extension,
-            encoded_diagram
-        );
-        match Url::parse(formatted_url.as_str()) {
+        let path = format!("{}/{}", extension, encoded_diagram);
+        match self.server_url.join(path.as_str()) {
             Ok(url) => Ok(url),
             Err(e) => bail!(format!(
-                "Error parsing PlantUML server URL from '{}' ({})",
-                formatted_url, e
+                "Error constructing PlantUML server URL from '{}' and '{}' ({})",
+                self.server_url.as_str(), path, e
             )),
         }
     }
