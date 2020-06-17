@@ -133,6 +133,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get_url_no_path() {
+        let srv = PlantUMLServer::new(
+            Url::parse("http://froboz:1234").unwrap(),
+            PathBuf::from(""),
+        );
+
+        assert_eq!(
+            Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
+            srv.get_url(
+                &String::from("ext"),
+                &String::from("plantuml_encoded_string")
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
     fn test_encode_diagram_source() {
         assert_eq!(
             String::from("SrRGrQsnKt010000"),
@@ -172,7 +189,7 @@ mod tests {
         mock_downloader
             .expect_download_image()
             .called_once()
-            //.with(...) How to test the correct Url here?
+            .with(deref(Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap()))
             .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
 
         let img_path = srv
