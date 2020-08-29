@@ -57,18 +57,16 @@ impl PlantUMLServer {
         }
     }
 
-    /// Save the downlaoded image to a file and return the relative image URL
-    /// for use in the mdBook
+    /// Save the downloaded image to a file
     fn save_downloaded_image(
         &self,
         image_buffer: &Vec<u8>,
-        extension: &String,
-    ) -> Result<PathBuf, Error> {
-        let filename = get_image_filename(&self.img_root, extension);
-        let mut output_file = fs::File::create(&filename)?;
+        file_path: &PathBuf,
+    ) -> Result<(), Error> {
+        let mut output_file = fs::File::create(&file_path)?;
         output_file.write_all(&image_buffer)?;
 
-        Ok(filename)
+        Ok(())
     }
 
     /// The business end of this struct, generate the image using the server and
@@ -78,13 +76,24 @@ impl PlantUMLServer {
         plantuml_code: &String,
         downloader: &dyn ImageDownloader,
     ) -> Result<PathBuf, Error> {
-        let encoded = encode_diagram_source(plantuml_code);
-        let extension = get_extension(plantuml_code);
-        let request_url = self.get_url(&extension, &encoded)?;
+        let file_path = get_image_filename(&self.img_root, plantuml_code);
 
-        match downloader.download_image(&request_url) {
-            Ok(image_buffer) => self.save_downloaded_image(&image_buffer, &extension),
-            Err(e) => Err(e),
+        if file_path.exists() {
+            info!(
+                "Skipping {}, it already exists.",
+                file_path.to_string_lossy()
+            );
+            Ok(file_path)
+        } else {
+            let encoded = encode_diagram_source(plantuml_code);
+            let request_url = self.get_url(&get_extension(&file_path), &encoded)?;
+            match downloader.download_image(&request_url) {
+                Ok(image_buffer) => {
+                    self.save_downloaded_image(&image_buffer, &file_path)?;
+                    Ok(file_path)
+                }
+                Err(e) => Err(e),
+            }
         }
     }
 }
@@ -147,9 +156,8 @@ mod tests {
         let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap(), output_path.clone());
 
         let data: Vec<u8> = b"totemizer".iter().cloned().collect();
-        let img_path = srv
-            .save_downloaded_image(&data, &String::from("ext"))
-            .unwrap();
+        let img_path = PathBuf::from("somefile.ext");
+        srv.save_downloaded_image(&data, &img_path).unwrap();
 
         let raw_source = fs::read(img_path).unwrap();
         assert_eq!("totemizer", String::from_utf8_lossy(&raw_source));

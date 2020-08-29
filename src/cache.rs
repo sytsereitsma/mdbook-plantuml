@@ -11,7 +11,7 @@ use std::string::String;
 
 pub struct Cache {
     /// A map of (hashed plantuml code, used flag) pairs. The key is generated
-    ///by format_key function, the sued flag is used to remove enries that are
+    ///by format_key function, the used flag is checked to remove entries that are
     ///no longer referenced.
     entries: HashMap<String, Cell<bool>>,
     /// The directory where to store all the cache files
@@ -20,7 +20,7 @@ pub struct Cache {
     clean_on_save: bool,
 }
 
-/// Formats the key name by computiong the sh1 checksum of the code
+/// Formats the key name by computing the sh1 checksum of the code
 fn format_key(code_block: &String) -> String {
     sha1::Sha1::from(&code_block).hexdigest()
 }
@@ -92,7 +92,8 @@ impl Cache {
     /// Get the full path of the cached image, returns None if the file does not
     /// exist
     /// # Arguments
-    /// * `filename` - The filename of the cached image file
+    /// * `filename` - The filename of the cached image file (basically the SHA1
+    ///                hash of the PlantUML code block)
     fn get_image_path(&self, filename: &String) -> Option<PathBuf> {
         let img_path = {
             let mut p = self.cache_path.clone();

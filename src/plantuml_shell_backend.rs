@@ -5,6 +5,7 @@ use std::process::Command;
 
 use failure::Error;
 use plantuml_backend::{get_extension, get_image_filename, PlantUMLBackend};
+use tempfile::{tempdir, TempDir};
 
 /// A trait class for wrapping the actual rendering command
 /// Only here to make unit testing the renderer possbile, this is cheating a
@@ -70,6 +71,7 @@ impl CommandExecutor for RealCommandExecutor {
 pub struct PlantUMLShell {
     plantuml_cmd: String,
     img_root: PathBuf,
+    generation_dir: TempDir,
 }
 
 /// Invokes PlantUML as a shell/cmd program.
@@ -78,6 +80,7 @@ impl PlantUMLShell {
         PlantUMLShell {
             plantuml_cmd: plantuml_cmd,
             img_root: img_root,
+            generation_dir: tempdir().unwrap(),
         }
     }
 
@@ -97,16 +100,15 @@ impl PlantUMLShell {
         Ok(args)
     }
 
-    /// Create the source and image names with the appropriate extensions
-    /// The file base names are a UUID to avoid collisions with exsisting
-    /// files
-    fn get_filenames(&self, extension: &String) -> (PathBuf, PathBuf) {
-        let output_file = get_image_filename(&self.img_root, &extension);
+    /// Create the source and image names for the generation dir with the appropriate extensions
+    fn get_filenames(&self, output_file: &PathBuf) -> (PathBuf, PathBuf) {
+        let mut puml_image = self.generation_dir.path().to_path_buf();
+        puml_image.push(output_file.file_name().unwrap());
 
-        let mut source_file = output_file.clone();
-        source_file.set_extension("puml");
+        let mut puml_src = puml_image.clone();
+        puml_src.set_extension("puml");
 
-        (source_file, output_file)
+        (puml_src, puml_image)
     }
 
     ///Generate an image file from the given plantuml code.
@@ -115,24 +117,41 @@ impl PlantUMLShell {
         plantuml_code: &String,
         command_executor: &dyn CommandExecutor,
     ) -> Result<PathBuf, Error> {
-        let extension = get_extension(plantuml_code);
-        let (source_file, output_file) = self.get_filenames(&extension);
+        let output_file = get_image_filename(&self.img_root, &plantuml_code);
 
+        if output_file.exists() {
+            info!(
+                "Skipping {}, it already exists.",
+                output_file.to_string_lossy()
+            );
+            return Ok(output_file);
+        }
+
+        let (puml_src, puml_image) = self.get_filenames(&output_file);
         // Write diagram source file for rendering
-        fs::write(source_file.as_path(), plantuml_code.as_str()).or_else(|e| {
+        fs::write(puml_src.as_path(), plantuml_code.as_str()).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension
-        let args = self.get_cmd_arguments(&source_file, &extension)?;
+        let args = self.get_cmd_arguments(&puml_src, &get_extension(&output_file))?;
         command_executor.execute(&args).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;
 
-        if !output_file.exists() {
+        if !puml_image.exists() {
             bail!(
                 format!("PlantUML did not generate an image, did you forget the @startuml, @enduml block ({})?", args.join(" "))
+            );
+        }
+
+        if let Err(e) = fs::copy(&puml_image, &output_file) {
+            bail!(
+                "Error copying the generated PlantUML image {} from to {} ({}).",
+                puml_image.to_string_lossy(),
+                output_file.to_string_lossy(),
+                e
             );
         }
 
@@ -183,6 +202,7 @@ mod tests {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("plantumlcmd"),
             img_root: PathBuf::from(""),
+            generation_dir: tempdir().unwrap(),
         };
         let file = PathBuf::from("froboz.puml");
         assert_eq!(
@@ -203,7 +223,8 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let shell = PlantUMLShell {
             plantuml_cmd: String::from(""),
-            img_root: output_dir.into_path(),
+            img_root: output_dir.path().to_path_buf(),
+            generation_dir: output_dir,
         };
 
         let executor = FakeCommandExecutor {
@@ -224,7 +245,8 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let shell = PlantUMLShell {
             plantuml_cmd: String::from(""),
-            img_root: output_dir.into_path(),
+            img_root: output_dir.path().to_path_buf(),
+            generation_dir: output_dir,
         };
 
         let executor = FakeCommandExecutor {
@@ -245,7 +267,10 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let shell = PlantUMLShell {
             plantuml_cmd: String::from(""),
-            img_root: output_dir.into_path(),
+            // Needs to be different from the generation dir, because else we cannot
+            // copy between the two.
+            img_root: output_dir.path().to_path_buf(),
+            generation_dir: tempdir().unwrap(),
         };
 
         let executor = FakeCommandExecutor {

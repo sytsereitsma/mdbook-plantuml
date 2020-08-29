@@ -108,6 +108,14 @@ command = "mdbook-plantuml -l"
 
 ## Change log
 
+### 0.7.0 (2020-08-29)
+* 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.
+* Feature gated the PlantUML server and ssl server (default is ssl server).
+  [Issue #16](https://github.com/sytsereitsma/mdbook-plantuml/issues/16)
+* Fixed infinite rebuild loop when using the ```mdbook serve``` command. Because the 
+  preprocessor output cannot be written directly to the book output dir anymore
+  you still end up with one extra rebuild. 
+  
 ### 0.6.0-beta (2020-01-29)
 * 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.
 * Feature gated the PlantUML server and ssl server (default is ssl server).
