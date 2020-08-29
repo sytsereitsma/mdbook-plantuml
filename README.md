@@ -47,10 +47,6 @@ possible, or png if PlantUML does not support svg for the requested diagram type
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
-- **enable-cache:** Optional flag to enable caching (defaults to false for now). When enabled, repetitive book generation is significantly faster, because only the changed PlantUML code blocks are regenerated.
-- **cache-dir:** The directory where to store the cache (defaults to '.plantuml-cache' in the book root dir).
-   This option can be used to have a central location for use with multiple books (e.g. same book on different version branches). Protection for parallel use of the cache with a shared cache dir is something on the todo list. So when sharing the cache dir between projects make sure you do not generate the books in parallel, this will likely corrupt the cache.
-- **clean-cache:** When true (default) the unused cache entries are removed after the preprocessor is run. Typically set to false when you share a cache between books, see the 'cache-dir' option.
 
 ## Features
 - **plantuml-server** Add http server support only
@@ -112,9 +108,13 @@ command = "mdbook-plantuml -l"
 * 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.
 * Feature gated the PlantUML server and ssl server (default is ssl server).
   [Issue #16](https://github.com/sytsereitsma/mdbook-plantuml/issues/16)
-* Fixed infinite rebuild loop when using the ```mdbook serve``` command. Because the 
-  preprocessor output cannot be written directly to the book output dir anymore
-  you still end up with one extra rebuild. 
+* Fixed infinite rebuild loop when using the ```mdbook serve``` command.
+  Because the preprocessor output cannot be written directly to the book output
+  dir anymore the images need to be created in the src dir unfortunately (mdBook
+  change). You still end up with one extra rebuild when images are updated, I cannot
+  prevent this (the gitignore file of mdbook should be able to prevent this,
+  but it does not).
+  [Issue #17](https://github.com/sytsereitsma/mdbook-plantuml/issues/16)
   
 ### 0.6.0-beta (2020-01-29)
 * 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.

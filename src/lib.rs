@@ -6,7 +6,6 @@ extern crate deflate;
 extern crate mdbook;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 extern crate reqwest;
-extern crate serde_json;
 extern crate sha1;
 extern crate tempfile;
 
@@ -21,7 +20,6 @@ extern crate simulacrum;
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
-mod cache;
 mod dir_cleaner;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
@@ -31,6 +29,7 @@ mod plantuml_renderer;
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
+mod util;
 
 use markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
@@ -69,7 +68,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             }
         }
 
-        let renderer = PlantUMLRenderer::new(&cfg, &img_output_dir, &ctx.root);
+        let renderer = PlantUMLRenderer::new(&cfg, &img_output_dir);
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
