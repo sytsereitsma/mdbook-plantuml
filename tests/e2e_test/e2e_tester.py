@@ -19,7 +19,7 @@ def change_output_dir(book_toml, output_dir):
     toml.dump(data, open(book_toml, "w"))
 
 
-def _build_book(book_name, open_browser=True, output_dir=None):
+def _build_book(book_name, open_browser=True, output_dir=None, clean=True):
     module_dir = get_module_dir()
     src_toml = os.path.join(module_dir, book_name)
     target_toml = os.path.join(module_dir, "book.toml")
@@ -31,8 +31,11 @@ def _build_book(book_name, open_browser=True, output_dir=None):
         book_output_dir = os.path.join(module_dir, output_dir)
         change_output_dir(target_toml, output_dir)
 
-    if os.path.isdir(book_output_dir):
+    if clean and os.path.isdir(book_output_dir):
         shutil.rmtree(book_output_dir)
+
+    if clean and os.path.isdir(os.path.join("src", "mdbook-plantuml-img")):
+        shutil.rmtree(os.path.join("src", "mdbook-plantuml-img"))
 
     preprocessor_dir = os.path.join(module_dir, "..", "..", "target", "release")
     env = os.environ
@@ -83,6 +86,10 @@ class EndToEndShellTester(unittest.TestCase):
     def test_shell(self):
         assert _build_book("plantuml_shell.toml")
 
+    def test_dir_cleaner(self):
+        assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner")
+        assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner", clean=False)
+
     def test_cache(self):
         cache_dir = os.path.join(get_module_dir(), ".plantuml-cache")
         if os.path.isdir(cache_dir):
@@ -93,7 +100,7 @@ class EndToEndShellTester(unittest.TestCase):
         uncached_time = time.time() - uncached_start
 
         cached_start = time.time()
-        assert _build_book("plantuml_cache.toml")
+        assert _build_book("plantuml_cache.toml", clean=False)
         cached_time = time.time() - cached_start
 
         # TODO: This is lame. Use a custom plantuml command the second time to

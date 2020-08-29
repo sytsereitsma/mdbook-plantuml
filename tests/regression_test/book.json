@@ -16,7 +16,7 @@
       }
     },
     "renderer": "html",
-    "mdbook_version": "0.3.4"
+    "mdbook_version": "0.4.2"
   },
   {
     "sections": [

@@ -1,18 +1,9 @@
+use plantuml_renderer::PlantUMLRendererTrait;
 use std::string::String;
-
-pub trait PlantUMLCodeBlockRenderer {
-    ///Renders the given code block and returns a markdown link to the generated
-    ///image. E.g. ![image](/img/foobar.svg).
-    // On failure the returned string is simply the error description.
-    ///Note that the prepocessor can never output HTML! mdBook will not render
-    ///anything after HTML code for some reason. So markdown in, markdown out.
-    //TODO: code block can be a reference
-    fn render(&self, code_block: String, rel_image_url: &String) -> String;
-}
 
 pub fn render_plantuml_code_blocks(
     markdown: &str,
-    renderer: &impl PlantUMLCodeBlockRenderer,
+    renderer: &impl PlantUMLRendererTrait,
     rel_image_url: &String,
 ) -> String {
     let processor = PlantUMLCodeProcessor::new(markdown);
@@ -72,7 +63,7 @@ fn find_next_code_fence(
         if let Some(expected) = fence_char {
             expected == c
         } else {
-            (c == b'`' || c == b'~')
+            c == b'`' || c == b'~'
         }
     };
 
@@ -208,11 +199,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// # Arguments
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
     /// * `rel_image_url` - The url of the image relative to the book output dir.
-    pub fn process(
-        &self,
-        renderer: &impl PlantUMLCodeBlockRenderer,
-        rel_image_url: &String,
-    ) -> String {
+    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &String) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -222,7 +209,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             if let Some(code_block) = self.get_next_code_block(start_pos) {
                 if code_block.is_plantuml() {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
-                    let rendered = renderer.render(String::from(code_block.code), rel_image_url);
+                    let rendered = renderer.render(&String::from(code_block.code), rel_image_url);
                     processed.push_str(rendered.as_str());
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
@@ -249,9 +236,9 @@ mod test {
         code_block: RefCell<String>,
     }
 
-    impl PlantUMLCodeBlockRenderer for FakeRenderer {
-        fn render(&self, code_block: String, _rel_image_url: &String) -> String {
-            self.code_block.replace(code_block);
+    impl PlantUMLRendererTrait for FakeRenderer {
+        fn render(&self, code_block: &String, _rel_image_url: &String) -> String {
+            self.code_block.replace(code_block.clone());
             String::from("rendered")
         }
     }

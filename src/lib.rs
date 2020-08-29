@@ -1,14 +1,13 @@
 #![warn(unused_extern_crates)]
 #[macro_use]
 extern crate log;
-#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 extern crate deflate;
 extern crate mdbook;
-#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 extern crate reqwest;
-extern crate serde_json;
 extern crate sha1;
-extern crate uuid;
+extern crate tempfile;
 
 #[macro_use]
 extern crate failure;
@@ -18,47 +17,28 @@ extern crate serde_derive;
 extern crate pretty_assertions;
 #[cfg(test)]
 extern crate simulacrum;
-#[cfg(test)]
-extern crate tempfile;
 
-#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
-mod cache;
+mod dir_cleaner;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_backend_factory;
-#[cfg(any(feature = "plantuml-ssl-server",feature = "plantuml-server"))]
+mod plantuml_renderer;
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
+mod util;
 
-use markdown_plantuml_pipeline::{render_plantuml_code_blocks, PlantUMLCodeBlockRenderer};
+use markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::utils::fs::remove_dir_content;
-use plantuml_backend::PlantUMLBackend;
+use plantuml_renderer::PlantUMLRenderer;
 use plantumlconfig::PlantUMLConfig;
+use std::fs;
 use std::path::PathBuf;
-
-impl PlantUMLCodeBlockRenderer for Box<dyn PlantUMLBackend> {
-    fn render(&self, code_block: String, rel_img_url: &String) -> String {
-        match self.render_from_string(&code_block) {
-            Ok(image_path) => {
-                let img_url = format!(
-                    "{}/{}",
-                    rel_img_url,
-                    image_path.file_name().unwrap().to_str().unwrap()
-                );
-                format!("![{}]({})\n\n", img_url, img_url)
-            }
-            Err(e) => {
-                error!("Failed to generate PlantUML diagram.");
-                String::from(format!("\nPlantUML rendering error:\n{}\n\n", e))
-            }
-        }
-    }
-}
 
 pub struct PlantUMLPreprocessor;
 
@@ -77,18 +57,26 @@ impl Preprocessor for PlantUMLPreprocessor {
             .root
             .join(&ctx.config.book.src)
             .join("mdbook-plantuml-img");
-        if img_output_dir.exists() {
-            remove_dir_content(&img_output_dir)?;
+
+        //Always create the image output dir
+        if !img_output_dir.exists() {
+            if let Err(e) = fs::create_dir_all(&img_output_dir) {
+                return Err(mdbook::errors::Error::msg(format!(
+                    "Failed to create the image output dir ({}).",
+                    e
+                )));
+            }
         }
 
-        let plantuml_cmd = plantuml_backend_factory::create(&cfg, &img_output_dir, &ctx.root);
-
+        let renderer = PlantUMLRenderer::new(&cfg, &img_output_dir);
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
-                let rel_image_url = get_relative_img_url(&chapter.path);
-                chapter.content =
-                    render_plantuml_code_blocks(&chapter.content, &plantuml_cmd, &rel_image_url);
+                if let Some(chapter_path) = &chapter.path {
+                    let rel_image_url = get_relative_img_url(&chapter_path);
+                    chapter.content =
+                        render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
+                }
             }
         });
 

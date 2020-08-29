@@ -1,6 +1,6 @@
 # The testers
 
-The tests are written as python unit tetss and call on teh executables.
+The tests are written as python unit tests and call on the executables.
 
 ## Regression tester
 The regression tester calls the mdbook-plantuml executable (all features
@@ -13,7 +13,11 @@ The ```./regression_test/regenerate_book_json/regeneration_preprocessor.py```
 scripts creates a new template book in ```./regression_test/book.json```. It simply
 calls mdbook with a fake preprocessor to catch the json book coming from mdbook itself.
 
-You should run the regeneration_preprocessor whenever the mdbook version changes.
+You should run the regeneration_preprocessor whenever the mdbook version changes:
+```
+cd regenerate_book_json
+mdbook build
+```
 
 ## End to end (E2E) tests
 These test the full processing pipeline with all feature combinations and show
@@ -23,9 +27,6 @@ This is a bit of a pain, but the image names are randomly generated, so using a
 diff tool is not (easily) possible..
 
 ## Running the tests
-First create the virtual environment (assumes you have the python launcher):
-
-From the tests directory in your console:
 
 ### Windows
 ```

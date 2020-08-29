@@ -1,0 +1,17 @@
+e2e_test/test_*/
+
+*.log
+
+regression_test/regenerate_book_json/book/
+
+venv/
+
+regression_test/test_output/
+
+__pycache__
+e2e_test/plantuml_*/
+e2e_test/src/mdbook-plantuml-img
+e2e_test/book/
+e2e_test/book.toml
+
+.plantuml-cache

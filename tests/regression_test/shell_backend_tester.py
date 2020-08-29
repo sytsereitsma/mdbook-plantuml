@@ -45,7 +45,7 @@ class ShellBackendTester(unittest.TestCase):
 
     def format_md_link(self, filename, prefix=""):
         url = prefix + "mdbook-plantuml-img/" + filename
-        return "![{url}]({url})".format(url=url)
+        return "![]({url})".format(url=url)
 
     @parameterized.expand([
         (markdown_snippets.ab_class_diagram, "svg"),
