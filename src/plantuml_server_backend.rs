@@ -33,15 +33,17 @@ pub struct PlantUMLServer {
 }
 
 impl PlantUMLServer {
-    pub fn new(server_url: Url, img_root: PathBuf) -> PlantUMLServer {
+    pub fn new(server_url: Url) -> PlantUMLServer {
         // Make sure the server_url path ends with a / so Url::join works as expected later.
         let path = server_url.path();
-        let server_url = if path.ends_with("/") { server_url } else {
+        let server_url = if path.ends_with("/") {
+            server_url
+        } else {
             let mut repath = server_url.clone();
             repath.set_path(format!("{}/", path).as_str());
             repath
         };
-        
+
         PlantUMLServer {
             server_url: server_url,
         }
@@ -54,7 +56,9 @@ impl PlantUMLServer {
             Ok(url) => Ok(url),
             Err(e) => bail!(format!(
                 "Error constructing PlantUML server URL from '{}' and '{}' ({})",
-                self.server_url.as_str(), path, e
+                self.server_url.as_str(),
+                path,
+                e
             )),
         }
     }
@@ -135,10 +139,7 @@ mod tests {
 
     #[test]
     fn test_get_url_no_path() {
-        let srv = PlantUMLServer::new(
-            Url::parse("http://froboz:1234").unwrap(),
-            PathBuf::from(""),
-        );
+        let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap(), PathBuf::from(""));
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
@@ -189,7 +190,9 @@ mod tests {
         mock_downloader
             .expect_download_image()
             .called_once()
-            .with(deref(Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap()))
+            .with(deref(
+                Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap(),
+            ))
             .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
 
         srv.render_string(&String::from("C --|> D"), &output_file, &mock_downloader)

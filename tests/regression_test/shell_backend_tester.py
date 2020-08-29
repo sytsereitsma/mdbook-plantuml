@@ -8,6 +8,7 @@ from file_locations import get_shell_calls_file, get_test_output_dir
 import markdown_snippets
 import preprocessor_builder
 
+
 class ShellBackendTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -22,7 +23,8 @@ class ShellBackendTester(unittest.TestCase):
             os.remove(get_shell_calls_file())
 
         self.runner = PreprocessorRunner()
-        self.runner.set_preprocessor_config({"plantuml-cmd": "python shell_command.py"})
+        self.runner.set_preprocessor_config(
+            {"plantuml-cmd": "python shell_command.py"})
 
     def __get_shell_command_calls(self):
         assert os.path.exists(get_shell_calls_file())
@@ -30,7 +32,7 @@ class ShellBackendTester(unittest.TestCase):
 
     def __get_image_filename(self, call):
         image_name = os.path.basename(call["arguments"][-1])
-        name,ext = os.path.splitext(image_name)
+        name, ext = os.path.splitext(image_name)
         if "-tsvg" in call["arguments"]:
             filename = name + ".svg"
         else:
@@ -41,7 +43,7 @@ class ShellBackendTester(unittest.TestCase):
     def assertFileIsCreated(self, call):
         filename = self.__get_image_filename(call)
         assert os.path.isfile(
-            os.path.join(get_test_output_dir (), "mdbook-plantuml-img", filename))
+            os.path.join(get_test_output_dir(), "mdbook-plantuml-img", filename))
 
     def format_md_link(self, filename, prefix=""):
         url = prefix + "mdbook-plantuml-img/" + filename
@@ -64,13 +66,16 @@ class ShellBackendTester(unittest.TestCase):
         self.assertFileIsCreated(call)
         self.assertEqual(snippet.plantuml_code, call["plantuml-code"])
 
-        #Finally check if the correct link is in the chapter data
+        # Finally check if the correct link is in the chapter data
         filename = self.__get_image_filename(call)
-        self.assertIn(self.format_md_link(filename), result.root_chapter["content"])
+        self.assertIn(self.format_md_link(filename),
+                      result.root_chapter["content"])
 
     def test_nested_chapters(self):
-        root_chapter = Chapter("Chapter 1", markdown_snippets.ab_class_diagram.markdown)
-        sub_chapter = Chapter("Nested 1", markdown_snippets.cd_class_diagram.markdown)
+        root_chapter = Chapter(
+            "Chapter 1", markdown_snippets.ab_class_diagram.markdown)
+        sub_chapter = Chapter(
+            "Nested 1", markdown_snippets.cd_class_diagram.markdown)
         root_chapter.sub_items.append(sub_chapter)
 
         self.runner.set_content(root_chapter)
@@ -83,8 +88,10 @@ class ShellBackendTester(unittest.TestCase):
         root_filename = self.__get_image_filename(calls[1])
         nested_filename = self.__get_image_filename(calls[0])
 
-        self.assertIn(self.format_md_link(root_filename), result.root_chapter["content"])
-        self.assertIn(self.format_md_link(nested_filename, "../"), result.nested_chapter["content"])
+        self.assertIn(self.format_md_link(root_filename),
+                      result.root_chapter["content"])
+        self.assertIn(self.format_md_link(nested_filename, "../"),
+                      result.nested_chapter["content"])
 
     def test_mathjax_is_untouched(self):
         mathjax = r"\\( \int x dx = \frac{x^2}{2} + C \\)"
@@ -94,6 +101,3 @@ class ShellBackendTester(unittest.TestCase):
         self.assertEqual(0, result.returncode)
 
         self.assertIn(mathjax, result.root_chapter["content"])
-
-
-
