@@ -33,7 +33,15 @@ pub struct PlantUMLServer {
 }
 
 impl PlantUMLServer {
-    pub fn new(server_url: Url) -> PlantUMLServer {
+    pub fn new(server_url: Url, img_root: PathBuf) -> PlantUMLServer {
+        // Make sure the server_url path ends with a / so Url::join works as expected later.
+        let path = server_url.path();
+        let server_url = if path.ends_with("/") { server_url } else {
+            let mut repath = server_url.clone();
+            repath.set_path(format!("{}/", path).as_str());
+            repath
+        };
+        
         PlantUMLServer {
             server_url: server_url,
         }
@@ -41,17 +49,12 @@ impl PlantUMLServer {
 
     /// Format the PlantUML server URL using the encoded diagram and extension
     fn get_url(&self, extension: &String, encoded_diagram: &String) -> Result<Url, Error> {
-        let formatted_url = format!(
-            "{}/{}/{}",
-            self.server_url.as_str(),
-            extension,
-            encoded_diagram
-        );
-        match Url::parse(formatted_url.as_str()) {
+        let path = format!("{}/{}", extension, encoded_diagram);
+        match self.server_url.join(path.as_str()) {
             Ok(url) => Ok(url),
             Err(e) => bail!(format!(
-                "Error parsing PlantUML server URL from '{}' ({})",
-                formatted_url, e
+                "Error constructing PlantUML server URL from '{}' and '{}' ({})",
+                self.server_url.as_str(), path, e
             )),
         }
     }
@@ -131,6 +134,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get_url_no_path() {
+        let srv = PlantUMLServer::new(
+            Url::parse("http://froboz:1234").unwrap(),
+            PathBuf::from(""),
+        );
+
+        assert_eq!(
+            Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
+            srv.get_url(
+                &String::from("ext"),
+                &String::from("plantuml_encoded_string")
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
     fn test_encode_diagram_source() {
         assert_eq!(
             String::from("SrRGrQsnKt010000"),
@@ -169,7 +189,7 @@ mod tests {
         mock_downloader
             .expect_download_image()
             .called_once()
-            //.with(...) How to test the correct Url here?
+            .with(deref(Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap()))
             .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
 
         srv.render_string(&String::from("C --|> D"), &output_file, &mock_downloader)
