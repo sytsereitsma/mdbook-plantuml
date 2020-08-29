@@ -12,4 +12,3 @@ mathjax-support = true
 
 [preprocessor.plantuml]
 plantuml-cmd="plantuml.exe"
-enable-cache=true

@@ -114,7 +114,7 @@ command = "mdbook-plantuml -l"
   change). You still end up with one extra rebuild when images are updated, I cannot
   prevent this (the gitignore file of mdbook should be able to prevent this,
   but it does not).
-  [Issue #17](https://github.com/sytsereitsma/mdbook-plantuml/issues/16)
+  [Issue #17](https://github.com/sytsereitsma/mdbook-plantuml/issues/17)
   
 ### 0.6.0-beta (2020-01-29)
 * 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.

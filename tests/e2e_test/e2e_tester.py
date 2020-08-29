@@ -100,7 +100,7 @@ class EndToEndShellTester(unittest.TestCase):
         uncached_time = time.time() - uncached_start
 
         cached_start = time.time()
-        assert _build_book("plantuml_cache.toml")
+        assert _build_book("plantuml_cache.toml", clean=False)
         cached_time = time.time() - cached_start
 
         # TODO: This is lame. Use a custom plantuml command the second time to
