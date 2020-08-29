@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use failure::Error;
-use plantuml_backend::{get_extension, get_image_filename, PlantUMLBackend};
+use plantuml_backend::PlantUMLBackend;
 use tempfile::{tempdir, TempDir};
+use util::get_extension;
 
 /// A trait class for wrapping the actual rendering command
 /// Only here to make unit testing the renderer possbile, this is cheating a
@@ -70,16 +71,14 @@ impl CommandExecutor for RealCommandExecutor {
 
 pub struct PlantUMLShell {
     plantuml_cmd: String,
-    img_root: PathBuf,
     generation_dir: TempDir,
 }
 
 /// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
-    pub fn new(plantuml_cmd: String, img_root: PathBuf) -> PlantUMLShell {
+    pub fn new(plantuml_cmd: String) -> PlantUMLShell {
         PlantUMLShell {
             plantuml_cmd: plantuml_cmd,
-            img_root: img_root,
             generation_dir: tempdir().unwrap(),
         }
     }
@@ -115,19 +114,10 @@ impl PlantUMLShell {
     fn render_from_string(
         &self,
         plantuml_code: &String,
+        output_file: &PathBuf,
         command_executor: &dyn CommandExecutor,
-    ) -> Result<PathBuf, Error> {
-        let output_file = get_image_filename(&self.img_root, &plantuml_code);
-
-        if output_file.exists() {
-            info!(
-                "Skipping {}, it already exists.",
-                output_file.to_string_lossy()
-            );
-            return Ok(output_file);
-        }
-
-        let (puml_src, puml_image) = self.get_filenames(&output_file);
+    ) -> Result<(), Error> {
+        let (puml_src, puml_image) = self.get_filenames(output_file);
         // Write diagram source file for rendering
         fs::write(puml_src.as_path(), plantuml_code.as_str()).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
@@ -135,7 +125,7 @@ impl PlantUMLShell {
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension
-        let args = self.get_cmd_arguments(&puml_src, &get_extension(&output_file))?;
+        let args = self.get_cmd_arguments(&puml_src, &get_extension(output_file))?;
         command_executor.execute(&args).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;
@@ -155,14 +145,18 @@ impl PlantUMLShell {
             );
         }
 
-        Ok(output_file)
+        Ok(())
     }
 }
 
 impl PlantUMLBackend for PlantUMLShell {
-    fn render_from_string(&self, plantuml_code: &String) -> Result<PathBuf, Error> {
+    fn render_from_string(
+        &self,
+        plantuml_code: &String,
+        output_file: &PathBuf,
+    ) -> Result<(), Error> {
         let executor = RealCommandExecutor {};
-        PlantUMLShell::render_from_string(self, plantuml_code, &executor)
+        PlantUMLShell::render_from_string(self, plantuml_code, output_file, &executor)
     }
 }
 
@@ -172,6 +166,7 @@ mod tests {
     use failure::err_msg;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
+    use util::join_path;
 
     struct FakeCommandExecutor {
         error: bool,
@@ -201,7 +196,6 @@ mod tests {
     fn shell_command_line_arguments() {
         let shell = PlantUMLShell {
             plantuml_cmd: String::from("plantumlcmd"),
-            img_root: PathBuf::from(""),
             generation_dir: tempdir().unwrap(),
         };
         let file = PathBuf::from("froboz.puml");
@@ -218,21 +212,45 @@ mod tests {
         );
     }
 
-    #[test]
-    fn command_failure() {
+    fn run_render_from_string(
+        generate_error: bool,
+        create_file: bool,
+        code: Option<&String>,
+    ) -> Result<String, Error> {
         let output_dir = tempdir().unwrap();
+        //Cannot be the same path as output_dir, because otherwise we'd try to
+        //copy a file onto itself
+        let img_dir = tempdir().unwrap();
+        let output_file = join_path(img_dir.path(), "foobar.svg");
+
         let shell = PlantUMLShell {
             plantuml_cmd: String::from(""),
-            img_root: output_dir.path().to_path_buf(),
             generation_dir: output_dir,
         };
 
         let executor = FakeCommandExecutor {
-            error: true,
-            create_file: false,
+            error: generate_error,
+            create_file: create_file,
         };
-        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
-            Ok(_svg) => assert!(false, "Expected the command to fail"),
+
+        shell.render_from_string(
+            code.unwrap_or(&String::from("@startuml\nA--|>B\n@enduml")),
+            &output_file,
+            &executor,
+        )?;
+
+        if create_file {
+            let raw_source = fs::read(&output_file)?;
+            return Ok(String::from_utf8_lossy(&raw_source).into_owned());
+        }
+
+        Ok(String::from(""))
+    }
+
+    #[test]
+    fn command_failure() {
+        match run_render_from_string(true, false, None) {
+            Ok(_file_data) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("Failed to render inline diagram"),
                 "Wrong error returned"
@@ -242,47 +260,21 @@ mod tests {
 
     #[test]
     fn no_image_file_created() {
-        let output_dir = tempdir().unwrap();
-        let shell = PlantUMLShell {
-            plantuml_cmd: String::from(""),
-            img_root: output_dir.path().to_path_buf(),
-            generation_dir: output_dir,
-        };
-
-        let executor = FakeCommandExecutor {
-            error: false,
-            create_file: false,
-        };
-        match shell.render_from_string(&String::from("@startuml\nA--|>B\n@enduml"), &executor) {
-            Ok(_svg) => assert!(false, "Expected the command to fail"),
+        match run_render_from_string(false, false, None) {
+            Ok(_file_data) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("PlantUML did not generate an image"),
-                "Wrong error returned"
+                format!("Wrong error returned (got {})", e)
             ),
         };
     }
 
     #[test]
     fn returns_image_file_path_on_success() {
-        let output_dir = tempdir().unwrap();
-        let shell = PlantUMLShell {
-            plantuml_cmd: String::from(""),
-            // Needs to be different from the generation dir, because else we cannot
-            // copy between the two.
-            img_root: output_dir.path().to_path_buf(),
-            generation_dir: tempdir().unwrap(),
-        };
-
-        let executor = FakeCommandExecutor {
-            error: false,
-            create_file: true,
-        };
-        let source = String::from("@startuml\nA--|>B\n@enduml");
-        match shell.render_from_string(&source, &executor) {
-            Ok(img_path) => {
-                let raw_source = fs::read(img_path).unwrap();
-                let copied_source = String::from_utf8_lossy(&raw_source);
-                assert_eq!(source, copied_source)
+        let expected_source = String::from("My plantuml code");
+        match run_render_from_string(false, true, Some(&expected_source)) {
+            Ok(file_data) => {
+                assert_eq!(expected_source, file_data);
             }
             Err(e) => assert!(false, e.to_string()),
         };

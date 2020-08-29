@@ -76,7 +76,6 @@ impl DirCleaner {
 }
 
 impl Drop for DirCleaner {
-    /// Save the cache to disk (cache.json in the cache dir)
     fn drop(&mut self) {
         for file in &self.files {
             if let Err(e) = fs::remove_file(&file) {
