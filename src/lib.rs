@@ -2,12 +2,8 @@
 #[macro_use]
 extern crate log;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-extern crate deflate;
-extern crate mdbook;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 extern crate reqwest;
-extern crate sha1;
-extern crate tempfile;
 
 #[macro_use]
 extern crate failure;
@@ -15,8 +11,6 @@ extern crate failure;
 extern crate serde_derive;
 #[cfg(test)]
 extern crate pretty_assertions;
-#[cfg(test)]
-extern crate simulacrum;
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
@@ -31,12 +25,12 @@ mod plantuml_shell_backend;
 mod plantumlconfig;
 mod util;
 
-use markdown_plantuml_pipeline::render_plantuml_code_blocks;
+use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
+use crate::plantuml_renderer::PlantUMLRenderer;
+use crate::plantumlconfig::PlantUMLConfig;
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use plantuml_renderer::PlantUMLRenderer;
-use plantumlconfig::PlantUMLConfig;
 use std::fs;
 use std::path::PathBuf;
 

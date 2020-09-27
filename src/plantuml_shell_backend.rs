@@ -3,10 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::plantuml_backend::PlantUMLBackend;
+use crate::util::get_extension;
 use failure::Error;
-use plantuml_backend::PlantUMLBackend;
 use tempfile::{tempdir, TempDir};
-use util::get_extension;
 
 /// A trait class for wrapping the actual rendering command
 /// Only here to make unit testing the renderer possbile, this is cheating a
@@ -163,10 +163,10 @@ impl PlantUMLBackend for PlantUMLShell {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::join_path;
     use failure::err_msg;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
-    use util::join_path;
 
     struct FakeCommandExecutor {
         error: bool,
@@ -264,7 +264,8 @@ mod tests {
             Ok(_file_data) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("PlantUML did not generate an image"),
-                format!("Wrong error returned (got {})", e)
+                "Wrong error returned (got {})",
+                e
             ),
         };
     }
@@ -276,7 +277,7 @@ mod tests {
             Ok(file_data) => {
                 assert_eq!(expected_source, file_data);
             }
-            Err(e) => assert!(false, e.to_string()),
+            Err(e) => assert!(false, "{}", e.to_string()),
         };
     }
 }

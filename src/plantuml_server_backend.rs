@@ -1,13 +1,13 @@
-use base64_plantuml::Base64PlantUML;
+use crate::base64_plantuml::Base64PlantUML;
+use crate::plantuml_backend::PlantUMLBackend;
+use crate::util::get_extension;
 use deflate::deflate_bytes;
 use failure::Error;
-use plantuml_backend::PlantUMLBackend;
 use reqwest;
 use reqwest::Url;
 use std::fs;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use util::get_extension;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
@@ -21,7 +21,7 @@ impl ImageDownloader for RealImageDownloader {
     /// Vec<u8>
     fn download_image(&self, request_url: &Url) -> Result<Vec<u8>, Error> {
         let mut image_buf: Vec<u8> = vec![];
-        reqwest::get(request_url.clone())
+        reqwest::blocking::get(request_url.clone())
             .and_then(|mut response| response.copy_to(&mut image_buf))
             .and_then(|_| Ok(image_buf))
             .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))
@@ -114,10 +114,10 @@ impl PlantUMLBackend for PlantUMLServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::join_path;
     use pretty_assertions::assert_eq;
     use simulacrum::*;
     use tempfile::tempdir;
-    use util::join_path;
 
     #[test]
     fn test_get_url() {
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_get_url_no_path() {
-        let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap(), PathBuf::from(""));
+        let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap());
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),

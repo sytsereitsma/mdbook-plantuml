@@ -1,4 +1,4 @@
-use plantuml_renderer::PlantUMLRendererTrait;
+use crate::plantuml_renderer::PlantUMLRendererTrait;
 use std::string::String;
 
 pub fn render_plantuml_code_blocks(
@@ -256,7 +256,7 @@ mod test {
                     assert!(fence_range.is_none());
                 }
             }};
-        };
+        }
 
         assert_find_next_code_fence!(None, "", 0, None, None);
         assert_find_next_code_fence!(None, "a\n\n", 0, None, None);
@@ -316,7 +316,7 @@ mod test {
                     assert!(slice.is_none());
                 }
             }};
-        };
+        }
 
         assert_get_info_string!("", 0, None);
         assert_get_info_string!("  ", 0, None);

@@ -1,7 +1,7 @@
-use dir_cleaner::DirCleaner;
-use plantuml_backend::PlantUMLBackend;
-use plantuml_backend_factory;
-use plantumlconfig::PlantUMLConfig;
+use crate::dir_cleaner::DirCleaner;
+use crate::plantuml_backend::PlantUMLBackend;
+use crate::plantuml_backend_factory;
+use crate::plantumlconfig::PlantUMLConfig;
 use sha1;
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -78,10 +78,10 @@ impl PlantUMLRendererTrait for PlantUMLRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::get_extension;
     use failure::Error;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
-    use util::get_extension;
 
     #[test]
     fn test_create_md_link() {
