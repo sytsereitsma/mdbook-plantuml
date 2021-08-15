@@ -8,6 +8,10 @@ pub struct PlantUMLConfig {
     /// Use plantuml_cmd if it is not on the path, or if you
     /// have some additional parameters.
     pub plantuml_cmd: Option<String>,
+    /// PlantUML images become clickable for zoom by setting this flag to `true`.
+    /// This is convenient for large diagrams which are hard to see in the book.
+    /// The default value is `false`.
+    pub clickable_img: bool,
 }
 
 #[cfg(test)]
