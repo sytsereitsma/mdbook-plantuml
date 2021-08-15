@@ -264,7 +264,8 @@ mod tests {
             Ok(_file_data) => assert!(false, "Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("PlantUML did not generate an image"),
-                format!("Wrong error returned (got {})", e)
+                "Wrong error returned (got {})",
+                e
             ),
         };
     }
@@ -276,7 +277,7 @@ mod tests {
             Ok(file_data) => {
                 assert_eq!(expected_source, file_data);
             }
-            Err(e) => assert!(false, e.to_string()),
+            Err(e) => assert!(false, "{}", e),
         };
     }
 }

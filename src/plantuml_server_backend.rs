@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_get_url_no_path() {
-        let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap(), PathBuf::from(""));
+        let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap());
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
