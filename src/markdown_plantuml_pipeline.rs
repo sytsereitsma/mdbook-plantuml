@@ -134,7 +134,7 @@ struct CodeBlock<'a> {
 
 impl<'a> CodeBlock<'a> {
     fn is_plantuml(&self) -> bool {
-        self.info_string.and_then(|info| info.split(',').next()) == Some("plantuml")
+        matches!(self.info_string.unwrap_or(&""), "puml" | "plantuml")
     }
 
     fn get_format(&self) -> String {
@@ -376,6 +376,7 @@ mod test {
             }};
         }
 
+        // Test for `plantuml` code block
         assert_plantuml_injection!("```plantuml\nfoo\n```", "foo\n", "rendered");
         assert_plantuml_injection!(
             "abc\n```plantuml\nfoo\n```\ndef",
@@ -395,6 +396,26 @@ mod test {
         );
         assert_plantuml_injection!(
             "abc\n```\nfoo\n```\ndef\n```plantuml\nbar",
+            "bar",
+            "abc\n```\nfoo\n```\ndef\nrendered"
+        );
+
+        // Test for `puml` code block
+        assert_plantuml_injection!("```puml\nfoo\n```", "foo\n", "rendered");
+        assert_plantuml_injection!("abc\n```puml\nfoo\n```\ndef", "foo\n", "abc\nrendered\ndef");
+        assert_plantuml_injection!("abc\n```puml\nfoo", "foo", "abc\nrendered");
+        assert_plantuml_injection!(
+            "abc\n```puml\nfoo\n```\ndef\n```puml\nbar\n```\ngeh",
+            "bar\n",
+            "abc\nrendered\ndef\nrendered\ngeh"
+        );
+        assert_plantuml_injection!(
+            "abc\n```puml\nfoo\n```\ndef\n```puml\nbar",
+            "bar",
+            "abc\nrendered\ndef\nrendered"
+        );
+        assert_plantuml_injection!(
+            "abc\n```\nfoo\n```\ndef\n```puml\nbar",
             "bar",
             "abc\n```\nfoo\n```\ndef\nrendered"
         );
