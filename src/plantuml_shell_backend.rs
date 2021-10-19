@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::plantuml_backend::PlantUMLBackend;
-use crate::util::get_extension;
 use failure::Error;
 use tempfile::{tempdir, TempDir};
 
@@ -84,10 +83,14 @@ impl PlantUMLShell {
     }
 
     /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: &PathBuf, extension: &String) -> Result<Vec<String>, Error> {
+    fn get_cmd_arguments(
+        &self,
+        file: &PathBuf,
+        image_format: &String,
+    ) -> Result<Vec<String>, Error> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
-        args.push(format!("-t{}", extension));
+        args.push(format!("-t{}", image_format));
         args.push(String::from("-nometadata"));
         match file.to_str() {
             Some(s) => args.push(String::from(s)),
@@ -105,6 +108,11 @@ impl PlantUMLShell {
         puml_image.push(output_file.file_name().unwrap());
 
         let mut puml_src = puml_image.clone();
+        // A little hack to handle the braille output extension (which is foo.braille.png for an input file foo.puml")
+        puml_src.set_extension("");
+        if puml_src.extension().unwrap_or("".as_ref()) == "braille" {
+            puml_src.set_extension(""); // Strip .braille
+        }
         puml_src.set_extension("puml");
 
         (puml_src, puml_image)
@@ -114,6 +122,7 @@ impl PlantUMLShell {
     fn render_from_string(
         &self,
         plantuml_code: &String,
+        image_format: &String,
         output_file: &PathBuf,
         command_executor: &dyn CommandExecutor,
     ) -> Result<(), Error> {
@@ -122,10 +131,11 @@ impl PlantUMLShell {
         fs::write(puml_src.as_path(), plantuml_code.as_str()).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
+        debug!("Shell conversion {:?} -> {:?}", puml_src, puml_image);
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension
-        let args = self.get_cmd_arguments(&puml_src, &get_extension(output_file))?;
+        let args = self.get_cmd_arguments(&puml_src, &image_format)?;
         command_executor.execute(&args).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;
@@ -153,10 +163,11 @@ impl PlantUMLBackend for PlantUMLShell {
     fn render_from_string(
         &self,
         plantuml_code: &String,
+        image_format: &String,
         output_file: &PathBuf,
     ) -> Result<(), Error> {
         let executor = RealCommandExecutor {};
-        PlantUMLShell::render_from_string(self, plantuml_code, output_file, &executor)
+        PlantUMLShell::render_from_string(self, plantuml_code, image_format, output_file, &executor)
     }
 }
 
@@ -235,6 +246,7 @@ mod tests {
 
         shell.render_from_string(
             code.unwrap_or(&String::from("@startuml\nA--|>B\n@enduml")),
+            &String::from("svg"),
             &output_file,
             &executor,
         )?;
@@ -279,5 +291,34 @@ mod tests {
             }
             Err(e) => assert!(false, "{}", e.to_string()),
         };
+    }
+
+    #[test]
+    fn get_filenames_returns_input_and_output_filename() {
+        macro_rules! get_names {
+            ($generation_dir:expr, $puml_name:expr, $img_name:expr) => {{
+                let mut puml_image = $generation_dir.path().to_path_buf();
+                let mut output_img = puml_image.clone();
+
+                puml_image.push(PathBuf::from($puml_name));
+                output_img.push(PathBuf::from($img_name));
+                (puml_image, output_img)
+            }};
+        }
+
+        let shell = PlantUMLShell {
+            plantuml_cmd: String::from(""),
+            generation_dir: tempdir().unwrap(),
+        };
+
+        assert_eq!(
+            get_names!(&shell.generation_dir, "foo.puml", "foo.png"),
+            shell.get_filenames(&PathBuf::from("foo.png"))
+        );
+
+        assert_eq!(
+            get_names!(&shell.generation_dir, "foo.puml", "foo.braille.png"),
+            shell.get_filenames(&PathBuf::from("foo.braille.png"))
+        );
     }
 }

@@ -131,7 +131,27 @@ struct CodeBlock<'a> {
 
 impl<'a> CodeBlock<'a> {
     fn is_plantuml(&self) -> bool {
-        self.info_string.unwrap_or(&"") == "plantuml"
+        let info = self.info_string.unwrap_or(&"");
+        let first_comma = info.find(',').unwrap_or(info.len());
+
+        info[0..first_comma] == *"plantuml"
+    }
+
+    fn get_format(&self) -> String {
+        if self.code.contains("@startditaa") {
+            String::from("png")
+        } else {
+            let parts = self.info_string.unwrap_or(&"").split(',');
+            for part in parts {
+                let eq_char = part.find('=').unwrap_or(part.len());
+
+                if part[0..eq_char] == *"format" && part.len() > eq_char + 1 {
+                    return String::from(&part[eq_char + 1..part.len()]);
+                }
+            }
+
+            String::from("svg")
+        }
     }
 }
 
@@ -209,7 +229,10 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             if let Some(code_block) = self.get_next_code_block(start_pos) {
                 if code_block.is_plantuml() {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
-                    let rendered = renderer.render(&String::from(code_block.code), rel_image_url);
+                    let format = code_block.get_format();
+
+                    let rendered =
+                        renderer.render(&String::from(code_block.code), rel_image_url, format);
                     processed.push_str(rendered.as_str());
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
@@ -237,7 +260,12 @@ mod test {
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(&self, code_block: &String, _rel_image_url: &String) -> String {
+        fn render(
+            &self,
+            code_block: &String,
+            _rel_image_url: &String,
+            _image_format: String,
+        ) -> String {
             self.code_block.replace(code_block.clone());
             String::from("rendered")
         }
@@ -370,5 +398,59 @@ mod test {
             "bar",
             "abc\n```\nfoo\n```\ndef\nrendered"
         );
+    }
+
+    #[test]
+    fn test_codeblock_plantuml_detection() {
+        macro_rules! is_plantuml_code_block {
+            ($info_str:expr) => {{
+                let code_block = CodeBlock {
+                    code: "Foo",
+                    info_string: Some($info_str),
+                    start_pos: 0,
+                    end_pos: 0,
+                };
+
+                code_block.is_plantuml()
+            }};
+        }
+        assert!(is_plantuml_code_block!("plantuml"));
+        assert!(is_plantuml_code_block!("plantuml,format=svg"));
+
+        assert!(!is_plantuml_code_block!(",plantuml")); // Bogus info string
+        assert!(!is_plantuml_code_block!("plantUML")); // Case sensitive
+        assert!(!is_plantuml_code_block!("c++"));
+    }
+
+    #[test]
+    fn test_plantuml_codeblock_format_detection() {
+        macro_rules! get_format {
+            ($info_str:expr) => {{
+                get_format!($info_str, "foo")
+            }};
+            ($info_str:expr, $code: expr) => {{
+                let code_block = CodeBlock {
+                    code: $code,
+                    info_string: Some($info_str),
+                    start_pos: 0,
+                    end_pos: 0,
+                };
+
+                code_block.get_format()
+            }};
+        }
+
+        assert_eq!("svg", get_format!("plantuml"));
+        assert_eq!("svg", get_format!("plantuml,format=svg"));
+        assert_eq!("png", get_format!("plantuml,format=png"));
+        assert_eq!("txt", get_format!("plantuml,bruh=123,format=txt"));
+        assert_eq!("jpg", get_format!("plantuml,bruh=123,format=jpg,bruh=123"));
+        assert_eq!("png", get_format!("plantuml", "@startditaa"));
+
+        // Error/edge cases
+        assert_eq!("svg", get_format!("plantuml,format="));
+        assert_eq!("svg", get_format!("plantuml,format"));
+        assert_eq!("svg", get_format!("plantuml,bruh=123,format=,bruh=123"));
+        assert_eq!("svg", get_format!("plantuml,bruh=123"));
     }
 }

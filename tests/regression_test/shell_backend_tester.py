@@ -71,6 +71,21 @@ class ShellBackendTester(unittest.TestCase):
         self.assertIn(self.format_md_link(filename),
                       result.root_chapter["content"])
 
+    @parameterized.expand([
+        (markdown_snippets.utxt_format, "utxt"),
+    ])
+    def test_plantuml_format_invocation(self, snippet, expected_ext):
+        self.runner.set_content(Chapter("Chapter 1", snippet.markdown))
+
+        result = self.runner.run()
+        self.assertEqual(0, result.returncode)
+
+        calls = self.__get_shell_command_calls()
+        self.assertEqual(1, len(calls))
+        call = calls[0]
+        self.assertIn("-t" + expected_ext, call["arguments"])
+        self.assertEqual(snippet.plantuml_code, call["plantuml-code"])
+
     def test_nested_chapters(self):
         root_chapter = Chapter(
             "Chapter 1", markdown_snippets.ab_class_diagram.markdown)

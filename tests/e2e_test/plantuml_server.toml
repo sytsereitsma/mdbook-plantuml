@@ -11,4 +11,4 @@ build-dir = "plantuml_server"
 mathjax-support = true
 
 [preprocessor.plantuml]
-plantuml-cmd="http://localhost:8080/plantuml"
+plantuml-cmd="http://localhost:8080/"

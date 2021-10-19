@@ -19,7 +19,7 @@ pub fn make_app() -> App<'static, 'static> {
     App::new("mdBook PlantUML preprocessor")
         .version(VERSION)
         .author("Sytse Reitsma")
-        .about("An mdbook preprocessor which renders PlantUML code blocks to inline SVG diagrams")
+        .about("An mdbook preprocessor which renders PlantUML code blocks to SVG diagrams")
         .arg(
             Arg::with_name("log")
                 .short("l")
