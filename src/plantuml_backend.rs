@@ -7,9 +7,11 @@ pub trait PlantUMLBackend {
     /// # Arguments
     /// * `plantuml_code` - The present source of the code block
     /// * `output_file` - The path to the file to save the image to
+    /// * `image_format` - The PlantUML image output format (see -t command line option of PlantUML)
     fn render_from_string(
         &self,
         plantuml_code: &String,
+        image_format: &String,
         output_file: &PathBuf,
     ) -> Result<(), Error>;
 }

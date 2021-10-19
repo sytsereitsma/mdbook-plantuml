@@ -1,8 +1,10 @@
 
 class Snippet:
-    def __init__(self, code):
+    def __init__(self, code, extra=""):
         self.plantuml_code = code.strip()
-        self.markdown = "```plantuml\n{}\n```".format(self.plantuml_code)
+        if extra:
+            extra = "," + extra
+        self.markdown = "```plantuml{}\n{}\n```".format(extra, self.plantuml_code)
 
 
 ab_class_diagram = Snippet("""\
@@ -31,3 +33,9 @@ ditaa = Snippet("""\
     +-------------------------+
 @endditaa
 """)
+
+utxt_format = Snippet("""\
+@startuml
+C --|> D
+@enduml
+""", "format=utxt")

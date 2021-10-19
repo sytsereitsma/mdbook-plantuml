@@ -44,6 +44,27 @@ The plantuml code block will be replaced an image reference to an SVG image if
 possible, or png if PlantUML does not support svg for the requested diagram type
 (i.e. ditaa).
 
+## Image formats
+The image is svg, or png by default, depending on the diagram type. If desired it can be changed to another one of PlantUMLs output formats (note that some formats are not supported by all browsers and or PlantUML server implementations).
+
+See https://plantuml.com/command-line (Types of Output File) for available formats. mdbook-plantuml uses the short param name (case sensitive, without the '-')
+
+````markdown
+A diagram in UTF-8 text format (inlined automatically)
+```plantuml,format=utxt
+@startuml
+A --|> B
+@enduml
+```
+
+Force png format:
+```plantuml,format=png
+@startuml
+A --|> B
+@enduml
+```
+````
+
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.

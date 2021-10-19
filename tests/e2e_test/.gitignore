@@ -1,0 +1,5 @@
+.mdbook-plantuml-img
+plantuml_*/
+src/mdbook-plantuml-img
+book/
+book.toml
