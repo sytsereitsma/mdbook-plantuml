@@ -35,7 +35,7 @@ impl PlantUMLServer {
     pub fn new(server_url: Url) -> PlantUMLServer {
         // Make sure the server_url path ends with a / so Url::join works as expected later.
         let path = server_url.path();
-        let server_url = if path.ends_with("/") {
+        let server_url = if path.ends_with('/') {
             server_url
         } else {
             let mut repath = server_url.clone();
