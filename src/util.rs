@@ -1,6 +1,5 @@
 #[cfg(test)]
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[cfg(test)]
 pub fn join_path<LP: AsRef<Path>, RP: AsRef<Path>>(left: LP, right: RP) -> PathBuf {

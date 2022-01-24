@@ -72,10 +72,10 @@ mod tests {
 
     #[test]
     fn encodes_bytes() {
-        let data: Vec<u8> = b"froboz".iter().cloned().collect();
+        let data: Vec<u8> = b"froboz".to_vec();
         assert_eq!(String::from("Pd9lOczw"), Base64PlantUML::encode(&data));
 
-        let data: Vec<u8> = b"1234ABCDabcd\x12\x08\x01".iter().cloned().collect();
+        let data: Vec<u8> = b"1234ABCDabcd\x12\x08\x01".to_vec();
         assert_eq!(
             String::from("CJ8pD452GqHXOcDa4WW1"),
             Base64PlantUML::encode(&data)

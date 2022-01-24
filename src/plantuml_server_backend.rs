@@ -165,8 +165,8 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap());
 
-        let data: Vec<u8> = b"totemizer".iter().cloned().collect();
-        let img_path = join_path(tmp_dir.path().to_path_buf(), "somefile.ext");
+        let data: Vec<u8> = b"totemizer".to_vec();
+        let img_path = join_path(tmp_dir.path(), "somefile.ext");
         srv.save_downloaded_image(&data, &img_path).unwrap();
 
         let raw_source = fs::read(img_path).unwrap();
@@ -194,7 +194,7 @@ mod tests {
             .with(deref(
                 Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap(),
             ))
-            .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
+            .returning(|_| Ok(b"the rendered image".to_vec()));
 
         srv.render_string(
             &String::from("C --|> D"),
