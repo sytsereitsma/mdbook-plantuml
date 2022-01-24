@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn command_failure() {
         match run_render_from_string(true, false, None) {
-            Ok(_file_data) => assert!(false, "Expected the command to fail"),
+            Ok(_file_data) => panic!("Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("Failed to render inline diagram"),
                 "Wrong error returned"
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn no_image_file_created() {
         match run_render_from_string(false, false, None) {
-            Ok(_file_data) => assert!(false, "Expected the command to fail"),
+            Ok(_file_data) => panic!("Expected the command to fail"),
             Err(e) => assert!(
                 e.to_string().contains("PlantUML did not generate an image"),
                 "Wrong error returned (got {})",
@@ -290,7 +290,7 @@ mod tests {
             Ok(file_data) => {
                 assert_eq!(expected_source, file_data);
             }
-            Err(e) => assert!(false, "{}", e.to_string()),
+            Err(e) => panic!("{}", e.to_string()),
         };
     }
 
