@@ -117,11 +117,7 @@ mod tests {
 
         assert_eq!(
             Url::parse("http://froboz:1234/plantuml/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url(
-                &String::from("ext"),
-                &String::from("plantuml_encoded_string")
-            )
-            .unwrap()
+            srv.get_url("ext", "plantuml_encoded_string").unwrap()
         );
 
         // I cannot manage Url::parse to fail using the ext and encoded data
@@ -135,20 +131,13 @@ mod tests {
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url(
-                &String::from("ext"),
-                &String::from("plantuml_encoded_string")
-            )
-            .unwrap()
+            srv.get_url("ext", "plantuml_encoded_string").unwrap()
         );
     }
 
     #[test]
     fn test_encode_diagram_source() {
-        assert_eq!(
-            String::from("SrRGrQsnKt010000"),
-            encode_diagram_source(&String::from("C --|> D"))
-        );
+        assert_eq!("SrRGrQsnKt010000", encode_diagram_source("C --|> D"));
     }
 
     #[test]
@@ -187,13 +176,8 @@ mod tests {
             ))
             .returning(|_| Ok(b"the rendered image".to_vec()));
 
-        srv.render_string(
-            &String::from("C --|> D"),
-            &output_file,
-            &String::from("svg"),
-            &mock_downloader,
-        )
-        .unwrap();
+        srv.render_string("C --|> D", &output_file, "svg", &mock_downloader)
+            .unwrap();
 
         let raw_source = fs::read(output_file).unwrap();
         assert_eq!("the rendered image", String::from_utf8_lossy(&raw_source));

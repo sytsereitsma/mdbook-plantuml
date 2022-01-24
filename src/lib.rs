@@ -107,8 +107,6 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -116,17 +114,17 @@ mod tests {
     fn test_get_relative_img_url() {
         assert_eq!(
             String::from("mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1"))
+            get_relative_img_url(Path::new("chapter 1"))
         );
 
         assert_eq!(
             String::from("../mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1/nested 1"))
+            get_relative_img_url(Path::new("chapter 1/nested 1"))
         );
 
         assert_eq!(
             String::from("../../mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1/nested 1/nested 2"))
+            get_relative_img_url(Path::new("chapter 1/nested 1/nested 2"))
         );
     }
 }

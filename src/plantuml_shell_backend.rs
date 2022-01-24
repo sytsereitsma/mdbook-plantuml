@@ -191,11 +191,11 @@ mod tests {
                 // Last argument is file name
                 if self.create_file {
                     let mut filename = PathBuf::from(args.last().unwrap());
-                    let source = &fs::read(filename.clone())?;
+                    let source = fs::read(&filename)?;
 
                     //Simply copy the contents of source to the output file
                     filename.set_extension("svg");
-                    fs::write(filename.as_path(), source)?;
+                    fs::write(filename.as_path(), &source)?;
                 }
                 Ok(())
             }
@@ -217,7 +217,7 @@ mod tests {
                 String::from("froboz.puml")
             ],
             shell
-                .get_cmd_arguments(&file, &String::from("some_supported_extension"))
+                .get_cmd_arguments(&file, "some_supported_extension")
                 .unwrap()
         );
     }
@@ -234,7 +234,7 @@ mod tests {
         let output_file = join_path(img_dir.path(), "foobar.svg");
 
         let shell = PlantUMLShell {
-            plantuml_cmd: String::from(""),
+            plantuml_cmd: String::default(),
             generation_dir: output_dir,
         };
 
@@ -244,8 +244,8 @@ mod tests {
         };
 
         shell.render_from_string(
-            code.unwrap_or(&String::from("@startuml\nA--|>B\n@enduml")),
-            &String::from("svg"),
+            code.map_or("@startuml\nA--|>B\n@enduml", AsRef::as_ref),
+            "svg",
             &output_file,
             &executor,
         )?;
@@ -255,7 +255,7 @@ mod tests {
             return Ok(String::from_utf8_lossy(&raw_source).into_owned());
         }
 
-        Ok(String::from(""))
+        Ok(String::default())
     }
 
     #[test]
@@ -306,18 +306,18 @@ mod tests {
         }
 
         let shell = PlantUMLShell {
-            plantuml_cmd: String::from(""),
+            plantuml_cmd: String::default(),
             generation_dir: tempdir().unwrap(),
         };
 
         assert_eq!(
             get_names!(&shell.generation_dir, "foo.puml", "foo.png"),
-            shell.get_filenames(&PathBuf::from("foo.png"))
+            shell.get_filenames(Path::new("foo.png"))
         );
 
         assert_eq!(
             get_names!(&shell.generation_dir, "foo.puml", "foo.braille.png"),
-            shell.get_filenames(&PathBuf::from("foo.braille.png"))
+            shell.get_filenames(Path::new("foo.braille.png"))
         );
     }
 }

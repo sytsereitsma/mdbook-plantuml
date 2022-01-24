@@ -17,9 +17,9 @@ use std::path::{Path, PathBuf};
 /// Then, after running the following code:
 ///
 /// ```rust,ignore
-/// let cleaner = DirCleaner::new(&PathBuf::from("/froboz"));
-/// cleaner.keep(&PathBuf::from("foo.svg"));
-/// fs::write(&PathBuf::from("/froboz/newfile.png"), "");
+/// let cleaner = DirCleaner::new(Path::new("/froboz"));
+/// cleaner.keep(Path::new("foo.svg"));
+/// fs::write(Path::new("/froboz/newfile.png"), "");
 /// ```
 /// The directory contents will be the following:
 /// froboz/
@@ -105,7 +105,7 @@ mod tests {
 
     fn seed_dir(target_path: &Path) -> HashSet<PathBuf> {
         let mut created_files = HashSet::new();
-        let mut create_file = |filename: &PathBuf, skip: bool| {
+        let mut create_file = |filename: &Path, skip: bool| {
             let p = get_file_path(target_path, filename);
             if !skip {
                 created_files.insert(p.clone());
@@ -115,11 +115,11 @@ mod tests {
         };
 
         //Preparation
-        assert!(create_file(&PathBuf::from("foo.txt"), false));
-        assert!(create_file(&PathBuf::from("bar.txt"), false));
-        assert!(create_file(&PathBuf::from("baz.txt"), false));
-        assert!(std::fs::create_dir(get_file_path(target_path, &PathBuf::from("skipped"))).is_ok());
-        assert!(create_file(&PathBuf::from("skipped/skippedfile.txt"), true));
+        assert!(create_file(Path::new("foo.txt"), false));
+        assert!(create_file(Path::new("bar.txt"), false));
+        assert!(create_file(Path::new("baz.txt"), false));
+        assert!(std::fs::create_dir(get_file_path(target_path, Path::new("skipped"))).is_ok());
+        assert!(create_file(Path::new("skipped/skippedfile.txt"), true));
 
         created_files
     }

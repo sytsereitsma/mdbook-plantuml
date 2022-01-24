@@ -231,8 +231,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
                     let format = code_block.get_format();
 
-                    let rendered =
-                        renderer.render(&String::from(code_block.code), rel_image_url, format);
+                    let rendered = renderer.render(code_block.code, rel_image_url, format);
                     processed.push_str(rendered.as_str());
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
@@ -365,7 +364,7 @@ mod test {
                 let renderer = FakeRenderer {
                     code_block: RefCell::new(String::new()),
                 };
-                let result = processor.process(&renderer, &String::from(""));
+                let result = processor.process(&renderer, &String::default());
                 assert_eq!($expected_code_block, *renderer.code_block.borrow());
                 assert_eq!($rendered_output, result);
             }};

@@ -3,7 +3,7 @@ pub struct Base64PlantUML {}
 
 impl Base64PlantUML {
     pub fn encode(data: &[u8]) -> String {
-        let mut encoded = String::from("");
+        let mut encoded = String::default();
 
         let len = data.len();
         for i in (0..len).step_by(3) {
@@ -26,7 +26,7 @@ fn encode3bytes(b1: u8, b2: u8, b3: u8) -> String {
     let c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
     let c4 = b3 & 0x3F;
 
-    let mut res = String::from("");
+    let mut res = String::default();
     res.push(encode6bit(c1 & 0x3F));
     res.push(encode6bit(c2 & 0x3F));
     res.push(encode6bit(c3 & 0x3F));

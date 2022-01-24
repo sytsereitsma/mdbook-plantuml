@@ -111,17 +111,17 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("foo/bar", &PathBuf::from("/froboz/baz.svg"))
+            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"))
         );
 
         assert_eq!(
             "![](/baz.svg)\n\n",
-            PlantUMLRenderer::create_md_link("", &PathBuf::from("baz.svg"))
+            PlantUMLRenderer::create_md_link("", Path::new("baz.svg"))
         );
 
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("", &PathBuf::from("foo/baz.svg"))
+            PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"))
         );
     }
 
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn test_get_image_filename_extension() {
         let get_extension_from_filename = |code: &str, img_format: &str| -> String {
-            let file_path = get_image_filename(&PathBuf::from("foo"), code, img_format)
+            let file_path = get_image_filename(Path::new("foo"), code, img_format)
                 .to_string_lossy()
                 .to_string();
             let firstdot = file_path.find('.').unwrap();
@@ -228,7 +228,7 @@ mod tests {
             // Note the format is overridden when rendering ditaa
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename(&String::from("@startditaa"), "svg")
+                get_extension_from_filename("@startditaa", "svg")
             );
 
             assert_eq!(
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn test_get_image_filename() {
         let code = String::from("asgtfgl");
-        let file_path = get_image_filename(&PathBuf::from("foo"), &code, "svg");
+        let file_path = get_image_filename(Path::new("foo"), &code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
             sha1::Sha1::from(&code).hexdigest(),
