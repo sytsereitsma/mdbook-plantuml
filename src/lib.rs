@@ -98,12 +98,12 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
         Some(raw) => raw
             .clone()
             .try_into()
-            .or_else(|e| {
+            .map_err(|e| {
                 warn!(
                     "Failed to get config from book.toml, using default configuration ({}).",
                     e
                 );
-                Err(e)
+                e
             })
             .unwrap_or_default(),
         None => PlantUMLConfig::default(),

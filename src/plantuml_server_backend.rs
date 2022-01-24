@@ -22,7 +22,7 @@ impl ImageDownloader for RealImageDownloader {
         let mut image_buf: Vec<u8> = vec![];
         reqwest::blocking::get(request_url.clone())
             .and_then(|mut response| response.copy_to(&mut image_buf))
-            .and_then(|_| Ok(image_buf))
+            .map(|_| image_buf)
             .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))
     }
 }
@@ -63,11 +63,7 @@ impl PlantUMLServer {
     }
 
     /// Save the downloaded image to a file
-    fn save_downloaded_image(
-        &self,
-        image_buffer: &[u8],
-        file_path: &Path,
-    ) -> Result<(), Error> {
+    fn save_downloaded_image(&self, image_buffer: &[u8], file_path: &Path) -> Result<(), Error> {
         let mut output_file = fs::File::create(&file_path)?;
         output_file.write_all(image_buffer)?;
 
