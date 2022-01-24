@@ -90,7 +90,7 @@ impl PlantUMLRenderer {
                     .render_from_string(plantuml_code, &image_format, &output_file)
             {
                 error!("Failed to generate PlantUML diagram.");
-                return String::from(format!("\nPlantUML rendering error:\n{}\n\n", e));
+                return format!("\nPlantUML rendering error:\n{}\n\n", e);
             }
         }
 
@@ -162,8 +162,8 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: true }),
-            cleaner: RefCell::new(DirCleaner::new(&output_dir.path().to_path_buf())),
-            img_root: PathBuf::from(output_dir.path().to_path_buf()),
+            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            img_root: output_dir.path().to_path_buf(),
         };
 
         let plantuml_code = String::from("some puml code");
@@ -214,8 +214,8 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: false }),
-            cleaner: RefCell::new(DirCleaner::new(&output_dir.path().to_path_buf())),
-            img_root: PathBuf::from(output_dir.path().to_path_buf()),
+            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            img_root: output_dir.path().to_path_buf(),
         };
 
         assert_eq!(
