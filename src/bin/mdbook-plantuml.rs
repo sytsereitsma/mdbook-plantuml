@@ -14,7 +14,7 @@ use std::io;
 use std::process;
 
 pub fn make_app() -> App<'static, 'static> {
-    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     App::new("mdBook PlantUML preprocessor")
         .version(VERSION)
