@@ -69,7 +69,7 @@ impl PlantUMLServer {
         file_path: &Path,
     ) -> Result<(), Error> {
         let mut output_file = fs::File::create(&file_path)?;
-        output_file.write_all(&image_buffer)?;
+        output_file.write_all(image_buffer)?;
 
         Ok(())
     }
@@ -86,7 +86,7 @@ impl PlantUMLServer {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
         let image_buffer = downloader.download_image(&request_url)?;
-        self.save_downloaded_image(&image_buffer, &output_file)?;
+        self.save_downloaded_image(&image_buffer, output_file)?;
 
         Ok(())
     }
@@ -94,7 +94,7 @@ impl PlantUMLServer {
 
 /// Compress and encode the image source, return the encoed Base64-ish string
 fn encode_diagram_source(plantuml_code: &str) -> String {
-    let compressed = deflate_bytes(&plantuml_code.as_bytes());
+    let compressed = deflate_bytes(plantuml_code.as_bytes());
     let base64_compressed = Base64PlantUML::encode(&compressed);
 
     base64_compressed

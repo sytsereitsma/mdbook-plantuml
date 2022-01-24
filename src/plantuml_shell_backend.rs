@@ -136,7 +136,7 @@ impl PlantUMLShell {
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension
-        let args = self.get_cmd_arguments(&puml_src, &image_format)?;
+        let args = self.get_cmd_arguments(&puml_src, image_format)?;
         command_executor.execute(&args).or_else(|e| {
             bail!("Failed to render inline diagram ({}).", e);
         })?;

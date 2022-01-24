@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_get_image_filename_extension() {
         let get_extension_from_filename = |code: &String, img_format: String| -> String {
-            let file_path = get_image_filename(&PathBuf::from("foo"), &code, &img_format)
+            let file_path = get_image_filename(&PathBuf::from("foo"), code, &img_format)
                 .to_string_lossy()
                 .to_string();
             let firstdot = file_path.find('.').unwrap();

@@ -73,7 +73,7 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
 
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
     let renderer = sub_args.value_of("renderer").expect("Required argument");
-    let supported = pre.supports_renderer(&renderer);
+    let supported = pre.supports_renderer(renderer);
 
     // Signal whether the renderer is supported by exiting with 1 or 0.
     if supported {

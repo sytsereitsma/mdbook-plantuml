@@ -131,7 +131,7 @@ struct CodeBlock<'a> {
 
 impl<'a> CodeBlock<'a> {
     fn is_plantuml(&self) -> bool {
-        let info = self.info_string.unwrap_or(&"");
+        let info = self.info_string.unwrap_or("");
         let first_comma = info.find(',').unwrap_or(info.len());
 
         info[0..first_comma] == *"plantuml"
@@ -141,7 +141,7 @@ impl<'a> CodeBlock<'a> {
         if self.code.contains("@startditaa") {
             String::from("png")
         } else {
-            let parts = self.info_string.unwrap_or(&"").split(',');
+            let parts = self.info_string.unwrap_or("").split(',');
             for part in parts {
                 let eq_char = part.find('=').unwrap_or(part.len());
 
