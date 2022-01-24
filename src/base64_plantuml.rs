@@ -1,10 +1,8 @@
-use std::vec::Vec;
-
 /// PlantUML has its own base64 dialect, this struct provides the implementation for that
 pub struct Base64PlantUML {}
 
 impl Base64PlantUML {
-    pub fn encode(data: &Vec<u8>) -> String {
+    pub fn encode(data: &[u8]) -> String {
         let mut encoded = String::from("");
 
         let len = data.len();

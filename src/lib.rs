@@ -32,7 +32,7 @@ use crate::plantumlconfig::PlantUMLConfig;
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub struct PlantUMLPreprocessor;
 
@@ -82,7 +82,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn get_relative_img_url(chapter_path: &PathBuf) -> String {
+fn get_relative_img_url(chapter_path: &Path) -> String {
     let nesting_level = chapter_path.components().count();
     let mut rel_image_url = String::new();
     for _ in 1..nesting_level {
@@ -112,6 +112,8 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
     use pretty_assertions::assert_eq;
 

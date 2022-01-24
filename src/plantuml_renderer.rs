@@ -5,19 +5,19 @@ use crate::plantumlconfig::PlantUMLConfig;
 use sha1;
 use std::cell::RefCell;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 pub trait PlantUMLRendererTrait {
-    fn render(&self, plantuml_code: &String, rel_img_url: &String, image_format: String) -> String;
+    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String;
 }
 
 /// Create the image names with the appropriate extension and path
 /// The base name of the file is a SHA1 of the code block to avoid collisions
 /// with existing and as a bonus prevent duplicate files.
 pub fn get_image_filename(
-    img_root: &PathBuf,
-    plantuml_code: &String,
-    image_format: &String,
+    img_root: &Path,
+    plantuml_code: &str,
+    image_format: &str,
 ) -> PathBuf {
     // See https://plantuml.com/command-line "Types of output files" for additional info
     let extension = {
@@ -37,7 +37,7 @@ pub fn get_image_filename(
         }
     };
 
-    let mut output_file = img_root.clone();
+    let mut output_file = img_root.to_path_buf();
     output_file.push(sha1::Sha1::from(&plantuml_code).hexdigest());
     output_file.set_extension(extension);
 
@@ -51,17 +51,17 @@ pub struct PlantUMLRenderer {
 }
 
 impl PlantUMLRenderer {
-    pub fn new(cfg: &PlantUMLConfig, img_root: &PathBuf) -> PlantUMLRenderer {
+    pub fn new(cfg: &PlantUMLConfig, img_root: &Path) -> PlantUMLRenderer {
         let renderer = PlantUMLRenderer {
             backend: plantuml_backend_factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root)),
-            img_root: img_root.clone(),
+            img_root: img_root.to_path_buf(),
         };
 
         renderer
     }
 
-    fn create_md_link(rel_img_url: &String, image_path: &PathBuf) -> String {
+    fn create_md_link(rel_img_url: &str, image_path: &Path) -> String {
         let img_url = format!(
             "{}/{}",
             rel_img_url,
@@ -70,7 +70,7 @@ impl PlantUMLRenderer {
         format!("![]({})\n\n", img_url)
     }
 
-    fn create_inline_image(image_path: &PathBuf) -> String {
+    fn create_inline_image(image_path: &Path) -> String {
         debug!("Creating inline image from {:?}", image_path);
         let raw_source = fs::read(image_path).unwrap();
         let txt = unsafe { String::from_utf8_unchecked(raw_source) };
@@ -79,8 +79,8 @@ impl PlantUMLRenderer {
 
     pub fn render(
         &self,
-        plantuml_code: &String,
-        rel_img_url: &String,
+        plantuml_code: &str,
+        rel_img_url: &str,
         image_format: String,
     ) -> String {
         let output_file = get_image_filename(&self.img_root, plantuml_code, &image_format);
@@ -105,7 +105,7 @@ impl PlantUMLRenderer {
 }
 
 impl PlantUMLRendererTrait for PlantUMLRenderer {
-    fn render(&self, plantuml_code: &String, rel_img_url: &String, image_format: String) -> String {
+    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
         PlantUMLRenderer::render(self, plantuml_code, rel_img_url, image_format)
     }
 }
@@ -145,9 +145,9 @@ mod tests {
     impl PlantUMLBackend for BackendMock {
         fn render_from_string(
             &self,
-            plantuml_code: &String,
-            image_format: &String,
-            output_file: &PathBuf,
+            plantuml_code: &str,
+            image_format: &str,
+            output_file: &Path,
         ) -> Result<(), Error> {
             if self.is_ok {
                 std::fs::write(output_file, format!("{}\n{}", plantuml_code, image_format))?;

@@ -26,15 +26,15 @@ pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
 }
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-fn create_backend(cmd: &String) -> Box<dyn PlantUMLBackend> {
+fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
     if let Ok(server_url) = Url::parse(cmd) {
         Box::new(PlantUMLServer::new(server_url))
     } else {
-        Box::new(PlantUMLShell::new(cmd.clone()))
+        Box::new(PlantUMLShell::new(cmd.to_string()))
     }
 }
 
 #[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
-fn create_backend(cmd: &String) -> Box<dyn PlantUMLBackend> {
-    Box::new(PlantUMLShell::new(cmd.clone()))
+fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
+    Box::new(PlantUMLShell::new(cmd.to_string()))
 }

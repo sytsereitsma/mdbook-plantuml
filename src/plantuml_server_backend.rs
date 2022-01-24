@@ -6,7 +6,7 @@ use reqwest;
 use reqwest::Url;
 use std::fs;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
@@ -49,7 +49,7 @@ impl PlantUMLServer {
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension
-    fn get_url(&self, image_format: &String, encoded_diagram: &String) -> Result<Url, Error> {
+    fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url, Error> {
         let path = format!("{}/{}", image_format, encoded_diagram);
         match self.server_url.join(path.as_str()) {
             Ok(url) => Ok(url),
@@ -65,8 +65,8 @@ impl PlantUMLServer {
     /// Save the downloaded image to a file
     fn save_downloaded_image(
         &self,
-        image_buffer: &Vec<u8>,
-        file_path: &PathBuf,
+        image_buffer: &[u8],
+        file_path: &Path,
     ) -> Result<(), Error> {
         let mut output_file = fs::File::create(&file_path)?;
         output_file.write_all(&image_buffer)?;
@@ -78,9 +78,9 @@ impl PlantUMLServer {
     /// return the relative image URL.
     fn render_string(
         &self,
-        plantuml_code: &String,
-        output_file: &PathBuf,
-        image_format: &String,
+        plantuml_code: &str,
+        output_file: &Path,
+        image_format: &str,
         downloader: &dyn ImageDownloader,
     ) -> Result<(), Error> {
         let encoded = encode_diagram_source(plantuml_code);
@@ -93,7 +93,7 @@ impl PlantUMLServer {
 }
 
 /// Compress and encode the image source, return the encoed Base64-ish string
-fn encode_diagram_source(plantuml_code: &String) -> String {
+fn encode_diagram_source(plantuml_code: &str) -> String {
     let compressed = deflate_bytes(&plantuml_code.as_bytes());
     let base64_compressed = Base64PlantUML::encode(&compressed);
 
@@ -103,9 +103,9 @@ fn encode_diagram_source(plantuml_code: &String) -> String {
 impl PlantUMLBackend for PlantUMLServer {
     fn render_from_string(
         &self,
-        plantuml_code: &String,
-        image_format: &String,
-        output_file: &PathBuf,
+        plantuml_code: &str,
+        image_format: &str,
+        output_file: &Path,
     ) -> Result<(), Error> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, output_file, image_format, &downloader)

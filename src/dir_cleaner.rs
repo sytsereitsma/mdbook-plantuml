@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 /// Remove all files (not sub dirs and their files) that are not flagged as keep
 /// from the given directory
@@ -32,20 +32,20 @@ pub struct DirCleaner {
 }
 
 impl DirCleaner {
-    pub fn new(img_path: &PathBuf) -> DirCleaner {
+    pub fn new(img_path: &Path) -> DirCleaner {
         DirCleaner {
             files: DirCleaner::get_files(img_path),
         }
     }
 
-    pub fn keep(&mut self, img_path: &PathBuf) {
+    pub fn keep(&mut self, img_path: &Path) {
         info!("DirCleaner - Keeping {}", img_path.to_string_lossy());
         self.files.remove(img_path);
     }
 
-    fn get_files(img_path: &PathBuf) -> HashSet<PathBuf> {
+    fn get_files(img_path: &Path) -> HashSet<PathBuf> {
         let mut files = HashSet::new();
-        match std::fs::read_dir(img_path.as_path()) {
+        match std::fs::read_dir(img_path) {
             Err(e) => {
                 error!(
                     "DirCleaner - Failed to list directory contents of {} ({}).",
@@ -93,17 +93,19 @@ impl Drop for DirCleaner {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 
-    fn get_file_path(target_path: &PathBuf, filename: &PathBuf) -> PathBuf {
-        let mut p = target_path.clone();
+    fn get_file_path(target_path: &Path, filename: &Path) -> PathBuf {
+        let mut p = target_path.to_path_buf();
         p.push(filename);
         p
     }
 
-    fn seed_dir(target_path: &PathBuf) -> HashSet<PathBuf> {
+    fn seed_dir(target_path: &Path) -> HashSet<PathBuf> {
         let mut created_files = HashSet::new();
         let mut create_file = |filename: &PathBuf, skip: bool| {
             let p = get_file_path(target_path, filename);

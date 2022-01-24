@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -12,13 +13,13 @@ use tempfile::{tempdir, TempDir};
 /// bit, but the other option is not testing it at all, or partially through
 /// integration tests
 trait CommandExecutor {
-    fn execute(&self, args: &Vec<String>) -> Result<(), Error>;
+    fn execute(&self, args: &[String]) -> Result<(), Error>;
 }
 
 struct RealCommandExecutor;
 
 impl CommandExecutor for RealCommandExecutor {
-    fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
+    fn execute(&self, args: &[String]) -> Result<(), Error> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -85,8 +86,8 @@ impl PlantUMLShell {
     /// Get the command line for rendering the given source entry
     fn get_cmd_arguments(
         &self,
-        file: &PathBuf,
-        image_format: &String,
+        file: &Path,
+        image_format: &str,
     ) -> Result<Vec<String>, Error> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
@@ -103,7 +104,7 @@ impl PlantUMLShell {
     }
 
     /// Create the source and image names for the generation dir with the appropriate extensions
-    fn get_filenames(&self, output_file: &PathBuf) -> (PathBuf, PathBuf) {
+    fn get_filenames(&self, output_file: &Path) -> (PathBuf, PathBuf) {
         let mut puml_image = self.generation_dir.path().to_path_buf();
         puml_image.push(output_file.file_name().unwrap());
 
@@ -121,14 +122,14 @@ impl PlantUMLShell {
     ///Generate an image file from the given plantuml code.
     fn render_from_string(
         &self,
-        plantuml_code: &String,
-        image_format: &String,
-        output_file: &PathBuf,
+        plantuml_code: &str,
+        image_format: &str,
+        output_file: &Path,
         command_executor: &dyn CommandExecutor,
     ) -> Result<(), Error> {
         let (puml_src, puml_image) = self.get_filenames(output_file);
         // Write diagram source file for rendering
-        fs::write(puml_src.as_path(), plantuml_code.as_str()).or_else(|e| {
+        fs::write(puml_src.as_path(), plantuml_code).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
         debug!("Shell conversion {:?} -> {:?}", puml_src, puml_image);
@@ -162,9 +163,9 @@ impl PlantUMLShell {
 impl PlantUMLBackend for PlantUMLShell {
     fn render_from_string(
         &self,
-        plantuml_code: &String,
-        image_format: &String,
-        output_file: &PathBuf,
+        plantuml_code: &str,
+        image_format: &str,
+        output_file: &Path,
     ) -> Result<(), Error> {
         let executor = RealCommandExecutor {};
         PlantUMLShell::render_from_string(self, plantuml_code, image_format, output_file, &executor)
@@ -185,7 +186,7 @@ mod tests {
     }
 
     impl CommandExecutor for FakeCommandExecutor {
-        fn execute(&self, args: &Vec<String>) -> Result<(), Error> {
+        fn execute(&self, args: &[String]) -> Result<(), Error> {
             if self.error {
                 Err(err_msg("Whoops"))
             } else {

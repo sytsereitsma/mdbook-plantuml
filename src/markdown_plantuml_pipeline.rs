@@ -4,7 +4,7 @@ use std::string::String;
 pub fn render_plantuml_code_blocks(
     markdown: &str,
     renderer: &impl PlantUMLRendererTrait,
-    rel_image_url: &String,
+    rel_image_url: &str,
 ) -> String {
     let processor = PlantUMLCodeProcessor::new(markdown);
     processor.process(renderer, rel_image_url)
@@ -219,7 +219,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// # Arguments
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
     /// * `rel_image_url` - The url of the image relative to the book output dir.
-    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &String) -> String {
+    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -262,11 +262,11 @@ mod test {
     impl PlantUMLRendererTrait for FakeRenderer {
         fn render(
             &self,
-            code_block: &String,
-            _rel_image_url: &String,
+            code_block: &str,
+            _rel_image_url: &str,
             _image_format: String,
         ) -> String {
-            self.code_block.replace(code_block.clone());
+            self.code_block.replace(code_block.to_string());
             String::from("rendered")
         }
     }
