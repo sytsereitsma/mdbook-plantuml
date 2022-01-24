@@ -72,12 +72,12 @@ impl PlantUMLRenderer {
         format!("\n```txt\n{}```\n", txt)
     }
 
-    pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
-        let output_file = get_image_filename(&self.img_root, plantuml_code, &image_format);
+    pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: &str) -> String {
+        let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
             if let Err(e) =
                 self.backend
-                    .render_from_string(plantuml_code, &image_format, &output_file)
+                    .render_from_string(plantuml_code, image_format, &output_file)
             {
                 error!("Failed to generate PlantUML diagram.");
                 return format!("\nPlantUML rendering error:\n{}\n\n", e);
@@ -96,7 +96,7 @@ impl PlantUMLRenderer {
 
 impl PlantUMLRendererTrait for PlantUMLRenderer {
     fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
-        Self::render(self, plantuml_code, rel_img_url, image_format)
+        Self::render(self, plantuml_code, rel_img_url, &image_format)
     }
 }
 
@@ -111,20 +111,17 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(
-                &String::from("foo/bar"),
-                &PathBuf::from("/froboz/baz.svg")
-            )
+            PlantUMLRenderer::create_md_link("foo/bar", &PathBuf::from("/froboz/baz.svg"))
+        );
+
+        assert_eq!(
+            "![](/baz.svg)\n\n",
+            PlantUMLRenderer::create_md_link("", &PathBuf::from("baz.svg"))
         );
 
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(&String::from(""), &PathBuf::from("baz.svg"))
-        );
-
-        assert_eq!(
-            String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(&String::from(""), &PathBuf::from("foo/baz.svg"))
+            PlantUMLRenderer::create_md_link("", &PathBuf::from("foo/baz.svg"))
         );
     }
 
@@ -156,46 +153,30 @@ mod tests {
             img_root: output_dir.path().to_path_buf(),
         };
 
-        let plantuml_code = String::from("some puml code");
+        let plantuml_code = "some puml code";
         let code_hash = sha1::Sha1::from(&plantuml_code).hexdigest();
 
         assert_eq!(
             format!("![](rel/url/{}.svg)\n\n", code_hash),
-            renderer.render(
-                &plantuml_code,
-                &String::from("rel/url"),
-                String::from("svg")
-            )
+            renderer.render(plantuml_code, "rel/url", "svg",)
         );
 
         // png extension
         assert_eq!(
             format!("![](rel/url/{}.png)\n\n", code_hash),
-            renderer.render(
-                &plantuml_code,
-                &String::from("rel/url"),
-                String::from("png")
-            )
+            renderer.render(plantuml_code, "rel/url", "png",)
         );
 
         // txt extension
         assert_eq!(
             format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
-            renderer.render(
-                &plantuml_code,
-                &String::from("rel/url"),
-                String::from("txt")
-            )
+            renderer.render(plantuml_code, "rel/url", "txt",)
         );
 
         // utxt extension
         assert_eq!(
             format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
-            renderer.render(
-                &plantuml_code,
-                &String::from("rel/url"),
-                String::from("txt")
-            )
+            renderer.render(plantuml_code, "rel/url", "txt",)
         );
     }
 
@@ -210,58 +191,36 @@ mod tests {
 
         assert_eq!(
             String::from("\nPlantUML rendering error:\nOh no\n\n"),
-            renderer.render(
-                &String::from(""),
-                &String::from("rel/url"),
-                String::from("svg")
-            )
+            renderer.render("", "rel/url", "svg",)
         );
     }
 
     #[test]
     fn test_get_image_filename_extension() {
-        let get_extension_from_filename = |code: &String, img_format: String| -> String {
-            let file_path = get_image_filename(&PathBuf::from("foo"), code, &img_format)
+        let get_extension_from_filename = |code: &str, img_format: &str| -> String {
+            let file_path = get_image_filename(&PathBuf::from("foo"), code, img_format)
                 .to_string_lossy()
                 .to_string();
             let firstdot = file_path.find('.').unwrap();
             file_path[firstdot + 1..].to_string()
         };
 
-        assert_eq!(
-            String::from("svg"),
-            get_extension_from_filename(&String::from(""), String::from("svg"))
-        );
+        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
 
-        assert_eq!(
-            String::from("eps"),
-            get_extension_from_filename(&String::from(""), String::from("eps"))
-        );
+        assert_eq!(String::from("eps"), get_extension_from_filename("", "eps"));
 
-        assert_eq!(
-            String::from("png"),
-            get_extension_from_filename(&String::from(""), String::from("png"))
-        );
+        assert_eq!(String::from("png"), get_extension_from_filename("", "png"));
 
-        assert_eq!(
-            String::from("svg"),
-            get_extension_from_filename(&String::from(""), String::from(""))
-        );
+        assert_eq!(String::from("svg"), get_extension_from_filename("", ""));
 
-        assert_eq!(
-            String::from("svg"),
-            get_extension_from_filename(&String::from(""), String::from("svg"))
-        );
+        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
 
-        assert_eq!(
-            String::from("atxt"),
-            get_extension_from_filename(&String::from(""), String::from("txt"))
-        );
+        assert_eq!(String::from("atxt"), get_extension_from_filename("", "txt"));
 
         // Plantuml does this 'braille.png' extension
         assert_eq!(
             String::from("braille.png"),
-            get_extension_from_filename(&String::from(""), String::from("braille"))
+            get_extension_from_filename("", "braille")
         );
 
         {
@@ -269,19 +228,19 @@ mod tests {
             // Note the format is overridden when rendering ditaa
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename(&String::from("@startditaa"), String::from("svg"))
+                get_extension_from_filename(&String::from("@startditaa"), "svg")
             );
 
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename(&String::from("@startditaa"), String::from("png"))
+                get_extension_from_filename("@startditaa", "png")
             );
 
             assert_eq!(
                 String::from("png"),
                 get_extension_from_filename(
-                    &String::from("Also when not at the start of the code block @startditaa"),
-                    String::from("svg")
+                    "Also when not at the start of the code block @startditaa",
+                    "svg"
                 )
             );
         }
@@ -290,7 +249,7 @@ mod tests {
     #[test]
     fn test_get_image_filename() {
         let code = String::from("asgtfgl");
-        let file_path = get_image_filename(&PathBuf::from("foo"), &code, &String::from("svg"));
+        let file_path = get_image_filename(&PathBuf::from("foo"), &code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
             sha1::Sha1::from(&code).hexdigest(),
