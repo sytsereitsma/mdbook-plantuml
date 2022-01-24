@@ -95,7 +95,7 @@ impl PlantUMLRenderer {
         }
 
         self.cleaner.borrow_mut().keep(&output_file);
-        let extension = output_file.extension().unwrap_or("".as_ref());
+        let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
             PlantUMLRenderer::create_inline_image(&output_file)
         } else {

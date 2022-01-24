@@ -32,7 +32,7 @@ impl CommandExecutor for RealCommandExecutor {
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
-            env::current_dir().unwrap_or(PathBuf::from(".")).display()
+            env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).display()
         );
 
         let output = cmd
@@ -49,17 +49,17 @@ impl CommandExecutor for RealCommandExecutor {
             info!("Successfully generated PlantUML diagrams.");
             debug!(
                 "stdout: {}",
-                String::from_utf8(output.stdout).unwrap_or(String::from(""))
+                String::from_utf8(output.stdout).unwrap_or_default()
             );
             debug!(
                 "stderr: {}",
-                String::from_utf8(output.stderr).unwrap_or(String::from(""))
+                String::from_utf8(output.stderr).unwrap_or_default()
             );
         } else {
             let msg = format!(
                 "Failed to generate PlantUML diagrams, PlantUML exited with code {} ({}).",
                 output.status.code().unwrap_or(-9999),
-                String::from_utf8(output.stderr).unwrap_or(String::from(""))
+                String::from_utf8(output.stderr).unwrap_or_default()
             );
             bail!(msg);
         }
@@ -110,7 +110,7 @@ impl PlantUMLShell {
         let mut puml_src = puml_image.clone();
         // A little hack to handle the braille output extension (which is foo.braille.png for an input file foo.puml")
         puml_src.set_extension("");
-        if puml_src.extension().unwrap_or("".as_ref()) == "braille" {
+        if puml_src.extension().unwrap_or_default() == "braille" {
             puml_src.set_extension(""); // Strip .braille
         }
         puml_src.set_extension("puml");

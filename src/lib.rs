@@ -105,7 +105,7 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
                 );
                 Err(e)
             })
-            .unwrap_or(PlantUMLConfig::default()),
+            .unwrap_or_default(),
         None => PlantUMLConfig::default(),
     }
 }
