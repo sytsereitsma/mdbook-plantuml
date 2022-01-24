@@ -90,9 +90,7 @@ impl PlantUMLServer {
 /// Compress and encode the image source, return the encoed Base64-ish string
 fn encode_diagram_source(plantuml_code: &str) -> String {
     let compressed = deflate_bytes(plantuml_code.as_bytes());
-    let base64_compressed = Base64PlantUML::encode(&compressed);
-
-    base64_compressed
+    Base64PlantUML::encode(&compressed)
 }
 
 impl PlantUMLBackend for PlantUMLServer {
