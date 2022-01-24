@@ -80,7 +80,7 @@ mod tests {
         );
 
         //How would one pass 256 here?
-        let data: Vec<u8> = (0 as u8..255 as u8).collect();
+        let data: Vec<u8> = (0_u8..255_u8).collect();
         assert_eq!(
             String::from(
                 "00420mG51WS82GeB30qE3n0H4XCK5HON61aQ6nmT7XyW8I8Z92Kc9o\
