@@ -161,7 +161,7 @@ struct PlantUMLCodeProcessor<'a> {
 
 impl<'a> PlantUMLCodeProcessor<'a> {
     pub fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor { markdown: markdown }
+        PlantUMLCodeProcessor { markdown }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end
@@ -204,9 +204,9 @@ impl<'a> PlantUMLCodeProcessor<'a> {
 
             return Some(CodeBlock {
                 code: &self.markdown[code_start..code_end],
-                info_string: info_string,
+                info_string,
                 start_pos: s,
-                end_pos: end_pos,
+                end_pos,
             });
         }
 

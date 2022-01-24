@@ -44,7 +44,7 @@ impl PlantUMLServer {
         };
 
         PlantUMLServer {
-            server_url: server_url,
+            server_url,
         }
     }
 

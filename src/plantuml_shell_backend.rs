@@ -78,7 +78,7 @@ pub struct PlantUMLShell {
 impl PlantUMLShell {
     pub fn new(plantuml_cmd: String) -> PlantUMLShell {
         PlantUMLShell {
-            plantuml_cmd: plantuml_cmd,
+            plantuml_cmd,
             generation_dir: tempdir().unwrap(),
         }
     }
@@ -242,7 +242,7 @@ mod tests {
 
         let executor = FakeCommandExecutor {
             error: generate_error,
-            create_file: create_file,
+            create_file,
         };
 
         shell.render_from_string(
