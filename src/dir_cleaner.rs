@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 /// Remove all files (not sub dirs and their files) that are not flagged as keep
 /// from the given directory
@@ -54,17 +54,15 @@ impl DirCleaner {
                 );
             }
             Ok(entries) => {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        // Here, `entry` is a `DirEntry`.
-                        if let Ok(file_type) = entry.file_type() {
-                            if file_type.is_file() {
-                                files.insert(entry.path());
-                                info!(
-                                    "DirCleaner - Found existing file {}",
-                                    entry.path().to_string_lossy()
-                                );
-                            }
+                for entry in entries.flatten() {
+                    // Here, `entry` is a `DirEntry`.
+                    if let Ok(file_type) = entry.file_type() {
+                        if file_type.is_file() {
+                            files.insert(entry.path());
+                            info!(
+                                "DirCleaner - Found existing file {}",
+                                entry.path().to_string_lossy()
+                            );
                         }
                     }
                 }
