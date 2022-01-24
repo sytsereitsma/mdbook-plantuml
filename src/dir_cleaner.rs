@@ -32,9 +32,9 @@ pub struct DirCleaner {
 }
 
 impl DirCleaner {
-    pub fn new(img_path: &Path) -> DirCleaner {
-        DirCleaner {
-            files: DirCleaner::get_files(img_path),
+    pub fn new(img_path: &Path) -> Self {
+        Self {
+            files: Self::get_files(img_path),
         }
     }
 

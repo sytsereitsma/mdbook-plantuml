@@ -46,8 +46,8 @@ pub struct PlantUMLRenderer {
 }
 
 impl PlantUMLRenderer {
-    pub fn new(cfg: &PlantUMLConfig, img_root: &Path) -> PlantUMLRenderer {
-        let renderer = PlantUMLRenderer {
+    pub fn new(cfg: &PlantUMLConfig, img_root: &Path) -> Self {
+        let renderer = Self {
             backend: plantuml_backend_factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root)),
             img_root: img_root.to_path_buf(),
@@ -87,16 +87,16 @@ impl PlantUMLRenderer {
         self.cleaner.borrow_mut().keep(&output_file);
         let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
-            PlantUMLRenderer::create_inline_image(&output_file)
+            Self::create_inline_image(&output_file)
         } else {
-            PlantUMLRenderer::create_md_link(rel_img_url, &output_file)
+            Self::create_md_link(rel_img_url, &output_file)
         }
     }
 }
 
 impl PlantUMLRendererTrait for PlantUMLRenderer {
     fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
-        PlantUMLRenderer::render(self, plantuml_code, rel_img_url, image_format)
+        Self::render(self, plantuml_code, rel_img_url, image_format)
     }
 }
 

@@ -31,7 +31,7 @@ pub struct PlantUMLServer {
 }
 
 impl PlantUMLServer {
-    pub fn new(server_url: Url) -> PlantUMLServer {
+    pub fn new(server_url: Url) -> Self {
         // Make sure the server_url path ends with a / so Url::join works as expected later.
         let path = server_url.path();
         let server_url = if path.ends_with('/') {
@@ -42,7 +42,7 @@ impl PlantUMLServer {
             repath
         };
 
-        PlantUMLServer { server_url }
+        Self { server_url }
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension
@@ -148,7 +148,7 @@ mod tests {
         assert_eq!(
             String::from("SrRGrQsnKt010000"),
             encode_diagram_source(&String::from("C --|> D"))
-        )
+        );
     }
 
     #[test]

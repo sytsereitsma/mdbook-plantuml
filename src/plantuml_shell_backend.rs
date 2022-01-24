@@ -78,8 +78,8 @@ pub struct PlantUMLShell {
 
 /// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
-    pub fn new(plantuml_cmd: String) -> PlantUMLShell {
-        PlantUMLShell {
+    pub fn new(plantuml_cmd: String) -> Self {
+        Self {
             plantuml_cmd,
             generation_dir: tempdir().unwrap(),
         }
@@ -166,7 +166,7 @@ impl PlantUMLBackend for PlantUMLShell {
         output_file: &Path,
     ) -> Result<(), Error> {
         let executor = RealCommandExecutor {};
-        PlantUMLShell::render_from_string(self, plantuml_code, image_format, output_file, &executor)
+        Self::render_from_string(self, plantuml_code, image_format, output_file, &executor)
     }
 }
 
