@@ -42,9 +42,7 @@ impl PlantUMLServer {
             repath
         };
 
-        PlantUMLServer {
-            server_url,
-        }
+        PlantUMLServer { server_url }
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension

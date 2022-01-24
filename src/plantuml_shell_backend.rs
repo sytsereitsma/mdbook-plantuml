@@ -33,7 +33,9 @@ impl CommandExecutor for RealCommandExecutor {
         debug!("Executing '{}'", args.join(" "));
         debug!(
             "Working dir '{}'",
-            env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).display()
+            env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .display()
         );
 
         let output = cmd
@@ -84,11 +86,7 @@ impl PlantUMLShell {
     }
 
     /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(
-        &self,
-        file: &Path,
-        image_format: &str,
-    ) -> Result<Vec<String>, Error> {
+    fn get_cmd_arguments(&self, file: &Path, image_format: &str) -> Result<Vec<String>, Error> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
         args.push(format!("-t{}", image_format));

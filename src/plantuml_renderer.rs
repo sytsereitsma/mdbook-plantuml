@@ -4,7 +4,7 @@ use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
 use std::cell::RefCell;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 pub trait PlantUMLRendererTrait {
     fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String;
@@ -13,11 +13,7 @@ pub trait PlantUMLRendererTrait {
 /// Create the image names with the appropriate extension and path
 /// The base name of the file is a SHA1 of the code block to avoid collisions
 /// with existing and as a bonus prevent duplicate files.
-pub fn get_image_filename(
-    img_root: &Path,
-    plantuml_code: &str,
-    image_format: &str,
-) -> PathBuf {
+pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) -> PathBuf {
     // See https://plantuml.com/command-line "Types of output files" for additional info
     let extension = {
         if plantuml_code.contains("@startditaa") {
@@ -76,12 +72,7 @@ impl PlantUMLRenderer {
         format!("\n```txt\n{}```\n", txt)
     }
 
-    pub fn render(
-        &self,
-        plantuml_code: &str,
-        rel_img_url: &str,
-        image_format: String,
-    ) -> String {
+    pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
         let output_file = get_image_filename(&self.img_root, plantuml_code, &image_format);
         if !output_file.exists() {
             if let Err(e) =

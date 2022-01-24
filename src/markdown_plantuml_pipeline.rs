@@ -260,12 +260,7 @@ mod test {
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(
-            &self,
-            code_block: &str,
-            _rel_image_url: &str,
-            _image_format: String,
-        ) -> String {
+        fn render(&self, code_block: &str, _rel_image_url: &str, _image_format: String) -> String {
             self.code_block.replace(code_block.to_string());
             String::from("rendered")
         }
