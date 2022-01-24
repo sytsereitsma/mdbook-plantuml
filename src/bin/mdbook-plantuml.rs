@@ -1,9 +1,5 @@
-extern crate clap;
-extern crate mdbook;
-extern crate mdbook_plantuml;
 #[macro_use]
 extern crate log;
-extern crate log4rs;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::errors::Error as MDBookError;

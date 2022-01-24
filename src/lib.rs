@@ -1,16 +1,11 @@
 #![warn(unused_extern_crates)]
 #[macro_use]
 extern crate log;
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-extern crate reqwest;
 
 #[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate serde_derive;
-#[cfg(test)]
-extern crate pretty_assertions;
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
