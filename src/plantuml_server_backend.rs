@@ -21,8 +21,8 @@ impl ImageDownloader for RealImageDownloader {
         let mut image_buf: Vec<u8> = vec![];
         reqwest::blocking::get(request_url.clone())
             .and_then(|mut response| response.copy_to(&mut image_buf))
-            .map(|_| image_buf)
-            .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))
+            .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))?;
+        Ok(image_buf)
     }
 }
 
@@ -48,15 +48,15 @@ impl PlantUMLServer {
     /// Format the PlantUML server URL using the encoded diagram and extension
     fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url, Error> {
         let path = format!("{}/{}", image_format, encoded_diagram);
-        match self.server_url.join(path.as_str()) {
-            Ok(url) => Ok(url),
-            Err(e) => bail!(format!(
+
+        self.server_url.join(&path).map_err(|e| {
+            failure::format_err!(
                 "Error constructing PlantUML server URL from '{}' and '{}' ({})",
                 self.server_url.as_str(),
                 path,
                 e
-            )),
-        }
+            )
+        })
     }
 
     /// Save the downloaded image to a file

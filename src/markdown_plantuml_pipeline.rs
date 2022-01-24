@@ -131,10 +131,7 @@ struct CodeBlock<'a> {
 
 impl<'a> CodeBlock<'a> {
     fn is_plantuml(&self) -> bool {
-        let info = self.info_string.unwrap_or("");
-        let first_comma = info.find(',').unwrap_or(info.len());
-
-        info[0..first_comma] == *"plantuml"
+        self.info_string.and_then(|info| info.split(',').next()) == Some("plantuml")
     }
 
     fn get_format(&self) -> String {

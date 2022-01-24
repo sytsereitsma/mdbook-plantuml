@@ -18,17 +18,17 @@ pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &s
     let extension = {
         if plantuml_code.contains("@startditaa") {
             //ditaa only has png format support afaik
-            String::from("png")
+            "png"
         } else if image_format.is_empty() {
-            String::from("svg")
+            "svg"
         } else if image_format == "txt" {
             // -ttxt outputs an .atxt file
-            String::from("atxt")
+            "atxt"
         } else if image_format == "braille" {
             // -tbraille outputs a .braille.png file
-            String::from("braille.png")
+            "braille.png"
         } else {
-            image_format.to_string()
+            image_format
         }
     };
 

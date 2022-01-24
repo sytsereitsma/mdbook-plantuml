@@ -80,20 +80,21 @@ fn get_relative_img_url(chapter_path: &Path) -> String {
 }
 
 fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
-    match ctx.config.get("preprocessor.plantuml") {
-        Some(raw) => raw
-            .clone()
-            .try_into()
-            .map_err(|e| {
-                log::warn!(
-                    "Failed to get config from book.toml, using default configuration ({}).",
+    ctx.config
+        .get("preprocessor.plantuml")
+        .and_then(|raw| {
+            raw.clone()
+                .try_into()
+                .map_err(|e| {
+                    log::warn!(
+                        "Failed to get config from book.toml, using default configuration ({}).",
+                        e
+                    );
                     e
-                );
-                e
-            })
-            .unwrap_or_default(),
-        None => PlantUMLConfig::default(),
-    }
+                })
+                .ok()
+        })
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
