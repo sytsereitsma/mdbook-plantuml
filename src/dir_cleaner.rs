@@ -39,7 +39,7 @@ impl DirCleaner {
     }
 
     pub fn keep(&mut self, img_path: &Path) {
-        info!("DirCleaner - Keeping {}", img_path.to_string_lossy());
+        log::info!("DirCleaner - Keeping {}", img_path.to_string_lossy());
         self.files.remove(img_path);
     }
 
@@ -47,7 +47,7 @@ impl DirCleaner {
         let mut files = HashSet::new();
         match std::fs::read_dir(img_path) {
             Err(e) => {
-                error!(
+                log::error!(
                     "DirCleaner - Failed to list directory contents of {} ({}).",
                     img_path.to_string_lossy(),
                     e
@@ -59,7 +59,7 @@ impl DirCleaner {
                     if let Ok(file_type) = entry.file_type() {
                         if file_type.is_file() {
                             files.insert(entry.path());
-                            info!(
+                            log::info!(
                                 "DirCleaner - Found existing file {}",
                                 entry.path().to_string_lossy()
                             );
@@ -77,13 +77,13 @@ impl Drop for DirCleaner {
     fn drop(&mut self) {
         for file in &self.files {
             if let Err(e) = fs::remove_file(&file) {
-                error!(
+                log::error!(
                     "DirCleaner - Failed to remove obsolete image file '{}' ({}).",
                     file.to_string_lossy(),
                     e
                 );
             } else {
-                debug!("DirCleaner - Removed file {}", file.to_string_lossy());
+                log::debug!("DirCleaner - Removed file {}", file.to_string_lossy());
             }
         }
     }

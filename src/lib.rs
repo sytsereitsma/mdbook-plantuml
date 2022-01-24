@@ -1,12 +1,3 @@
-#![warn(unused_extern_crates)]
-#[macro_use]
-extern crate log;
-
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
 mod dir_cleaner;
@@ -94,7 +85,7 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
             .clone()
             .try_into()
             .map_err(|e| {
-                warn!(
+                log::warn!(
                     "Failed to get config from book.toml, using default configuration ({}).",
                     e
                 );

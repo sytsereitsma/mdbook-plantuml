@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::plantuml_backend::PlantUMLBackend;
+use failure::bail;
 use failure::Error;
 use tempfile::{tempdir, TempDir};
 
@@ -30,8 +31,8 @@ impl CommandExecutor for RealCommandExecutor {
             cmd
         };
 
-        debug!("Executing '{}'", args.join(" "));
-        debug!(
+        log::debug!("Executing '{}'", args.join(" "));
+        log::debug!(
             "Working dir '{}'",
             env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
@@ -49,12 +50,12 @@ impl CommandExecutor for RealCommandExecutor {
             .expect("Failed to start PlantUML application");
 
         if output.status.success() {
-            info!("Successfully generated PlantUML diagrams.");
-            debug!(
+            log::info!("Successfully generated PlantUML diagrams.");
+            log::debug!(
                 "stdout: {}",
                 String::from_utf8(output.stdout).unwrap_or_default()
             );
-            debug!(
+            log::debug!(
                 "stderr: {}",
                 String::from_utf8(output.stderr).unwrap_or_default()
             );
@@ -130,7 +131,7 @@ impl PlantUMLShell {
         fs::write(puml_src.as_path(), plantuml_code).or_else(|e| {
             bail!("Failed to create temp file for inline diagram ({}).", e);
         })?;
-        debug!("Shell conversion {:?} -> {:?}", puml_src, puml_image);
+        log::debug!("Shell conversion {:?} -> {:?}", puml_src, puml_image);
 
         // Render the diagram, PlantUML will create a file with the same base
         // name, and the image extension

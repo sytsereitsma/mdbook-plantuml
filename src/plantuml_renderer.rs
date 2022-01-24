@@ -66,7 +66,7 @@ impl PlantUMLRenderer {
     }
 
     fn create_inline_image(image_path: &Path) -> String {
-        debug!("Creating inline image from {:?}", image_path);
+        log::debug!("Creating inline image from {:?}", image_path);
         let raw_source = fs::read(image_path).unwrap();
         let txt = unsafe { String::from_utf8_unchecked(raw_source) };
         format!("\n```txt\n{}```\n", txt)
@@ -79,7 +79,7 @@ impl PlantUMLRenderer {
                 self.backend
                     .render_from_string(plantuml_code, image_format, &output_file)
             {
-                error!("Failed to generate PlantUML diagram.");
+                log::error!("Failed to generate PlantUML diagram.");
                 return format!("\nPlantUML rendering error:\n{}\n\n", e);
             }
         }
@@ -103,7 +103,7 @@ impl PlantUMLRendererTrait for PlantUMLRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use failure::Error;
+    use failure::{bail, Error};
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 

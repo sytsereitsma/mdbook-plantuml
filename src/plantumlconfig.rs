@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 /// The configuration options available with this backend.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default, rename_all = "kebab-case")]

@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate log;
-
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
@@ -98,7 +95,7 @@ fn setup_logging() -> Result<(), Box<dyn Error>> {
         )?;
     log4rs::init_config(config)?;
 
-    info!("--- Started preprocessor ---");
+    log::info!("--- Started preprocessor ---");
 
     Ok(())
 }
