@@ -23,7 +23,7 @@ pub fn get_image_filename(
         if plantuml_code.contains("@startditaa") {
             //ditaa only has png format support afaik
             String::from("png")
-        } else if image_format == "" {
+        } else if image_format.is_empty() {
             String::from("svg")
         } else if image_format == "txt" {
             // -ttxt outputs an .atxt file
