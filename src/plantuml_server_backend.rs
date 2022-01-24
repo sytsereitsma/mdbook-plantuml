@@ -2,7 +2,6 @@ use crate::base64_plantuml::Base64PlantUML;
 use crate::plantuml_backend::PlantUMLBackend;
 use deflate::deflate_bytes;
 use failure::Error;
-use reqwest;
 use reqwest::Url;
 use std::fs;
 use std::io::prelude::*;

@@ -2,7 +2,6 @@ use crate::dir_cleaner::DirCleaner;
 use crate::plantuml_backend::PlantUMLBackend;
 use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
-use sha1;
 use std::cell::RefCell;
 use std::fs;
 use std::path::{PathBuf, Path};
