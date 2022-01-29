@@ -158,14 +158,14 @@ mod tests {
             seed_dir(&target_path);
             let mut cleaner = DirCleaner::new(&target_path);
 
-            let mut keep = |file_name: PathBuf| {
-                let p = get_file_path(&target_path, &file_name);
+            let mut keep = |file_name: &Path| {
+                let p = get_file_path(&target_path, file_name);
                 cleaner.keep(&p);
                 expected_files.insert(p);
             };
 
-            keep(PathBuf::from("foo.txt"));
-            keep(PathBuf::from("baz.txt"));
+            keep(Path::new("foo.txt"));
+            keep(Path::new("baz.txt"));
         }
 
         // The directory should now be empty

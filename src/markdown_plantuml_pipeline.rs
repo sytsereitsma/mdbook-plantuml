@@ -202,15 +202,15 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             let fence_end = find_next_code_fence(bytes, e, Some(e - s), Some(bytes[s]));
             let (code_end, end_pos) = self.get_end_positions(bytes, fence_end);
 
-            return Some(CodeBlock {
+            Some(CodeBlock {
                 code: &self.markdown[code_start..code_end],
                 info_string,
                 start_pos: s,
                 end_pos,
-            });
+            })
+        } else {
+            None
         }
-
-        None
     }
 
     /// Processes all code blocks in the document (self.markdown)
