@@ -102,13 +102,15 @@ impl PlantUMLShell {
         Ok(args)
     }
 
-    /// Create the source and image names for the generation dir with the appropriate extensions
+    /// Create the source and image names for the generation dir with the
+    /// appropriate extensions
     fn get_filenames(&self, output_file: &Path) -> (PathBuf, PathBuf) {
         let mut puml_image = self.generation_dir.path().to_path_buf();
         puml_image.push(output_file.file_name().unwrap());
 
         let mut puml_src = puml_image.clone();
-        // A little hack to handle the braille output extension (which is foo.braille.png for an input file foo.puml")
+        // A little hack to handle the braille output extension (which is
+        // foo.braille.png for an input file foo.puml")
         puml_src.set_extension("");
         if puml_src.extension().unwrap_or_default() == "braille" {
             puml_src.set_extension(""); // Strip .braille
@@ -118,7 +120,7 @@ impl PlantUMLShell {
         (puml_src, puml_image)
     }
 
-    ///Generate an image file from the given plantuml code.
+    /// Generate an image file from the given plantuml code.
     fn render_from_string(
         &self,
         plantuml_code: &str,
@@ -141,9 +143,11 @@ impl PlantUMLShell {
         })?;
 
         if !puml_image.exists() {
-            bail!(
-                format!("PlantUML did not generate an image, did you forget the @startuml, @enduml block ({})?", args.join(" "))
-            );
+            bail!(format!(
+                "PlantUML did not generate an image, did you forget the @startuml, @enduml block \
+                 ({})?",
+                args.join(" ")
+            ));
         }
 
         if let Err(e) = fs::copy(&puml_image, &output_file) {
@@ -194,7 +198,7 @@ mod tests {
                     let mut filename = PathBuf::from(args.last().unwrap());
                     let source = fs::read(&filename)?;
 
-                    //Simply copy the contents of source to the output file
+                    // Simply copy the contents of source to the output file
                     filename.set_extension("svg");
                     fs::write(filename.as_path(), &source)?;
                 }
@@ -229,8 +233,8 @@ mod tests {
         code: Option<&String>,
     ) -> Result<String, Error> {
         let output_dir = tempdir().unwrap();
-        //Cannot be the same path as output_dir, because otherwise we'd try to
-        //copy a file onto itself
+        // Cannot be the same path as output_dir, because otherwise we'd try to
+        // copy a file onto itself
         let img_dir = tempdir().unwrap();
         let output_file = join_path(img_dir.path(), "foobar.svg");
 

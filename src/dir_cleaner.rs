@@ -114,7 +114,7 @@ mod tests {
             fs::write(&p, "").is_ok()
         };
 
-        //Preparation
+        // Preparation
         assert!(create_file(Path::new("foo.txt"), false));
         assert!(create_file(Path::new("bar.txt"), false));
         assert!(create_file(Path::new("baz.txt"), false));

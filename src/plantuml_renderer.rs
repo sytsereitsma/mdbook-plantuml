@@ -17,7 +17,7 @@ pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &s
     // See https://plantuml.com/command-line "Types of output files" for additional info
     let extension = {
         if plantuml_code.contains("@startditaa") {
-            //ditaa only has png format support afaik
+            // ditaa only has png format support afaik
             "png"
         } else if image_format.is_empty() {
             "svg"
@@ -169,13 +169,15 @@ mod tests {
 
         // txt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
+            format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
+                                                               * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt",)
         );
 
         // utxt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
+            format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
+                                                               * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt",)
         );
     }
@@ -224,7 +226,7 @@ mod tests {
         );
 
         {
-            //ditaa graphs
+            // ditaa graphs
             // Note the format is overridden when rendering ditaa
             assert_eq!(
                 String::from("png"),

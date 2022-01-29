@@ -52,8 +52,8 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
         // We should probably use the `semver` crate to check compatibility
         // here...
         eprintln!(
-            "Warning: The {} plugin was built against version {} of mdbook, \
-             but we're being called from version {}",
+            "Warning: The {} plugin was built against version {} of mdbook, but we're being \
+             called from version {}",
             pre.name(),
             mdbook::MDBOOK_VERSION,
             ctx.mdbook_version

@@ -32,7 +32,8 @@ pub struct PlantUMLServer {
 
 impl PlantUMLServer {
     pub fn new(server_url: Url) -> Self {
-        // Make sure the server_url path ends with a / so Url::join works as expected later.
+        // Make sure the server_url path ends with a / so Url::join works as expected
+        // later.
         let path = server_url.path();
         let server_url = if path.ends_with('/') {
             server_url

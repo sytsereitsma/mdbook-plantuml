@@ -1,4 +1,5 @@
-/// PlantUML has its own base64 dialect, this struct provides the implementation for that
+/// PlantUML has its own base64 dialect, this struct provides the implementation
+/// for that
 pub struct Base64PlantUML {}
 
 impl Base64PlantUML {
@@ -79,7 +80,7 @@ mod tests {
             Base64PlantUML::encode(&data)
         );
 
-        //How would one pass 256 here?
+        // How would one pass 256 here?
         let data: Vec<u8> = (0_u8..255_u8).collect();
         assert_eq!(
             String::from(

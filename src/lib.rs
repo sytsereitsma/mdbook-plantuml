@@ -38,7 +38,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             .join(&ctx.config.book.src)
             .join("mdbook-plantuml-img");
 
-        //Always create the image output dir
+        // Always create the image output dir
         if !img_output_dir.exists() {
             if let Err(e) = fs::create_dir_all(&img_output_dir) {
                 return Err(mdbook::errors::Error::msg(format!(

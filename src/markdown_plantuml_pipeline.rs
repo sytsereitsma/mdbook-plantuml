@@ -44,8 +44,10 @@ fn next_line(bytes: &[u8], start: usize) -> usize {
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `start` - The start offset for the search
-/// * `min_length` - Optional length of the code fence to find (used for finding the closing fence)
-/// * `fence_char` - Optional fence char to match (used for finding the closing fence)
+/// * `min_length` - Optional length of the code fence to find (used for finding
+///   the closing fence)
+/// * `fence_char` - Optional fence char to match (used for finding the closing
+///   fence)
 fn find_next_code_fence(
     bytes: &[u8],
     start: usize,
@@ -98,7 +100,8 @@ fn find_next_code_fence(
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `fence_end` - The start offset for the search
-/// * `min_length` - Optional length of the code fence to find (used for finding the closing)
+/// * `min_length` - Optional length of the code fence to find (used for finding
+///   the closing)
 fn get_info_string(bytes: &[u8], fence_end: usize) -> Option<&str> {
     let info_start = find_first_inequal(bytes, b' ', fence_end);
     if info_start < bytes.len() {
@@ -215,7 +218,8 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// Returns the processed markdown.
     /// # Arguments
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
-    /// * `rel_image_url` - The url of the image relative to the book output dir.
+    /// * `rel_image_url` - The url of the image relative to the book output
+    ///   dir.
     pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
@@ -251,7 +255,7 @@ mod test {
     use std::cell::RefCell;
 
     struct FakeRenderer {
-        ///TODO: Make this a vector
+        /// TODO: Make this a vector
         code_block: RefCell<String>,
     }
 
@@ -281,7 +285,7 @@ mod test {
         assert_find_next_code_fence!(None, "a\n\n", 0, None, None);
         assert_find_next_code_fence!(None, "a```", 0, None, None);
 
-        //Only spaces before the fence chars, _nothing_ else
+        // Only spaces before the fence chars, _nothing_ else
         assert_find_next_code_fence!(None, "\\ ```", 0, None, None);
 
         // At least 3 chars
@@ -300,23 +304,23 @@ mod test {
         assert_find_next_code_fence!(Some((3, 6)), "   ```", 0, None, None);
         assert_find_next_code_fence!(None, "    ```", 0, None, None);
 
-        //Somewhere further in the document
+        // Somewhere further in the document
         assert_find_next_code_fence!(Some((4, 7)), "abc\n~~~\n", 0, None, None);
         assert_find_next_code_fence!(Some((10, 14)), "abc\n~~\n\n  ````\n", 0, None, None);
 
-        //Somewhere further in the document with windows line endings
+        // Somewhere further in the document with windows line endings
         assert_find_next_code_fence!(Some((5, 8)), "abc\r\n~~~\r\n", 0, None, None);
         assert_find_next_code_fence!(Some((13, 17)), "abc\r\n~~\r\n\r\n  ````\r\n", 0, None, None);
 
-        //Find specific min length
+        // Find specific min length
         assert_find_next_code_fence!(Some((4, 8)), "```\n````", 0, Some(4), None);
         assert_find_next_code_fence!(Some((4, 10)), "```\n``````", 0, Some(4), None);
 
-        //Start offset
+        // Start offset
         assert_find_next_code_fence!(Some((5, 8)), "```  ```", 3, None, None);
         assert_find_next_code_fence!(Some((8, 11)), "```\n~~~\n```", 3, Some(3), Some(b'`'));
 
-        //Rest
+        // Rest
         assert_find_next_code_fence!(Some((0, 3)), "``` ```", 0, None, None);
         assert_find_next_code_fence!(None, "``~~~", 0, None, None);
     }
