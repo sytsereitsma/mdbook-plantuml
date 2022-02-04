@@ -316,12 +316,12 @@ mod tests {
         };
 
         assert_eq!(
-            get_names!(&shell.generation_dir, "foo.puml", "foo.png"),
+            get_names!(shell.generation_dir, "foo.puml", "foo.png"),
             shell.get_filenames(Path::new("foo.png"))
         );
 
         assert_eq!(
-            get_names!(&shell.generation_dir, "foo.puml", "foo.braille.png"),
+            get_names!(shell.generation_dir, "foo.puml", "foo.braille.png"),
             shell.get_filenames(Path::new("foo.braille.png"))
         );
     }
