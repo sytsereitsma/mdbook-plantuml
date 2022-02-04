@@ -61,7 +61,7 @@ impl PlantUMLServer {
     }
 
     /// Save the downloaded image to a file
-    fn save_downloaded_image(&self, image_buffer: &[u8], file_path: &Path) -> Result<(), Error> {
+    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<(), Error> {
         let mut output_file = fs::File::create(&file_path)?;
         output_file.write_all(image_buffer)?;
 
@@ -80,7 +80,7 @@ impl PlantUMLServer {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
         let image_buffer = downloader.download_image(&request_url)?;
-        self.save_downloaded_image(&image_buffer, output_file)?;
+        Self::save_downloaded_image(&image_buffer, output_file)?;
 
         Ok(())
     }
@@ -144,11 +144,10 @@ mod tests {
     #[test]
     fn test_save_downloaded_image() {
         let tmp_dir = tempdir().unwrap();
-        let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap());
 
         let data: Vec<u8> = b"totemizer".to_vec();
         let img_path = join_path(tmp_dir.path(), "somefile.ext");
-        srv.save_downloaded_image(&data, &img_path).unwrap();
+        PlantUMLServer::save_downloaded_image(&data, &img_path).unwrap();
 
         let raw_source = fs::read(img_path).unwrap();
         assert_eq!("totemizer", String::from_utf8_lossy(&raw_source));

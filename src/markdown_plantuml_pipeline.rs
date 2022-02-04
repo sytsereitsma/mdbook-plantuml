@@ -170,7 +170,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// # Arguments
     /// * `bytes` - The bytes array to parse
     /// * `fence_end` - Option with the byte offsets of the end fence
-    fn get_end_positions(&self, bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
+    fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
         let code_end;
         let end_pos;
 
@@ -200,7 +200,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             let info_string = get_info_string(bytes, e);
             let code_start = next_line(bytes, e);
             let fence_end = find_next_code_fence(bytes, e, Some(e - s), Some(bytes[s]));
-            let (code_end, end_pos) = self.get_end_positions(bytes, fence_end);
+            let (code_end, end_pos) = Self::get_end_positions(bytes, fence_end);
 
             Some(CodeBlock {
                 code: &self.markdown[code_start..code_end],
