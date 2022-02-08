@@ -1,4 +1,4 @@
-use crate::base64_plantuml::Base64PlantUML;
+use crate::base64_plantuml;
 use crate::plantuml_backend::PlantUMLBackend;
 use deflate::deflate_bytes;
 use failure::{bail, Error};
@@ -89,7 +89,7 @@ impl PlantUMLServer {
 /// Compress and encode the image source, return the encoed Base64-ish string
 fn encode_diagram_source(plantuml_code: &str) -> String {
     let compressed = deflate_bytes(plantuml_code.as_bytes());
-    Base64PlantUML::encode(&compressed)
+    base64_plantuml::encode(&compressed)
 }
 
 impl PlantUMLBackend for PlantUMLServer {
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_encode_diagram_source() {
-        assert_eq!("SrRGrQsnKt010000", encode_diagram_source("C --|> D"));
+        assert_eq!("SrRGrQsnKt0100==", encode_diagram_source("C --|> D"));
     }
 
     #[test]
@@ -172,7 +172,7 @@ mod tests {
             .expect_download_image()
             .called_once()
             .with(deref(
-                Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap(),
+                Url::parse("http://froboz/svg/SrRGrQsnKt0100==").unwrap(),
             ))
             .returning(|_| Ok(b"the rendered image".to_vec()));
 
