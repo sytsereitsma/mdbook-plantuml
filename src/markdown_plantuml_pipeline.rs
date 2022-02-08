@@ -333,8 +333,7 @@ mod test {
 
                 let slice = get_info_string(bytes, $start);
                 if let Some((s, e)) = $expected_range {
-                    assert!(slice.is_some());
-                    assert_eq!(&$markdown[s..e], slice.unwrap());
+                    assert_eq!(Some(&$markdown[s..e]), slice);
                 } else {
                     assert!(slice.is_none());
                 }
