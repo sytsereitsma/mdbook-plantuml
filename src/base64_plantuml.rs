@@ -36,7 +36,7 @@ fn encode3bytes(b1: u8, b2: u8, b3: u8) -> String {
     res
 }
 
-fn encode6bit(c: u8) -> char {
+const fn encode6bit(c: u8) -> char {
     let mut b = c;
     if b < 10 {
         return (48 + b) as char;

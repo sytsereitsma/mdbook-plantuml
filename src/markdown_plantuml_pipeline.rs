@@ -17,7 +17,7 @@ pub fn render_plantuml_code_blocks(
 /// * `bytes` - The bytes array to parse
 /// * `expected` - The char to compare against (as a byte value)
 /// * `start` - The start offset for the search
-fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
+const fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
     let mut pos = start;
 
     while pos < bytes.len() && bytes[pos] == expected {
@@ -31,7 +31,7 @@ fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `start` - The start offset for the search
-fn next_line(bytes: &[u8], start: usize) -> usize {
+const fn next_line(bytes: &[u8], start: usize) -> usize {
     let mut pos = start;
     while pos < bytes.len() && bytes[pos] != b'\n' {
         pos += 1;
@@ -160,7 +160,7 @@ struct PlantUMLCodeProcessor<'a> {
 }
 
 impl<'a> PlantUMLCodeProcessor<'a> {
-    pub fn new(markdown: &str) -> PlantUMLCodeProcessor {
+    pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
         PlantUMLCodeProcessor { markdown }
     }
 
@@ -170,7 +170,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// # Arguments
     /// * `bytes` - The bytes array to parse
     /// * `fence_end` - Option with the byte offsets of the end fence
-    fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
+    const fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
         let code_end;
         let end_pos;
 
