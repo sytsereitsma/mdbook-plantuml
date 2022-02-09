@@ -270,8 +270,7 @@ mod test {
     fn test_find_next_code_fence() {
         macro_rules! assert_find_next_code_fence {
             ($expected_slice_opt:expr, $markdown:expr, $start:expr, $min_length: expr, $fence_char: expr) => {{
-                let bytes = $markdown.as_bytes();
-                let fence_range = find_next_code_fence(bytes, $start, $min_length, $fence_char);
+                let fence_range = find_next_code_fence($markdown, $start, $min_length, $fence_char);
                 if let Some((s, e)) = $expected_slice_opt {
                     assert!(fence_range.is_some());
                     assert_eq!((s, e), fence_range.unwrap());
@@ -281,52 +280,59 @@ mod test {
             }};
         }
 
-        assert_find_next_code_fence!(None, "", 0, None, None);
-        assert_find_next_code_fence!(None, "a\n\n", 0, None, None);
-        assert_find_next_code_fence!(None, "a```", 0, None, None);
+        assert_find_next_code_fence!(None, b"", 0, None, None);
+        assert_find_next_code_fence!(None, b"a\n\n", 0, None, None);
+        assert_find_next_code_fence!(None, b"a```", 0, None, None);
 
         // Only spaces before the fence chars, _nothing_ else
-        assert_find_next_code_fence!(None, "\\ ```", 0, None, None);
+        assert_find_next_code_fence!(None, b"\\ ```", 0, None, None);
 
         // At least 3 chars
-        assert_find_next_code_fence!(None, "``", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 3)), "```", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 4)), "````", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 5)), "`````", 0, None, None);
-        assert_find_next_code_fence!(None, "~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 3)), "~~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 4)), "~~~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 5)), "~~~~~", 0, None, None);
+        assert_find_next_code_fence!(None, b"``", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), b"```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), b"````", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 5)), b"`````", 0, None, None);
+        assert_find_next_code_fence!(None, b"~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), b"~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), b"~~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 5)), b"~~~~~", 0, None, None);
 
         // At most 3 spaces indent
-        assert_find_next_code_fence!(Some((1, 4)), " ```", 0, None, None);
-        assert_find_next_code_fence!(Some((2, 5)), "  ```", 0, None, None);
-        assert_find_next_code_fence!(Some((3, 6)), "   ```", 0, None, None);
-        assert_find_next_code_fence!(None, "    ```", 0, None, None);
+        assert_find_next_code_fence!(Some((1, 4)), b" ```", 0, None, None);
+        assert_find_next_code_fence!(Some((2, 5)), b"  ```", 0, None, None);
+        assert_find_next_code_fence!(Some((3, 6)), b"   ```", 0, None, None);
+        assert_find_next_code_fence!(None, b"    ```", 0, None, None);
 
         // Somewhere further in the document
-        assert_find_next_code_fence!(Some((4, 7)), "abc\n~~~\n", 0, None, None);
-        assert_find_next_code_fence!(Some((10, 14)), "abc\n~~\n\n  ````\n", 0, None, None);
+        assert_find_next_code_fence!(Some((4, 7)), b"abc\n~~~\n", 0, None, None);
+        assert_find_next_code_fence!(Some((10, 14)), b"abc\n~~\n\n  ````\n", 0, None, None);
 
         // Somewhere further in the document with windows line endings
-        assert_find_next_code_fence!(Some((5, 8)), "abc\r\n~~~\r\n", 0, None, None);
-        assert_find_next_code_fence!(Some((13, 17)), "abc\r\n~~\r\n\r\n  ````\r\n", 0, None, None);
+        assert_find_next_code_fence!(Some((5, 8)), b"abc\r\n~~~\r\n", 0, None, None);
+        assert_find_next_code_fence!(
+            Some((13, 17)),
+            b"abc\r\n~~\r\n\r\n  ````\r\n",
+            0,
+            None,
+            None
+        );
 
         // Find specific min length
-        assert_find_next_code_fence!(Some((4, 8)), "```\n````", 0, Some(4), None);
-        assert_find_next_code_fence!(Some((4, 10)), "```\n``````", 0, Some(4), None);
+        assert_find_next_code_fence!(Some((4, 8)), b"```\n````", 0, Some(4), None);
+        assert_find_next_code_fence!(Some((4, 10)), b"```\n``````", 0, Some(4), None);
 
         // Start offset
-        assert_find_next_code_fence!(Some((5, 8)), "```  ```", 3, None, None);
-        assert_find_next_code_fence!(Some((8, 11)), "```\n~~~\n```", 3, Some(3), Some(b'`'));
+        assert_find_next_code_fence!(Some((5, 8)), b"```  ```", 3, None, None);
+        assert_find_next_code_fence!(Some((8, 11)), b"```\n~~~\n```", 3, Some(3), Some(b'`'));
 
         // Rest
-        assert_find_next_code_fence!(Some((0, 3)), "``` ```", 0, None, None);
-        assert_find_next_code_fence!(None, "``~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), b"``` ```", 0, None, None);
+        assert_find_next_code_fence!(None, b"``~~~", 0, None, None);
     }
 
     #[test]
     fn test_get_info_string() {
+        #![allow(clippy::string_lit_as_bytes)]
         macro_rules! assert_get_info_string {
             ($markdown:expr, $start:expr, $expected_range: expr) => {{
                 let bytes = $markdown.as_bytes();
