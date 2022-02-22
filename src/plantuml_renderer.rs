@@ -5,7 +5,9 @@ use crate::plantumlconfig::PlantUMLConfig;
 use sha1;
 use std::cell::RefCell;
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
+use base64::encode;
 
 pub trait PlantUMLRendererTrait {
     fn render(&self, plantuml_code: &String, rel_img_url: &String, image_format: String) -> String;
@@ -61,20 +63,27 @@ impl PlantUMLRenderer {
         renderer
     }
 
-    fn create_md_link(rel_img_url: &String, image_path: &PathBuf) -> String {
-        let img_url = format!(
-            "{}/{}",
-            rel_img_url,
-            image_path.file_name().unwrap().to_str().unwrap()
-        );
-        format!("![]({})\n\n", img_url)
+    fn create_image_datauri(image_path: &PathBuf) -> String {
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
+
+        let media_type = match image_path.extension().map(|s| s.to_str()).unwrap_or(Some("")) {
+            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("png") => "image/png",
+            Some("svg") => "image/svg+xml",
+            Some("atxt") | Some("utxt") | Some("txt") => "text/plain",
+            _ => "",
+        };
+
+        let mut image_file = fs::File::open(image_path).unwrap_or_else(|e| panic!("could not open file: {}", e));
+        let mut image_bytes_buffer = Vec::new();
+        image_file.read_to_end(&mut image_bytes_buffer).unwrap_or_else(|e| panic!("could not read file: {}", e));
+        let encoded_value = encode(&image_bytes_buffer);
+
+        format!("data:{};base64,{}", media_type, encoded_value)
     }
 
-    fn create_inline_image(image_path: &PathBuf) -> String {
-        debug!("Creating inline image from {:?}", image_path);
-        let raw_source = fs::read(image_path).unwrap();
-        let txt = unsafe { String::from_utf8_unchecked(raw_source) };
-        format!("\n```txt\n{}```\n", txt)
+    fn create_image_datauri_element(image_path: &PathBuf) -> String {
+        format!("<img src=\"{}\" />", PlantUMLRenderer::create_image_datauri(image_path))
     }
 
     pub fn render(
@@ -95,12 +104,7 @@ impl PlantUMLRenderer {
         }
 
         self.cleaner.borrow_mut().keep(&output_file);
-        let extension = output_file.extension().unwrap_or("".as_ref());
-        if extension == "atxt" || extension == "utxt" {
-            PlantUMLRenderer::create_inline_image(&output_file)
-        } else {
-            PlantUMLRenderer::create_md_link(rel_img_url, &output_file)
-        }
+        PlantUMLRenderer::create_image_datauri_element(&output_file)
     }
 }
 
@@ -116,27 +120,6 @@ mod tests {
     use failure::Error;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
-
-    #[test]
-    fn test_create_md_link() {
-        assert_eq!(
-            String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(
-                &String::from("foo/bar"),
-                &PathBuf::from("/froboz/baz.svg")
-            )
-        );
-
-        assert_eq!(
-            String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(&String::from(""), &PathBuf::from("baz.svg"))
-        );
-
-        assert_eq!(
-            String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link(&String::from(""), &PathBuf::from("foo/baz.svg"))
-        );
-    }
 
     struct BackendMock {
         is_ok: bool,
@@ -169,8 +152,9 @@ mod tests {
         let plantuml_code = String::from("some puml code");
         let code_hash = sha1::Sha1::from(&plantuml_code).hexdigest();
 
+        // svg extension
         assert_eq!(
-            format!("![](rel/url/{}.svg)\n\n", code_hash),
+            String::from("<img src=\"data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn\" />"),
             renderer.render(
                 &plantuml_code,
                 &String::from("rel/url"),
@@ -180,7 +164,7 @@ mod tests {
 
         // png extension
         assert_eq!(
-            format!("![](rel/url/{}.png)\n\n", code_hash),
+            String::from("<img src=\"data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n\" />"),
             renderer.render(
                 &plantuml_code,
                 &String::from("rel/url"),
@@ -190,7 +174,7 @@ mod tests {
 
         // txt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
+            String::from("<img src=\"data:text/plain;base64,c29tZSBwdW1sIGNvZGUKdHh0\" />"),
             renderer.render(
                 &plantuml_code,
                 &String::from("rel/url"),
@@ -200,7 +184,7 @@ mod tests {
 
         // utxt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), // image format is appended by fake backend
+            String::from("<img src=\"data:text/plain;base64,c29tZSBwdW1sIGNvZGUKdHh0\" />"),
             renderer.render(
                 &plantuml_code,
                 &String::from("rel/url"),
