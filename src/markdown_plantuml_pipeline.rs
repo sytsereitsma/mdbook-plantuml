@@ -4,7 +4,7 @@ use std::string::String;
 pub fn render_plantuml_code_blocks(
     markdown: &str,
     renderer: &impl PlantUMLRendererTrait,
-    rel_image_url: &String,
+    rel_image_url: &str,
 ) -> String {
     let processor = PlantUMLCodeProcessor::new(markdown);
     processor.process(renderer, rel_image_url)
@@ -17,7 +17,7 @@ pub fn render_plantuml_code_blocks(
 /// * `bytes` - The bytes array to parse
 /// * `expected` - The char to compare against (as a byte value)
 /// * `start` - The start offset for the search
-fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
+const fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
     let mut pos = start;
 
     while pos < bytes.len() && bytes[pos] == expected {
@@ -31,7 +31,7 @@ fn find_first_inequal(bytes: &[u8], expected: u8, start: usize) -> usize {
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `start` - The start offset for the search
-fn next_line(bytes: &[u8], start: usize) -> usize {
+const fn next_line(bytes: &[u8], start: usize) -> usize {
     let mut pos = start;
     while pos < bytes.len() && bytes[pos] != b'\n' {
         pos += 1;
@@ -44,8 +44,10 @@ fn next_line(bytes: &[u8], start: usize) -> usize {
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `start` - The start offset for the search
-/// * `min_length` - Optional length of the code fence to find (used for finding the closing fence)
-/// * `fence_char` - Optional fence char to match (used for finding the closing fence)
+/// * `min_length` - Optional length of the code fence to find (used for finding
+///   the closing fence)
+/// * `fence_char` - Optional fence char to match (used for finding the closing
+///   fence)
 fn find_next_code_fence(
     bytes: &[u8],
     start: usize,
@@ -98,7 +100,8 @@ fn find_next_code_fence(
 /// # Arguments
 /// * `bytes` - The bytes array to parse
 /// * `fence_end` - The start offset for the search
-/// * `min_length` - Optional length of the code fence to find (used for finding the closing)
+/// * `min_length` - Optional length of the code fence to find (used for finding
+///   the closing)
 fn get_info_string(bytes: &[u8], fence_end: usize) -> Option<&str> {
     let info_start = find_first_inequal(bytes, b' ', fence_end);
     if info_start < bytes.len() {
@@ -131,17 +134,14 @@ struct CodeBlock<'a> {
 
 impl<'a> CodeBlock<'a> {
     fn is_plantuml(&self) -> bool {
-        let info = self.info_string.unwrap_or(&"");
-        let first_comma = info.find(',').unwrap_or(info.len());
-
-        info[0..first_comma] == *"plantuml"
+        self.info_string.and_then(|info| info.split(',').next()) == Some("plantuml")
     }
 
     fn get_format(&self) -> String {
         if self.code.contains("@startditaa") {
             String::from("png")
         } else {
-            let parts = self.info_string.unwrap_or(&"").split(',');
+            let parts = self.info_string.unwrap_or("").split(',');
             for part in parts {
                 let eq_char = part.find('=').unwrap_or(part.len());
 
@@ -160,8 +160,8 @@ struct PlantUMLCodeProcessor<'a> {
 }
 
 impl<'a> PlantUMLCodeProcessor<'a> {
-    pub fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor { markdown: markdown }
+    pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
+        PlantUMLCodeProcessor { markdown }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end
@@ -170,7 +170,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// # Arguments
     /// * `bytes` - The bytes array to parse
     /// * `fence_end` - Option with the byte offsets of the end fence
-    fn get_end_positions(&self, bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
+    const fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
         let code_end;
         let end_pos;
 
@@ -200,17 +200,17 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             let info_string = get_info_string(bytes, e);
             let code_start = next_line(bytes, e);
             let fence_end = find_next_code_fence(bytes, e, Some(e - s), Some(bytes[s]));
-            let (code_end, end_pos) = self.get_end_positions(bytes, fence_end);
+            let (code_end, end_pos) = Self::get_end_positions(bytes, fence_end);
 
-            return Some(CodeBlock {
+            Some(CodeBlock {
                 code: &self.markdown[code_start..code_end],
-                info_string: info_string,
+                info_string,
                 start_pos: s,
-                end_pos: end_pos,
-            });
+                end_pos,
+            })
+        } else {
+            None
         }
-
-        None
     }
 
     /// Processes all code blocks in the document (self.markdown)
@@ -218,8 +218,9 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// Returns the processed markdown.
     /// # Arguments
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
-    /// * `rel_image_url` - The url of the image relative to the book output dir.
-    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &String) -> String {
+    /// * `rel_image_url` - The url of the image relative to the book output
+    ///   dir.
+    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -231,8 +232,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
                     let format = code_block.get_format();
 
-                    let rendered =
-                        renderer.render(&String::from(code_block.code), rel_image_url, format);
+                    let rendered = renderer.render(code_block.code, rel_image_url, format);
                     processed.push_str(rendered.as_str());
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
@@ -255,18 +255,13 @@ mod test {
     use std::cell::RefCell;
 
     struct FakeRenderer {
-        ///TODO: Make this a vector
+        /// TODO: Make this a vector
         code_block: RefCell<String>,
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(
-            &self,
-            code_block: &String,
-            _rel_image_url: &String,
-            _image_format: String,
-        ) -> String {
-            self.code_block.replace(code_block.clone());
+        fn render(&self, code_block: &str, _rel_image_url: &str, _image_format: String) -> String {
+            self.code_block.replace(code_block.to_string());
             String::from("rendered")
         }
     }
@@ -275,8 +270,7 @@ mod test {
     fn test_find_next_code_fence() {
         macro_rules! assert_find_next_code_fence {
             ($expected_slice_opt:expr, $markdown:expr, $start:expr, $min_length: expr, $fence_char: expr) => {{
-                let bytes = $markdown.as_bytes();
-                let fence_range = find_next_code_fence(bytes, $start, $min_length, $fence_char);
+                let fence_range = find_next_code_fence($markdown, $start, $min_length, $fence_char);
                 if let Some((s, e)) = $expected_slice_opt {
                     assert!(fence_range.is_some());
                     assert_eq!((s, e), fence_range.unwrap());
@@ -286,60 +280,66 @@ mod test {
             }};
         }
 
-        assert_find_next_code_fence!(None, "", 0, None, None);
-        assert_find_next_code_fence!(None, "a\n\n", 0, None, None);
-        assert_find_next_code_fence!(None, "a```", 0, None, None);
+        assert_find_next_code_fence!(None, b"", 0, None, None);
+        assert_find_next_code_fence!(None, b"a\n\n", 0, None, None);
+        assert_find_next_code_fence!(None, b"a```", 0, None, None);
 
-        //Only spaces before the fence chars, _nothing_ else
-        assert_find_next_code_fence!(None, "\\ ```", 0, None, None);
+        // Only spaces before the fence chars, _nothing_ else
+        assert_find_next_code_fence!(None, b"\\ ```", 0, None, None);
 
         // At least 3 chars
-        assert_find_next_code_fence!(None, "``", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 3)), "```", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 4)), "````", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 5)), "`````", 0, None, None);
-        assert_find_next_code_fence!(None, "~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 3)), "~~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 4)), "~~~~", 0, None, None);
-        assert_find_next_code_fence!(Some((0, 5)), "~~~~~", 0, None, None);
+        assert_find_next_code_fence!(None, b"``", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), b"```", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), b"````", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 5)), b"`````", 0, None, None);
+        assert_find_next_code_fence!(None, b"~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 3)), b"~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 4)), b"~~~~", 0, None, None);
+        assert_find_next_code_fence!(Some((0, 5)), b"~~~~~", 0, None, None);
 
         // At most 3 spaces indent
-        assert_find_next_code_fence!(Some((1, 4)), " ```", 0, None, None);
-        assert_find_next_code_fence!(Some((2, 5)), "  ```", 0, None, None);
-        assert_find_next_code_fence!(Some((3, 6)), "   ```", 0, None, None);
-        assert_find_next_code_fence!(None, "    ```", 0, None, None);
+        assert_find_next_code_fence!(Some((1, 4)), b" ```", 0, None, None);
+        assert_find_next_code_fence!(Some((2, 5)), b"  ```", 0, None, None);
+        assert_find_next_code_fence!(Some((3, 6)), b"   ```", 0, None, None);
+        assert_find_next_code_fence!(None, b"    ```", 0, None, None);
 
-        //Somewhere further in the document
-        assert_find_next_code_fence!(Some((4, 7)), "abc\n~~~\n", 0, None, None);
-        assert_find_next_code_fence!(Some((10, 14)), "abc\n~~\n\n  ````\n", 0, None, None);
+        // Somewhere further in the document
+        assert_find_next_code_fence!(Some((4, 7)), b"abc\n~~~\n", 0, None, None);
+        assert_find_next_code_fence!(Some((10, 14)), b"abc\n~~\n\n  ````\n", 0, None, None);
 
-        //Somewhere further in the document with windows line endings
-        assert_find_next_code_fence!(Some((5, 8)), "abc\r\n~~~\r\n", 0, None, None);
-        assert_find_next_code_fence!(Some((13, 17)), "abc\r\n~~\r\n\r\n  ````\r\n", 0, None, None);
+        // Somewhere further in the document with windows line endings
+        assert_find_next_code_fence!(Some((5, 8)), b"abc\r\n~~~\r\n", 0, None, None);
+        assert_find_next_code_fence!(
+            Some((13, 17)),
+            b"abc\r\n~~\r\n\r\n  ````\r\n",
+            0,
+            None,
+            None
+        );
 
-        //Find specific min length
-        assert_find_next_code_fence!(Some((4, 8)), "```\n````", 0, Some(4), None);
-        assert_find_next_code_fence!(Some((4, 10)), "```\n``````", 0, Some(4), None);
+        // Find specific min length
+        assert_find_next_code_fence!(Some((4, 8)), b"```\n````", 0, Some(4), None);
+        assert_find_next_code_fence!(Some((4, 10)), b"```\n``````", 0, Some(4), None);
 
-        //Start offset
-        assert_find_next_code_fence!(Some((5, 8)), "```  ```", 3, None, None);
-        assert_find_next_code_fence!(Some((8, 11)), "```\n~~~\n```", 3, Some(3), Some(b'`'));
+        // Start offset
+        assert_find_next_code_fence!(Some((5, 8)), b"```  ```", 3, None, None);
+        assert_find_next_code_fence!(Some((8, 11)), b"```\n~~~\n```", 3, Some(3), Some(b'`'));
 
-        //Rest
-        assert_find_next_code_fence!(Some((0, 3)), "``` ```", 0, None, None);
-        assert_find_next_code_fence!(None, "``~~~", 0, None, None);
+        // Rest
+        assert_find_next_code_fence!(Some((0, 3)), b"``` ```", 0, None, None);
+        assert_find_next_code_fence!(None, b"``~~~", 0, None, None);
     }
 
     #[test]
     fn test_get_info_string() {
+        #![allow(clippy::string_lit_as_bytes)]
         macro_rules! assert_get_info_string {
             ($markdown:expr, $start:expr, $expected_range: expr) => {{
                 let bytes = $markdown.as_bytes();
 
                 let slice = get_info_string(bytes, $start);
                 if let Some((s, e)) = $expected_range {
-                    assert!(slice.is_some());
-                    assert_eq!(&$markdown[s..e], slice.unwrap());
+                    assert_eq!(Some(&$markdown[s..e]), slice);
                 } else {
                     assert!(slice.is_none());
                 }
@@ -370,7 +370,7 @@ mod test {
                 let renderer = FakeRenderer {
                     code_block: RefCell::new(String::new()),
                 };
-                let result = processor.process(&renderer, &String::from(""));
+                let result = processor.process(&renderer, &String::default());
                 assert_eq!($expected_code_block, *renderer.code_block.borrow());
                 assert_eq!($rendered_output, result);
             }};

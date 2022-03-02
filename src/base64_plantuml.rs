@@ -1,11 +1,10 @@
-use std::vec::Vec;
-
-/// PlantUML has its own base64 dialect, this struct provides the implementation for that
+/// PlantUML has its own base64 dialect, this struct provides the implementation
+/// for that
 pub struct Base64PlantUML {}
 
 impl Base64PlantUML {
-    pub fn encode(data: &Vec<u8>) -> String {
-        let mut encoded = String::from("");
+    pub fn encode(data: &[u8]) -> String {
+        let mut encoded = String::default();
 
         let len = data.len();
         for i in (0..len).step_by(3) {
@@ -28,7 +27,7 @@ fn encode3bytes(b1: u8, b2: u8, b3: u8) -> String {
     let c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
     let c4 = b3 & 0x3F;
 
-    let mut res = String::from("");
+    let mut res = String::default();
     res.push(encode6bit(c1 & 0x3F));
     res.push(encode6bit(c2 & 0x3F));
     res.push(encode6bit(c3 & 0x3F));
@@ -37,7 +36,7 @@ fn encode3bytes(b1: u8, b2: u8, b3: u8) -> String {
     res
 }
 
-fn encode6bit(c: u8) -> char {
+const fn encode6bit(c: u8) -> char {
     let mut b = c;
     if b < 10 {
         return (48 + b) as char;
@@ -72,17 +71,17 @@ mod tests {
 
     #[test]
     fn encodes_bytes() {
-        let data: Vec<u8> = b"froboz".iter().cloned().collect();
+        let data: Vec<u8> = b"froboz".to_vec();
         assert_eq!(String::from("Pd9lOczw"), Base64PlantUML::encode(&data));
 
-        let data: Vec<u8> = b"1234ABCDabcd\x12\x08\x01".iter().cloned().collect();
+        let data: Vec<u8> = b"1234ABCDabcd\x12\x08\x01".to_vec();
         assert_eq!(
             String::from("CJ8pD452GqHXOcDa4WW1"),
             Base64PlantUML::encode(&data)
         );
 
-        //How would one pass 256 here?
-        let data: Vec<u8> = (0 as u8..255 as u8).collect();
+        // How would one pass 256 here?
+        let data: Vec<u8> = (0_u8..255_u8).collect();
         assert_eq!(
             String::from(
                 "00420mG51WS82GeB30qE3n0H4XCK5HON61aQ6nmT7XyW8I8Z92Kc9o\

@@ -1,17 +1,3 @@
-#![warn(unused_extern_crates)]
-#[macro_use]
-extern crate log;
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-extern crate reqwest;
-
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate pretty_assertions;
-
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
 mod dir_cleaner;
@@ -32,7 +18,7 @@ use crate::plantumlconfig::PlantUMLConfig;
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub struct PlantUMLPreprocessor;
 
@@ -52,7 +38,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             .join(&ctx.config.book.src)
             .join("mdbook-plantuml-img");
 
-        //Always create the image output dir
+        // Always create the image output dir
         if !img_output_dir.exists() {
             if let Err(e) = fs::create_dir_all(&img_output_dir) {
                 return Err(mdbook::errors::Error::msg(format!(
@@ -62,12 +48,12 @@ impl Preprocessor for PlantUMLPreprocessor {
             }
         }
 
-        let renderer = PlantUMLRenderer::new(&cfg, &img_output_dir);
+        let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
         let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
-                    let rel_image_url = get_relative_img_url(&chapter_path);
+                    let rel_image_url = get_relative_img_url(chapter_path);
                     chapter.content =
                         render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
                 }
@@ -82,7 +68,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn get_relative_img_url(chapter_path: &PathBuf) -> String {
+fn get_relative_img_url(chapter_path: &Path) -> String {
     let nesting_level = chapter_path.components().count();
     let mut rel_image_url = String::new();
     for _ in 1..nesting_level {
@@ -94,20 +80,21 @@ fn get_relative_img_url(chapter_path: &PathBuf) -> String {
 }
 
 fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
-    match ctx.config.get("preprocessor.plantuml") {
-        Some(raw) => raw
-            .clone()
-            .try_into()
-            .or_else(|e| {
-                warn!(
-                    "Failed to get config from book.toml, using default configuration ({}).",
+    ctx.config
+        .get("preprocessor.plantuml")
+        .and_then(|raw| {
+            raw.clone()
+                .try_into()
+                .map_err(|e| {
+                    log::warn!(
+                        "Failed to get config from book.toml, using default configuration ({}).",
+                        e
+                    );
                     e
-                );
-                Err(e)
-            })
-            .unwrap_or(PlantUMLConfig::default()),
-        None => PlantUMLConfig::default(),
-    }
+                })
+                .ok()
+        })
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -119,17 +106,17 @@ mod tests {
     fn test_get_relative_img_url() {
         assert_eq!(
             String::from("mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1"))
+            get_relative_img_url(Path::new("chapter 1"))
         );
 
         assert_eq!(
             String::from("../mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1/nested 1"))
+            get_relative_img_url(Path::new("chapter 1/nested 1"))
         );
 
         assert_eq!(
             String::from("../../mdbook-plantuml-img"),
-            get_relative_img_url(&PathBuf::from("chapter 1/nested 1/nested 2"))
+            get_relative_img_url(Path::new("chapter 1/nested 1/nested 2"))
         );
     }
 }

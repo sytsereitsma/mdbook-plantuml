@@ -1,10 +1,3 @@
-extern crate clap;
-extern crate mdbook;
-extern crate mdbook_plantuml;
-#[macro_use]
-extern crate log;
-extern crate log4rs;
-
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
@@ -14,7 +7,7 @@ use std::io;
 use std::process;
 
 pub fn make_app() -> App<'static, 'static> {
-    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     App::new("mdBook PlantUML preprocessor")
         .version(VERSION)
@@ -59,8 +52,8 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
         // We should probably use the `semver` crate to check compatibility
         // here...
         eprintln!(
-            "Warning: The {} plugin was built against version {} of mdbook, \
-             but we're being called from version {}",
+            "Warning: The {} plugin was built against version {} of mdbook, but we're being \
+             called from version {}",
             pre.name(),
             mdbook::MDBOOK_VERSION,
             ctx.mdbook_version
@@ -73,7 +66,7 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
 
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
     let renderer = sub_args.value_of("renderer").expect("Required argument");
-    let supported = pre.supports_renderer(&renderer);
+    let supported = pre.supports_renderer(renderer);
 
     // Signal whether the renderer is supported by exiting with 1 or 0.
     if supported {
@@ -102,7 +95,7 @@ fn setup_logging() -> Result<(), Box<dyn Error>> {
         )?;
     log4rs::init_config(config)?;
 
-    info!("--- Started preprocessor ---");
+    log::info!("--- Started preprocessor ---");
 
     Ok(())
 }

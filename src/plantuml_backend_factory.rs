@@ -11,30 +11,27 @@ use reqwest::Url;
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
-    let cmd = match &cfg.plantuml_cmd {
-        Some(s) => s.clone(),
-        None => {
-            if cfg!(target_os = "windows") {
-                String::from("java -jar plantuml.jar")
-            } else {
-                String::from("/usr/bin/plantuml")
-            }
+    let cmd = cfg.plantuml_cmd.as_deref().unwrap_or({
+        if cfg!(target_os = "windows") {
+            "java -jar plantuml.jar"
+        } else {
+            "/usr/bin/plantuml"
         }
-    };
+    });
 
-    create_backend(&cmd)
+    create_backend(cmd)
 }
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-fn create_backend(cmd: &String) -> Box<dyn PlantUMLBackend> {
+fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
     if let Ok(server_url) = Url::parse(cmd) {
         Box::new(PlantUMLServer::new(server_url))
     } else {
-        Box::new(PlantUMLShell::new(cmd.clone()))
+        Box::new(PlantUMLShell::new(cmd.to_string()))
     }
 }
 
 #[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
-fn create_backend(cmd: &String) -> Box<dyn PlantUMLBackend> {
-    Box::new(PlantUMLShell::new(cmd.clone()))
+fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
+    Box::new(PlantUMLShell::new(cmd.to_string()))
 }

@@ -1,12 +1,11 @@
 use crate::base64_plantuml::Base64PlantUML;
 use crate::plantuml_backend::PlantUMLBackend;
 use deflate::deflate_bytes;
-use failure::Error;
-use reqwest;
+use failure::{bail, Error};
 use reqwest::Url;
 use std::fs;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
@@ -22,8 +21,8 @@ impl ImageDownloader for RealImageDownloader {
         let mut image_buf: Vec<u8> = vec![];
         reqwest::blocking::get(request_url.clone())
             .and_then(|mut response| response.copy_to(&mut image_buf))
-            .and_then(|_| Ok(image_buf))
-            .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))
+            .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))?;
+        Ok(image_buf)
     }
 }
 
@@ -32,10 +31,11 @@ pub struct PlantUMLServer {
 }
 
 impl PlantUMLServer {
-    pub fn new(server_url: Url) -> PlantUMLServer {
-        // Make sure the server_url path ends with a / so Url::join works as expected later.
+    pub fn new(server_url: Url) -> Self {
+        // Make sure the server_url path ends with a / so Url::join works as expected
+        // later.
         let path = server_url.path();
-        let server_url = if path.ends_with("/") {
+        let server_url = if path.ends_with('/') {
             server_url
         } else {
             let mut repath = server_url.clone();
@@ -43,33 +43,27 @@ impl PlantUMLServer {
             repath
         };
 
-        PlantUMLServer {
-            server_url: server_url,
-        }
+        Self { server_url }
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension
-    fn get_url(&self, image_format: &String, encoded_diagram: &String) -> Result<Url, Error> {
+    fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url, Error> {
         let path = format!("{}/{}", image_format, encoded_diagram);
-        match self.server_url.join(path.as_str()) {
-            Ok(url) => Ok(url),
-            Err(e) => bail!(format!(
+
+        self.server_url.join(&path).map_err(|e| {
+            failure::format_err!(
                 "Error constructing PlantUML server URL from '{}' and '{}' ({})",
                 self.server_url.as_str(),
                 path,
                 e
-            )),
-        }
+            )
+        })
     }
 
     /// Save the downloaded image to a file
-    fn save_downloaded_image(
-        &self,
-        image_buffer: &Vec<u8>,
-        file_path: &PathBuf,
-    ) -> Result<(), Error> {
+    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<(), Error> {
         let mut output_file = fs::File::create(&file_path)?;
-        output_file.write_all(&image_buffer)?;
+        output_file.write_all(image_buffer)?;
 
         Ok(())
     }
@@ -78,34 +72,32 @@ impl PlantUMLServer {
     /// return the relative image URL.
     fn render_string(
         &self,
-        plantuml_code: &String,
-        output_file: &PathBuf,
-        image_format: &String,
+        plantuml_code: &str,
+        output_file: &Path,
+        image_format: &str,
         downloader: &dyn ImageDownloader,
     ) -> Result<(), Error> {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
         let image_buffer = downloader.download_image(&request_url)?;
-        self.save_downloaded_image(&image_buffer, &output_file)?;
+        Self::save_downloaded_image(&image_buffer, output_file)?;
 
         Ok(())
     }
 }
 
 /// Compress and encode the image source, return the encoed Base64-ish string
-fn encode_diagram_source(plantuml_code: &String) -> String {
-    let compressed = deflate_bytes(&plantuml_code.as_bytes());
-    let base64_compressed = Base64PlantUML::encode(&compressed);
-
-    base64_compressed
+fn encode_diagram_source(plantuml_code: &str) -> String {
+    let compressed = deflate_bytes(plantuml_code.as_bytes());
+    Base64PlantUML::encode(&compressed)
 }
 
 impl PlantUMLBackend for PlantUMLServer {
     fn render_from_string(
         &self,
-        plantuml_code: &String,
-        image_format: &String,
-        output_file: &PathBuf,
+        plantuml_code: &str,
+        image_format: &str,
+        output_file: &Path,
     ) -> Result<(), Error> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, output_file, image_format, &downloader)
@@ -126,11 +118,7 @@ mod tests {
 
         assert_eq!(
             Url::parse("http://froboz:1234/plantuml/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url(
-                &String::from("ext"),
-                &String::from("plantuml_encoded_string")
-            )
-            .unwrap()
+            srv.get_url("ext", "plantuml_encoded_string").unwrap()
         );
 
         // I cannot manage Url::parse to fail using the ext and encoded data
@@ -144,30 +132,22 @@ mod tests {
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url(
-                &String::from("ext"),
-                &String::from("plantuml_encoded_string")
-            )
-            .unwrap()
+            srv.get_url("ext", "plantuml_encoded_string").unwrap()
         );
     }
 
     #[test]
     fn test_encode_diagram_source() {
-        assert_eq!(
-            String::from("SrRGrQsnKt010000"),
-            encode_diagram_source(&String::from("C --|> D"))
-        )
+        assert_eq!("SrRGrQsnKt010000", encode_diagram_source("C --|> D"));
     }
 
     #[test]
     fn test_save_downloaded_image() {
         let tmp_dir = tempdir().unwrap();
-        let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap());
 
-        let data: Vec<u8> = b"totemizer".iter().cloned().collect();
-        let img_path = join_path(tmp_dir.path().to_path_buf(), "somefile.ext");
-        srv.save_downloaded_image(&data, &img_path).unwrap();
+        let data: Vec<u8> = b"totemizer".to_vec();
+        let img_path = join_path(tmp_dir.path(), "somefile.ext");
+        PlantUMLServer::save_downloaded_image(&data, &img_path).unwrap();
 
         let raw_source = fs::read(img_path).unwrap();
         assert_eq!("totemizer", String::from_utf8_lossy(&raw_source));
@@ -194,15 +174,10 @@ mod tests {
             .with(deref(
                 Url::parse("http://froboz/svg/SrRGrQsnKt010000").unwrap(),
             ))
-            .returning(|_| Ok(b"the rendered image".iter().cloned().collect()));
+            .returning(|_| Ok(b"the rendered image".to_vec()));
 
-        srv.render_string(
-            &String::from("C --|> D"),
-            &output_file,
-            &String::from("svg"),
-            &mock_downloader,
-        )
-        .unwrap();
+        srv.render_string("C --|> D", &output_file, "svg", &mock_downloader)
+            .unwrap();
 
         let raw_source = fs::read(output_file).unwrap();
         assert_eq!("the rendered image", String::from_utf8_lossy(&raw_source));
