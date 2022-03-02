@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import logging
 
 
 class Result:
@@ -69,7 +70,8 @@ class PreprocessorRunner:
     def run(self):
         tester_root = os.path.dirname(__file__)
         preprocessor = os.path.join(tester_root, "..", "..", "target", "release", "mdbook-plantuml.exe")
-
+        logging.info(f"Preprocessor cmd: '{preprocessor}'")
+        logging.debug(f"Book: '{json.dumps(self.__book, indent=2)}'")
         proc = subprocess.Popen([preprocessor], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate(json.dumps(self.__book).encode())
         #print(stdout)
