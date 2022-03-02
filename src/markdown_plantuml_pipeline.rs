@@ -133,8 +133,10 @@ struct CodeBlock<'a> {
 }
 
 impl<'a> CodeBlock<'a> {
+    /// Returns true if this code block is plantuml (i.e. starts with plantuml or puml)
     fn is_plantuml(&self) -> bool {
-        matches!(self.info_string.unwrap_or(&""), "puml" | "plantuml")
+        let language = self.info_string.and_then(|info| info.split(',').next());
+        language == Some("plantuml") || language == Some("puml")
     }
 
     fn get_format(&self) -> String {
