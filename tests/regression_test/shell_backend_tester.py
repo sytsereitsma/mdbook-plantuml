@@ -10,8 +10,18 @@ import preprocessor_builder
 
 
 class ShellBackendTester(unittest.TestCase):
+    """
+    This tester first builds the shell only version of mdbook-plantuml and then
+    calls the executable directly, but with a fake plantuml command
+    (python shell_command.py). This fake command simply outputs the invocation
+    arguments to a file (test_output/shell_calls.txt) so we can check it was
+    called with the correct arguments.
+    """
     @classmethod
     def setUpClass(cls):
+        # make sure python is on the path
+        assert shutil.which("python") is not None
+
         assert preprocessor_builder.build_shell()
 
     def setUp(self):
