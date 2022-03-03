@@ -1,4 +1,4 @@
-use failure::Error;
+use anyhow::Result;
 use std::path::Path;
 
 pub trait PlantUMLBackend {
@@ -14,5 +14,5 @@ pub trait PlantUMLBackend {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<(), Error>;
+    ) -> Result<()>;
 }
