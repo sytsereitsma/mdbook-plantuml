@@ -117,7 +117,7 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"))
+            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
         );
 
         assert_eq!(
@@ -206,7 +206,7 @@ mod tests {
                 "[![](rel/url/{}.svg)](rel/url/{}.svg)\n\n",
                 code_hash, code_hash
             ),
-            renderer.render(&plantuml_code, &String::from("rel/url"))
+            renderer.render(&plantuml_code, &String::from("rel/url"), "svg")
         );
     }
 
