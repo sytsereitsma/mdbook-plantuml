@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{Arg, ArgMatches, Command};
 use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_plantuml::PlantUMLPreprocessor;
@@ -6,21 +6,21 @@ use std::error::Error;
 use std::io;
 use std::process;
 
-pub fn make_app() -> App<'static, 'static> {
+pub fn make_app() -> Command<'static> {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-    App::new("mdBook PlantUML preprocessor")
+    Command::new("mdBook PlantUML preprocessor")
         .version(VERSION)
         .author("Sytse Reitsma")
         .about("An mdbook preprocessor which renders PlantUML code blocks to SVG diagrams")
         .arg(
-            Arg::with_name("log")
-                .short("l")
+            Arg::new("log")
+                .short('l')
                 .help("Log to './output.log' (may help troubleshooting rendering issues)."),
         )
         .subcommand(
-            SubCommand::with_name("supports")
-                .arg(Arg::with_name("renderer").required(true))
+            Command::new("supports")
+                .arg(Arg::new("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
 }
