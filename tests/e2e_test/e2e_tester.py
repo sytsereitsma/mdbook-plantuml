@@ -86,9 +86,12 @@ class EndToEndShellTester(unittest.TestCase):
     def test_shell(self):
         assert _build_book("plantuml_shell.toml")
 
+    def test_clickable(self):
+        assert _build_book("plantuml_shell_clickable.toml")
+
     def test_dir_cleaner(self):
         assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner")
-        assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner", clean=False)
+        assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner_no_clean", clean=False)
 
     def test_cache(self):
         cache_dir = os.path.join(get_module_dir(), ".plantuml-cache")
