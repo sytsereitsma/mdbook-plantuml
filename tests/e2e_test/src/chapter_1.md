@@ -25,6 +25,14 @@ C --|> D
 @enduml
 ```
 
+Code block language ```puml``` instead of ```plantuml```
+
+```puml
+@startuml
+C --|> D
+@enduml
+```
+
 ## Error, forgot @startuml @enduml block (shell error only)
 
 ```plantuml
