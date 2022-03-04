@@ -43,6 +43,7 @@ pub struct PlantUMLRenderer {
     backend: Box<dyn PlantUMLBackend>,
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
+    clickable_img: bool,
 }
 
 impl PlantUMLRenderer {
@@ -51,18 +52,23 @@ impl PlantUMLRenderer {
             backend: plantuml_backend_factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root)),
             img_root: img_root.to_path_buf(),
+            clickable_img: cfg.clickable_img,
         };
 
         renderer
     }
 
-    fn create_md_link(rel_img_url: &str, image_path: &Path) -> String {
+    fn create_md_link(rel_img_url: &str, image_path: &Path, clickable: bool) -> String {
         let img_url = format!(
             "{}/{}",
             rel_img_url,
             image_path.file_name().unwrap().to_str().unwrap()
         );
-        format!("![]({})\n\n", img_url)
+        if clickable {
+            format!("[![]({})]({})\n\n", img_url, img_url)
+        } else {
+            format!("![]({})\n\n", img_url)
+        }
     }
 
     fn create_inline_image(image_path: &Path) -> String {
@@ -89,7 +95,7 @@ impl PlantUMLRenderer {
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_image(&output_file)
         } else {
-            Self::create_md_link(rel_img_url, &output_file)
+            Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
         }
     }
 }
@@ -111,17 +117,17 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"))
+            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
         );
 
         assert_eq!(
             "![](/baz.svg)\n\n",
-            PlantUMLRenderer::create_md_link("", Path::new("baz.svg"))
+            PlantUMLRenderer::create_md_link("", Path::new("baz.svg"), false)
         );
 
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"))
+            PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"), false)
         );
     }
 
@@ -151,6 +157,7 @@ mod tests {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
+            clickable_img: false,
         };
 
         let plantuml_code = "some puml code";
@@ -183,12 +190,34 @@ mod tests {
     }
 
     #[test]
+    fn test_rendering_clickable() {
+        let output_dir = tempdir().unwrap();
+        let renderer = PlantUMLRenderer {
+            backend: Box::new(BackendMock { is_ok: true }),
+            cleaner: RefCell::new(DirCleaner::new(&output_dir.path().to_path_buf())),
+            img_root: PathBuf::from(output_dir.path().to_path_buf()),
+            clickable_img: true,
+        };
+
+        let plantuml_code = String::from("some puml code");
+        let code_hash = sha1::Sha1::from(&plantuml_code).hexdigest();
+        assert_eq!(
+            format!(
+                "[![](rel/url/{}.svg)](rel/url/{}.svg)\n\n",
+                code_hash, code_hash
+            ),
+            renderer.render(&plantuml_code, &String::from("rel/url"), "svg")
+        );
+    }
+
+    #[test]
     fn test_rendering_failure() {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: false }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
+            clickable_img: false,
         };
 
         assert_eq!(
