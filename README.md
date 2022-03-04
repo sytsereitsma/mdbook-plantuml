@@ -68,6 +68,7 @@ A --|> B
 ## Options
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
+- **clickable-img:** Optional (```false``` by default). When ```true``` images can be clicked and are opened in a new tab/window.
 
 ## Features
 - **plantuml-server** Add http server support only
