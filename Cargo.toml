@@ -36,6 +36,7 @@ reqwest = { version = "0.11.5", optional = true, features = ["blocking"], defaul
 deflate = { version = "0.9.1", optional = true }
 sha1 = { version = "0.6.0", features = ["std"] }
 tempfile = "3.2.0"
+base64 = "=0.20.0-alpha.1"
 
 [dev-dependencies]
 pretty_assertions = "1.0.0"
