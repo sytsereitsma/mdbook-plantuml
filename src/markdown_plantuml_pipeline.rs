@@ -173,25 +173,19 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// * `bytes` - The bytes array to parse
     /// * `fence_end` - Option with the byte offsets of the end fence
     const fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
-        let code_end;
-        let end_pos;
-
-        if let Some((ce, fe)) = fence_end {
-            code_end = ce;
-            end_pos = {
+        if let Some((code_end, fe)) = fence_end {
+            let end_pos = {
                 let p = next_line(bytes, fe);
-                if p != bytes.len() {
-                    p - 1
-                } else {
+                if p == bytes.len() {
                     p
+                } else {
+                    p - 1
                 }
-            }
+            };
+            (code_end, end_pos)
         } else {
-            code_end = bytes.len();
-            end_pos = code_end;
+            (bytes.len(), bytes.len())
         }
-
-        (code_end, end_pos)
     }
 
     /// Get next code block in document, starting at byte offset start_pos

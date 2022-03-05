@@ -32,8 +32,7 @@ pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &s
         }
     };
 
-    let mut output_file = img_root.to_path_buf();
-    output_file.push(sha1::Sha1::from(&plantuml_code).hexdigest());
+    let mut output_file = img_root.join(sha1::Sha1::from(&plantuml_code).hexdigest());
     output_file.set_extension(extension);
 
     output_file
@@ -194,8 +193,8 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: true }),
-            cleaner: RefCell::new(DirCleaner::new(&output_dir.path().to_path_buf())),
-            img_root: PathBuf::from(output_dir.path().to_path_buf()),
+            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            img_root: output_dir.path().to_path_buf(),
             clickable_img: true,
         };
 
