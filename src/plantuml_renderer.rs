@@ -2,6 +2,7 @@ use crate::dir_cleaner::DirCleaner;
 use crate::plantuml_backend::PlantUMLBackend;
 use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
+use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -31,11 +32,15 @@ pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &s
             image_format
         }
     };
-
-    let mut output_file = img_root.join(sha1::Sha1::from(&plantuml_code).hexdigest());
+    let mut output_file = img_root.join(hash_string(plantuml_code));
     output_file.set_extension(extension);
 
     output_file
+}
+
+fn hash_string(code: &str) -> String {
+    let hash = Sha1::new_with_prefix(code).finalize();
+    base16ct::lower::encode_string(&hash)
 }
 
 pub struct PlantUMLRenderer {
@@ -160,7 +165,7 @@ mod tests {
         };
 
         let plantuml_code = "some puml code";
-        let code_hash = sha1::Sha1::from(&plantuml_code).hexdigest();
+        let code_hash = hash_string(plantuml_code);
 
         assert_eq!(
             format!("![](rel/url/{}.svg)\n\n", code_hash),
@@ -198,14 +203,14 @@ mod tests {
             clickable_img: true,
         };
 
-        let plantuml_code = String::from("some puml code");
-        let code_hash = sha1::Sha1::from(&plantuml_code).hexdigest();
+        let plantuml_code = "some puml code";
+        let code_hash = hash_string(plantuml_code);
         assert_eq!(
             format!(
                 "[![](rel/url/{}.svg)](rel/url/{}.svg)\n\n",
                 code_hash, code_hash
             ),
-            renderer.render(&plantuml_code, &String::from("rel/url"), "svg")
+            renderer.render(plantuml_code, "rel/url", "svg")
         );
     }
 
@@ -278,11 +283,11 @@ mod tests {
 
     #[test]
     fn test_get_image_filename() {
-        let code = String::from("asgtfgl");
-        let file_path = get_image_filename(Path::new("foo"), &code, "svg");
+        let code = "asgtfgl";
+        let file_path = get_image_filename(Path::new("foo"), code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
-            sha1::Sha1::from(&code).hexdigest(),
+            hash_string(code),
             file_path.file_stem().unwrap().to_str().unwrap()
         );
         assert_eq!(PathBuf::from("svg"), file_path.extension().unwrap());
