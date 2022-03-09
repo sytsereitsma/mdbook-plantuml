@@ -292,7 +292,7 @@ mod tests {
             Ok(file_data) => {
                 assert_eq!(expected_source, file_data);
             }
-            Err(e) => assert!(false, "{}", e),
+            Err(e) => panic!("{}", e),
         };
     }
 
