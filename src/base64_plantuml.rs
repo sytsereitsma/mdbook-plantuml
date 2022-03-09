@@ -22,7 +22,10 @@ mod tests {
     #[test]
     fn encodes_bytes() {
         assert_eq!(String::from("Pd9lOczw"), encode(b"froboz"));
-        assert_eq!(String::from("CJ8pD452GqHXOcDa4WW1"), encode(b"1234ABCDabcd\x12\x08\x01"));
+        assert_eq!(
+            String::from("CJ8pD452GqHXOcDa4WW1"),
+            encode(b"1234ABCDabcd\x12\x08\x01")
+        );
 
         // How would one pass 256 here?
         let data: Vec<u8> = (0_u8..255_u8).collect();
