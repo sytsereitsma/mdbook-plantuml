@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::plantuml_backend::PlantUMLBackend;
-use failure::bail;
-use failure::Error;
+use anyhow::{bail, Result};
 use tempfile::{tempdir, TempDir};
 
 /// A trait class for wrapping the actual rendering command
@@ -14,13 +13,13 @@ use tempfile::{tempdir, TempDir};
 /// bit, but the other option is not testing it at all, or partially through
 /// integration tests
 trait CommandExecutor {
-    fn execute(&self, args: &[String]) -> Result<(), Error>;
+    fn execute(&self, args: &[String]) -> Result<()>;
 }
 
 struct RealCommandExecutor;
 
 impl CommandExecutor for RealCommandExecutor {
-    fn execute(&self, args: &[String]) -> Result<(), Error> {
+    fn execute(&self, args: &[String]) -> Result<()> {
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = Command::new("cmd");
             cmd.arg("/C");
@@ -87,7 +86,7 @@ impl PlantUMLShell {
     }
 
     /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: &Path, image_format: &str) -> Result<Vec<String>, Error> {
+    fn get_cmd_arguments(&self, file: &Path, image_format: &str) -> Result<Vec<String>> {
         let mut args: Vec<String> = Vec::new();
         args.push(self.plantuml_cmd.clone());
         args.push(format!("-t{}", image_format));
@@ -127,7 +126,7 @@ impl PlantUMLShell {
         image_format: &str,
         output_file: &Path,
         command_executor: &dyn CommandExecutor,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let (puml_src, puml_image) = self.get_filenames(output_file);
         // Write diagram source file for rendering
         fs::write(puml_src.as_path(), plantuml_code).or_else(|e| {
@@ -169,7 +168,7 @@ impl PlantUMLBackend for PlantUMLShell {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let executor = RealCommandExecutor {};
         Self::render_from_string(self, plantuml_code, image_format, output_file, &executor)
     }
@@ -179,7 +178,7 @@ impl PlantUMLBackend for PlantUMLShell {
 mod tests {
     use super::*;
     use crate::util::join_path;
-    use failure::err_msg;
+    use anyhow::bail;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 
@@ -189,9 +188,9 @@ mod tests {
     }
 
     impl CommandExecutor for FakeCommandExecutor {
-        fn execute(&self, args: &[String]) -> Result<(), Error> {
+        fn execute(&self, args: &[String]) -> Result<()> {
             if self.error {
-                Err(err_msg("Whoops"))
+                bail!("Whoops")
             } else {
                 // Last argument is file name
                 if self.create_file {
@@ -231,7 +230,7 @@ mod tests {
         generate_error: bool,
         create_file: bool,
         code: Option<&String>,
-    ) -> Result<String, Error> {
+    ) -> Result<String> {
         let output_dir = tempdir().unwrap();
         // Cannot be the same path as output_dir, because otherwise we'd try to
         // copy a file onto itself

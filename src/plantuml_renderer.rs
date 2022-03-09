@@ -109,7 +109,7 @@ impl PlantUMLRendererTrait for PlantUMLRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use failure::{bail, Error};
+    use anyhow::{bail, Result};
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 
@@ -141,7 +141,7 @@ mod tests {
             plantuml_code: &str,
             image_format: &str,
             output_file: &Path,
-        ) -> Result<(), Error> {
+        ) -> Result<()> {
             if self.is_ok {
                 std::fs::write(output_file, format!("{}\n{}", plantuml_code, image_format))?;
                 return Ok(());

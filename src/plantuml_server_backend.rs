@@ -1,7 +1,7 @@
 use crate::base64_plantuml;
 use crate::plantuml_backend::PlantUMLBackend;
+use anyhow::{bail, Result};
 use deflate::deflate_bytes;
-use failure::{bail, Error};
 use reqwest::Url;
 use std::fs;
 use std::io::prelude::*;
@@ -9,7 +9,7 @@ use std::path::Path;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
-    fn download_image(&self, request_url: &Url) -> Result<Vec<u8>, Error>;
+    fn download_image(&self, request_url: &Url) -> Result<Vec<u8>>;
 }
 
 struct RealImageDownloader;
@@ -17,11 +17,11 @@ struct RealImageDownloader;
 impl ImageDownloader for RealImageDownloader {
     /// Download the image at the given URL, return the response body as a
     /// Vec<u8>
-    fn download_image(&self, request_url: &Url) -> Result<Vec<u8>, Error> {
+    fn download_image(&self, request_url: &Url) -> Result<Vec<u8>> {
         let mut image_buf: Vec<u8> = vec![];
         reqwest::blocking::get(request_url.clone())
             .and_then(|mut response| response.copy_to(&mut image_buf))
-            .or_else(|e| bail!(format!("Failed to generate diagram ({})", e)))?;
+            .or_else(|e| bail!("Failed to generate diagram ({})", e))?;
         Ok(image_buf)
     }
 }
@@ -47,11 +47,11 @@ impl PlantUMLServer {
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension
-    fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url, Error> {
+    fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url> {
         let path = format!("{}/{}", image_format, encoded_diagram);
 
         self.server_url.join(&path).map_err(|e| {
-            failure::format_err!(
+            anyhow::format_err!(
                 "Error constructing PlantUML server URL from '{}' and '{}' ({})",
                 self.server_url.as_str(),
                 path,
@@ -61,7 +61,7 @@ impl PlantUMLServer {
     }
 
     /// Save the downloaded image to a file
-    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<(), Error> {
+    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<()> {
         let mut output_file = fs::File::create(&file_path)?;
         output_file.write_all(image_buffer)?;
 
@@ -76,7 +76,7 @@ impl PlantUMLServer {
         output_file: &Path,
         image_format: &str,
         downloader: &dyn ImageDownloader,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
         let image_buffer = downloader.download_image(&request_url)?;
@@ -98,7 +98,7 @@ impl PlantUMLBackend for PlantUMLServer {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, output_file, image_format, &downloader)
     }
@@ -108,6 +108,7 @@ impl PlantUMLBackend for PlantUMLServer {
 mod tests {
     use super::*;
     use crate::util::join_path;
+    use anyhow::Result;
     use pretty_assertions::assert_eq;
     use simulacrum::*;
     use tempfile::tempdir;
@@ -156,7 +157,7 @@ mod tests {
     create_mock! {
         impl ImageDownloader for ImageDownloaderMock (self) {
             expect_download_image("download_image"):
-                fn download_image(&self, request_url: &Url) -> Result<Vec<u8>, Error>;
+                fn download_image(&self, request_url: &Url) -> Result<Vec<u8>>;
         }
     }
 
