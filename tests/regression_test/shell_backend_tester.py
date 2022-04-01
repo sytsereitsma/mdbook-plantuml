@@ -8,7 +8,6 @@ from file_locations import get_shell_calls_file, get_test_output_dir
 import markdown_snippets
 import preprocessor_builder
 
-
 class ShellBackendTester(unittest.TestCase):
     """
     This tester first builds the shell only version of mdbook-plantuml and then
@@ -19,9 +18,12 @@ class ShellBackendTester(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        # make sure python is on the path
+        # make sure python is on the path. It is used to fake the plantuml
+        # application to capture the arguments it is called with (and fake some
+        # output)
         assert shutil.which("python") is not None
 
+        # Build mdbook-plantuml with shell support
         assert preprocessor_builder.build_shell()
 
     def setUp(self):
@@ -53,7 +55,8 @@ class ShellBackendTester(unittest.TestCase):
     def assertFileIsCreated(self, call):
         filename = self.__get_image_filename(call)
         assert os.path.isfile(
-            os.path.join(get_test_output_dir(), "mdbook-plantuml-img", filename))
+            os.path.join(get_test_output_dir(), "mdbook-plantuml-img", filename)
+        )
 
     def format_md_link(self, filename, prefix=""):
         url = prefix + "mdbook-plantuml-img/" + filename
@@ -67,7 +70,6 @@ class ShellBackendTester(unittest.TestCase):
         self.runner.set_content(Chapter("Chapter 1", snippet.markdown))
 
         result = self.runner.run()
-        self.assertEqual(0, result.returncode)
 
         calls = self.__get_shell_command_calls()
         self.assertEqual(1, len(calls))
@@ -88,7 +90,6 @@ class ShellBackendTester(unittest.TestCase):
         self.runner.set_content(Chapter("Chapter 1", snippet.markdown))
 
         result = self.runner.run()
-        self.assertEqual(0, result.returncode)
 
         calls = self.__get_shell_command_calls()
         self.assertEqual(1, len(calls))
@@ -123,6 +124,5 @@ class ShellBackendTester(unittest.TestCase):
         self.runner.set_content(Chapter("Chapter 1", mathjax))
 
         result = self.runner.run()
-        self.assertEqual(0, result.returncode)
 
         self.assertIn(mathjax, result.root_chapter["content"])

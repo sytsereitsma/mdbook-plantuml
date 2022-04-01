@@ -1,6 +1,6 @@
 [
   {
-    "root": "D:\\Projects\\mdBook-plantuml\\tests\\regression_test",
+    "root": ".",
     "config": {
       "book": {
         "authors": [
