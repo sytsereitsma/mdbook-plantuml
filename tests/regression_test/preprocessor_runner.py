@@ -5,16 +5,11 @@ import logging
 
 
 class Result:
-    def __init__(self, returncode, stdout, stderr):
-        self.returncode = returncode
-        self.stdout = stdout
-        self.stderr = stderr
-        self.__json = None
+    def __init__(self, stdout):
+        self.__json = json.loads(stdout)
 
     @property
     def json(self):
-        if self.__json is None:
-            self.__json = json.loads(self.stdout)
         return self.__json
 
     @property
@@ -69,11 +64,26 @@ class PreprocessorRunner:
 
     def run(self):
         tester_root = os.path.dirname(__file__)
-        preprocessor = os.path.join(tester_root, "..", "..", "target", "release", "mdbook-plantuml.exe")
-        logging.info(f"Preprocessor cmd: '{preprocessor}'")
+        preprocessor_cmd = os.path.join(tester_root, "..", "..", "target",
+                                        "release", "mdbook-plantuml.exe")
+        logging.info(f"Preprocessor cmd: '{preprocessor_cmd}'")
         logging.debug(f"Book: '{json.dumps(self.__book, indent=2)}'")
-        proc = subprocess.Popen([preprocessor], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate(json.dumps(self.__book).encode())
-        #print(stdout)
-        #print(stderr)
-        return Result(proc.returncode, stdout, stderr)
+
+        proc = subprocess.Popen(
+            [preprocessor_cmd],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = proc.communicate(json.dumps(self.__book).encode(),
+                                          timeout=5.0)
+        if proc.returncode != 0:
+            logging.error(f"{preprocessor_cmd} stderr: {stderr}")
+            raise subprocess.CalledProcessError(
+                proc.returncode,
+                preprocessor_cmd,
+                stdout,
+                stderr
+            )
+
+        return Result(stdout)
