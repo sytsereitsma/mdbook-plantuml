@@ -1,4 +1,4 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Parser, Subcommand};
 use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_plantuml::PlantUMLPreprocessor;
@@ -6,33 +6,33 @@ use std::error::Error;
 use std::io;
 use std::process;
 
-pub fn make_app() -> Command<'static> {
-    const VERSION: &str = env!("CARGO_PKG_VERSION");
+#[derive(Parser)]
+#[clap(version, author, about)]
+pub struct Args {
+    /// Log to './output.log'
+    ///
+    /// (may help troubleshooting rendering issues).
+    #[clap(short, long)]
+    log: bool,
 
-    Command::new("mdBook PlantUML preprocessor")
-        .version(VERSION)
-        .author("Sytse Reitsma")
-        .about("An mdbook preprocessor which renders PlantUML code blocks to SVG diagrams")
-        .arg(
-            Arg::new("log")
-                .short('l')
-                .help("Log to './output.log' (may help troubleshooting rendering issues)."),
-        )
-        .subcommand(
-            Command::new("supports")
-                .arg(Arg::new("renderer").required(true))
-                .about("Check whether a renderer is supported by this preprocessor"),
-        )
+    #[clap(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    /// Check whether a renderer is supported by this preprocessor
+    Supports { renderer: String },
 }
 
 fn main() {
-    let matches = make_app().get_matches();
+    let args = Args::parse();
 
     let preprocessor = PlantUMLPreprocessor;
-    if let Some(sub_args) = matches.subcommand_matches("supports") {
-        handle_supports(&preprocessor, sub_args);
+    if let Some(Command::Supports { renderer }) = args.command {
+        handle_supports(&preprocessor, &renderer);
     } else {
-        if matches.is_present("log") {
+        if args.log {
             if let Err(e) = setup_logging() {
                 eprintln!("{}", e);
                 process::exit(2);
@@ -64,12 +64,9 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
     Ok(())
 }
 
-fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
-    let renderer = sub_args.value_of("renderer").expect("Required argument");
-    let supported = pre.supports_renderer(renderer);
-
+fn handle_supports(pre: &dyn Preprocessor, renderer: &str) -> ! {
     // Signal whether the renderer is supported by exiting with 1 or 0.
-    if supported {
+    if pre.supports_renderer(renderer) {
         process::exit(0);
     } else {
         process::exit(1);
