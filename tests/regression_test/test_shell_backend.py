@@ -8,7 +8,7 @@ from file_locations import get_shell_calls_file, get_test_output_dir
 import markdown_snippets
 import preprocessor_builder
 
-class ShellBackendTester(unittest.TestCase):
+class TestShellBackend(unittest.TestCase):
     """
     This tester first builds the shell only version of mdbook-plantuml and then
     calls the executable directly, but with a fake plantuml command

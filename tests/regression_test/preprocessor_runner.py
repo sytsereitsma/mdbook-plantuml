@@ -65,7 +65,7 @@ class PreprocessorRunner:
     def run(self):
         tester_root = os.path.dirname(__file__)
         preprocessor_cmd = os.path.join(tester_root, "..", "..", "target",
-                                        "release", "mdbook-plantuml.exe")
+                                        "release", "mdbook-plantuml")
         logging.info(f"Preprocessor cmd: '{preprocessor_cmd}'")
         logging.debug(f"Book: '{json.dumps(self.__book, indent=2)}'")
 

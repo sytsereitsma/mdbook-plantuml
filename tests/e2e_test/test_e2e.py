@@ -67,7 +67,7 @@ def _build_book(book_name, open_browser=True, output_dir=None, clean=True):
     return proc.returncode == 0
 
 
-class EndToEndServerTester(unittest.TestCase):
+class TestEndToEndServer(unittest.TestCase):
     def test_http_server(self):
         assert preprocessor_builder.build_http_server()
         assert _build_book("plantuml_server.toml")
@@ -78,7 +78,7 @@ class EndToEndServerTester(unittest.TestCase):
         assert _build_book("plantuml_server.toml")
 
 
-class EndToEndShellTester(unittest.TestCase):
+class TestEndToEndShell(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert preprocessor_builder.build_shell()

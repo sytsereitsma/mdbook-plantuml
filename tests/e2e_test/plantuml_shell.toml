@@ -11,4 +11,4 @@ build-dir = "plantuml_shell"
 mathjax-support = true
 
 [preprocessor.plantuml]
-plantuml-cmd="plantuml.exe"
+plantuml-cmd="plantuml"
