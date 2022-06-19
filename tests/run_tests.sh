@@ -14,8 +14,8 @@ export PYTHONPATH=$(pwd)/shared_modules
 echo Running regression tests
 echo ========================================
 cd regression_test
-nosetests -s -v .
-cd ..
+../venv/bin/pytest -s -v .
+cd -
 
 echo
 echo Running e2e tests
@@ -25,11 +25,12 @@ echo ========================================
 DOCKER_ID=`sudo docker ps -qf "ancestor=plantuml/plantuml-server:jetty"`
 if [ "${DOCKER_ID}" = "" ]; then
     echo Starting docker plantuml server
+    sudo systemctl start docker
     sudo docker run -it -d -p 8080:8080 plantuml/plantuml-server:jetty
 else
     echo Docker plantuml server already running
 fi
 
 cd e2e_test
-nosetests -s -v .
-cd ..
+../venv/bin/pytest -s -v .
+cd -

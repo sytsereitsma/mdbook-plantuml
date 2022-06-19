@@ -15,13 +15,12 @@ set PYTHONPATH=%cd%\shared_modules
 echo Running regression tests
 echo ========================================
 cd regression_test
-nosetests -s -v .
+pytest -s -v .
 cd ..
 
 echo.
 echo Running e2e tests
 echo ========================================
-cd e2e_test
 rem docker pull plantuml/plantuml-server
 set __DOCKER_RUNNING=
 for /f %%i in ('docker ps -qf "ancestor=plantuml/plantuml-server:jetty"') do set __DOCKER_RUNNING=1
@@ -32,8 +31,9 @@ if [%__DOCKER_RUNNING%] EQU [] (
     echo Docker plantuml server already running
 )
 
-nosetests -s -v .
-cd ..
+cd e2e_test
+pytest -s -v .
+cd .. 
 
 set PATH=%__ORGPATH%
 set PYTHONPATH=%__ORGPYTHONPATH%
