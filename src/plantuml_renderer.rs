@@ -54,11 +54,11 @@ pub struct PlantUMLRenderer {
 }
 
 impl PlantUMLRenderer {
-    pub fn new(cfg: &PlantUMLConfig, img_root: &Path) -> Self {
+    pub fn new(cfg: &PlantUMLConfig, img_root: PathBuf) -> Self {
         let renderer = Self {
             backend: plantuml_backend_factory::create(cfg),
-            cleaner: RefCell::new(DirCleaner::new(img_root)),
-            img_root: img_root.to_path_buf(),
+            cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
+            img_root: img_root,
             clickable_img: cfg.clickable_img,
             use_data_uris: cfg.use_data_uris,
         };
@@ -132,6 +132,7 @@ impl PlantUMLRenderer {
         }
 
         self.cleaner.borrow_mut().keep(&output_file);
+
         let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_image(&output_file)
@@ -215,15 +216,6 @@ mod tests {
         assert_eq!(
             String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
             PlantUMLRenderer::create_datauri(&jpeg_path)
-        );
-
-        let jpg_path = temp_directory.path().join("file.jpg");
-        let mut jpg_file = File::create(&jpg_path).unwrap();
-        writeln!(jpg_file, "{}", content).unwrap();
-        drop(jpg_file); // Close and flush content to file
-        assert_eq!(
-            String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&jpg_path)
         );
     }
 
