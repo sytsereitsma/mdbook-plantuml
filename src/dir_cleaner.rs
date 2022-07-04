@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Remove all files (not sub dirs and their files) that are not flagged as keep
-/// from the given directory
+/// from the given directory. Used for removing stale cached image files.
 ///
 /// # Example:
 /// Given the contents of the directory froboz is the following
