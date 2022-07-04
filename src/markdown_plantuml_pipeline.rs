@@ -86,8 +86,8 @@ fn find_next_code_fence(
             break;
         }
 
-        const max_fence_indent: usize = 3; // CommonMark spec allows at most 3 spaces before a fence
-        if (pos - line_start) <= max_fence_indent && is_fence_char(bytes[pos]) {
+        const MAX_FENCE_INDENT: usize = 3; // CommonMark spec allows at most 3 spaces before a fence
+        if (pos - line_start) <= MAX_FENCE_INDENT && is_fence_char(bytes[pos]) {
             let first_non_fence = find_first_inequal(bytes, bytes[pos], pos);
             if is_fence(pos, first_non_fence) {
                 return Some((pos, first_non_fence));
