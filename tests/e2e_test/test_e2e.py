@@ -71,6 +71,7 @@ class TestEndToEndServer(unittest.TestCase):
     def test_http_server(self):
         assert preprocessor_builder.build_http_server()
         assert _build_book("plantuml_server.toml")
+        assert _build_book("plantuml_server_datauri.toml")
 
     def test_https_server(self):
         assert preprocessor_builder.build_https_server()
