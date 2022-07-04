@@ -80,6 +80,9 @@ fn find_next_code_fence(
     while pos < bytes.len() {
         let line_start = pos;
         pos = find_first_inequal(bytes, b' ', pos);
+        if (pos >= bytes.len()) {
+            break;
+        }
 
         if (pos - line_start) < 4 && is_fence_char(bytes[pos]) {
             let first_non_fence = find_first_inequal(bytes, bytes[pos], pos);
