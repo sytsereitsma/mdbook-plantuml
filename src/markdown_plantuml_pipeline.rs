@@ -69,9 +69,11 @@ fn find_next_code_fence(
         }
     };
 
+    // Is slice with given start and end a valid (end) fence
     let is_fence = |s, e| {
-        if let Some(l) = min_length {
-            (e - s) >= l
+        if let Some(closing_fence_size) = min_length {
+            // CommonMark spec. Closing fence is at least as many fence chars as opening fence
+            (e - s) >= closing_fence_size
         } else {
             (e - s) >= 3
         }
@@ -80,11 +82,12 @@ fn find_next_code_fence(
     while pos < bytes.len() {
         let line_start = pos;
         pos = find_first_inequal(bytes, b' ', pos);
-        if (pos >= bytes.len()) {
+        if pos >= bytes.len() {
             break;
         }
 
-        if (pos - line_start) < 4 && is_fence_char(bytes[pos]) {
+        const max_fence_indent: usize = 3; // CommonMark spec allows at most 3 spaces before a fence
+        if (pos - line_start) <= max_fence_indent && is_fence_char(bytes[pos]) {
             let first_non_fence = find_first_inequal(bytes, bytes[pos], pos);
             if is_fence(pos, first_non_fence) {
                 return Some((pos, first_non_fence));
@@ -282,6 +285,7 @@ mod test {
         assert_find_next_code_fence!(None, b"", 0, None, None);
         assert_find_next_code_fence!(None, b"a\n\n", 0, None, None);
         assert_find_next_code_fence!(None, b"a```", 0, None, None);
+        assert_find_next_code_fence!(None, b"\n   ", 0, None, None); // Caused a panic (out of bounds)
 
         // Only spaces before the fence chars, _nothing_ else
         assert_find_next_code_fence!(None, b"\\ ```", 0, None, None);
@@ -296,7 +300,7 @@ mod test {
         assert_find_next_code_fence!(Some((0, 4)), b"~~~~", 0, None, None);
         assert_find_next_code_fence!(Some((0, 5)), b"~~~~~", 0, None, None);
 
-        // At most 3 spaces indent
+        // At most 3 spaces indent (commonmark spec)
         assert_find_next_code_fence!(Some((1, 4)), b" ```", 0, None, None);
         assert_find_next_code_fence!(Some((2, 5)), b"  ```", 0, None, None);
         assert_find_next_code_fence!(Some((3, 6)), b"   ```", 0, None, None);
