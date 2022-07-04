@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_output_dir_creation_failure() {        
+    fn test_get_image_output_dir_creation_failure() {
         let output_dir = tempdir().unwrap();
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");

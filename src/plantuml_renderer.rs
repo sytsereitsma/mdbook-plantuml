@@ -105,11 +105,15 @@ impl PlantUMLRenderer {
         format!("data:{};base64,{}", media_type, encoded_value)
     }
 
-    fn create_image_datauri_element(image_path: &PathBuf) -> String {
-        format!(
-            "<img src=\"{}\" />",
-            PlantUMLRenderer::create_datauri(image_path)
-        )
+    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> String {
+        let uri = PlantUMLRenderer::create_datauri(image_path);
+        if clickable {
+            // Note that both Edge and Firefox do not allow clicking on data URI links
+            // So this probably won't work. Kept in here regardless for consistency
+            format!("[![]({})]({})\n\n", uri, uri)
+        } else {
+            format!("![]({})\n\n", uri)
+        }
     }
 
     fn create_inline_image(image_path: &Path) -> String {
@@ -137,7 +141,7 @@ impl PlantUMLRenderer {
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_image(&output_file)
         } else if self.use_data_uris {
-            Self::create_image_datauri_element(&output_file)
+            Self::create_image_datauri_element(&output_file, self.clickable_img)
         } else {
             Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
         }
@@ -293,13 +297,19 @@ mod tests {
 
         // svg extension
         assert_eq!(
-            String::from("<img src=\"data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn\" />"),
+            format!(
+                "![]({})\n\n",
+                "data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn"
+            ),
             renderer.render(&plantuml_code, "rel/url", "svg")
         );
 
         // png extension
         assert_eq!(
-            String::from("<img src=\"data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n\" />"),
+            format!(
+                "![]({})\n\n",
+                "data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n"
+            ),
             renderer.render(&plantuml_code, "rel/url", "png")
         );
 
