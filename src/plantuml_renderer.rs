@@ -2,12 +2,12 @@ use crate::dir_cleaner::DirCleaner;
 use crate::plantuml_backend::PlantUMLBackend;
 use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
+use base64::encode;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::io::Read;
-use base64::encode;
+use std::path::{Path, PathBuf};
 
 pub trait PlantUMLRendererTrait {
     fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String;
@@ -82,7 +82,11 @@ impl PlantUMLRenderer {
     fn create_datauri(image_path: &PathBuf) -> String {
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
 
-        let media_type = match image_path.extension().map(|s| s.to_str()).unwrap_or(Some("")) {
+        let media_type = match image_path
+            .extension()
+            .map(|s| s.to_str())
+            .unwrap_or(Some(""))
+        {
             Some("jpg") | Some("jpeg") => "image/jpeg",
             Some("png") => "image/png",
             Some("svg") => "image/svg+xml",
@@ -90,16 +94,22 @@ impl PlantUMLRenderer {
             _ => "",
         };
 
-        let mut image_file = fs::File::open(image_path).unwrap_or_else(|e| panic!("could not open file: {}", e));
+        let mut image_file =
+            fs::File::open(image_path).unwrap_or_else(|e| panic!("could not open file: {}", e));
         let mut image_bytes_buffer = Vec::new();
-        image_file.read_to_end(&mut image_bytes_buffer).unwrap_or_else(|e| panic!("could not read file: {}", e));
+        image_file
+            .read_to_end(&mut image_bytes_buffer)
+            .unwrap_or_else(|e| panic!("could not read file: {}", e));
         let encoded_value = encode(&image_bytes_buffer);
 
         format!("data:{};base64,{}", media_type, encoded_value)
     }
 
     fn create_image_datauri_element(image_path: &PathBuf) -> String {
-        format!("<img src=\"{}\" />", PlantUMLRenderer::create_datauri(image_path))
+        format!(
+            "<img src=\"{}\" />",
+            PlantUMLRenderer::create_datauri(image_path)
+        )
     }
 
     fn create_inline_image(image_path: &Path) -> String {
@@ -125,9 +135,9 @@ impl PlantUMLRenderer {
         let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_image(&output_file)
-        } else if self.use_data_uri {            
+        } else if self.use_data_uris {
             Self::create_image_datauri_element(&output_file)
-        } else {            
+        } else {
             Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
         }
     }
@@ -144,9 +154,9 @@ mod tests {
     use super::*;
     use anyhow::{bail, Result};
     use pretty_assertions::assert_eq;
-    use tempfile::tempdir;
     use std::fs::File;
     use std::io::Write;
+    use tempfile::tempdir;
 
     #[test]
     fn test_create_md_link() {
@@ -170,7 +180,6 @@ mod tests {
     fn test_create_datauri() {
         let temp_directory = tempdir().unwrap();
         let content = "test content";
-        
 
         let svg_path = temp_directory.path().join("file.svg");
         let mut svg_file = File::create(&svg_path).unwrap();
@@ -289,46 +298,29 @@ mod tests {
         };
 
         let plantuml_code = "some puml code";
-        let code_hash = hash_string(plantuml_code);
 
         // svg extension
         assert_eq!(
             String::from("<img src=\"data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn\" />"),
-            renderer.render(
-                &plantuml_code,
-                "rel/url",
-                "svg"
-            )
+            renderer.render(&plantuml_code, "rel/url", "svg")
         );
 
         // png extension
         assert_eq!(
             String::from("<img src=\"data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n\" />"),
-            renderer.render(
-                &plantuml_code,
-                "rel/url",
-                "png"
-            )
+            renderer.render(&plantuml_code, "rel/url", "png")
         );
 
         // txt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(
-                &plantuml_code,
-                "rel/url",
-                "txt"
-            )
+            renderer.render(&plantuml_code, "rel/url", "txt")
         );
 
         // utxt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(
-                &plantuml_code,
-                "rel/url",
-                "txt"
-            )
+            renderer.render(&plantuml_code, "rel/url", "txt")
         );
     }
 
