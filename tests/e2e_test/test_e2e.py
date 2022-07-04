@@ -37,6 +37,9 @@ def _build_book(book_name, open_browser=True, output_dir=None, clean=True):
     if clean and os.path.isdir(os.path.join("src", "mdbook-plantuml-img")):
         shutil.rmtree(os.path.join("src", "mdbook-plantuml-img"))
 
+    if clean and os.path.isdir(".mdbook-plantuml-cache"):
+        shutil.rmtree(".mdbook-plantuml-cache")
+
     preprocessor_dir = os.path.join(module_dir, "..", "..", "target", "release")
     env = os.environ
     if platform.system() == "Windows":
@@ -76,7 +79,7 @@ class TestEndToEndServer(unittest.TestCase):
     def test_https_server(self):
         assert preprocessor_builder.build_https_server()
         #TODO: Run https server somewhere
-        assert _build_book("plantuml_server.toml")
+        assert _build_book("plantuml_server.toml", output_dir="plantuml_ssl_server")
 
 
 class TestEndToEndShell(unittest.TestCase):
@@ -113,7 +116,6 @@ class TestEndToEndShell(unittest.TestCase):
         # TODO: This is lame. Use a custom plantuml command the second time to
         # make sure it is not called
         self.assertLess(cached_time, uncached_time / 4)
-
 
     def test_shell_has_no_server(self):
         assert _build_book("plantuml_server.toml", output_dir="plantuml_server_fail")
