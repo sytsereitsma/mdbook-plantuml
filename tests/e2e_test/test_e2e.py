@@ -89,6 +89,9 @@ class TestEndToEndShell(unittest.TestCase):
     def test_clickable(self):
         assert _build_book("plantuml_shell_clickable.toml")
 
+    def test_data_uris(self):
+        assert _build_book("plantuml_shell_datauri.toml")
+
     def test_dir_cleaner(self):
         assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner")
         assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner_no_clean", clean=False)

@@ -50,7 +50,7 @@ pub struct PlantUMLRenderer {
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
     clickable_img: bool,
-    use_data_uri: bool,
+    use_data_uris: bool,
 }
 
 impl PlantUMLRenderer {
@@ -60,7 +60,7 @@ impl PlantUMLRenderer {
             cleaner: RefCell::new(DirCleaner::new(img_root)),
             img_root: img_root.to_path_buf(),
             clickable_img: cfg.clickable_img,
-            use_data_uri: false,
+            use_data_uris: cfg.use_data_uris,
         };
 
         renderer
@@ -245,7 +245,7 @@ mod tests {
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
-            use_data_uri: false,
+            use_data_uris: false,
         };
 
         let plantuml_code = "some puml code";
@@ -285,7 +285,7 @@ mod tests {
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
-            use_data_uri: true,
+            use_data_uris: true,
         };
 
         let plantuml_code = "some puml code";
@@ -340,7 +340,7 @@ mod tests {
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
-            use_data_uri: false,
+            use_data_uris: false,
         };
 
         assert_eq!(
