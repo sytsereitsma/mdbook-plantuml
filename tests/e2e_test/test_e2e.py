@@ -71,6 +71,7 @@ class TestEndToEndServer(unittest.TestCase):
     def test_http_server(self):
         assert preprocessor_builder.build_http_server()
         assert _build_book("plantuml_server.toml")
+        assert _build_book("plantuml_server_datauri.toml")
 
     def test_https_server(self):
         assert preprocessor_builder.build_https_server()
@@ -88,6 +89,9 @@ class TestEndToEndShell(unittest.TestCase):
 
     def test_clickable(self):
         assert _build_book("plantuml_shell_clickable.toml")
+
+    def test_data_uris(self):
+        assert _build_book("plantuml_shell_datauri.toml")
 
     def test_dir_cleaner(self):
         assert _build_book("plantuml_shell.toml", output_dir="plantuml_dir_cleaner")

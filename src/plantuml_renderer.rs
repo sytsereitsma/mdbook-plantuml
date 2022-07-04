@@ -2,9 +2,11 @@ use crate::dir_cleaner::DirCleaner;
 use crate::plantuml_backend::PlantUMLBackend;
 use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
+use base64::encode;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub trait PlantUMLRendererTrait {
@@ -48,15 +50,17 @@ pub struct PlantUMLRenderer {
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
     clickable_img: bool,
+    use_data_uris: bool,
 }
 
 impl PlantUMLRenderer {
-    pub fn new(cfg: &PlantUMLConfig, img_root: &Path) -> Self {
+    pub fn new(cfg: &PlantUMLConfig, img_root: PathBuf) -> Self {
         let renderer = Self {
             backend: plantuml_backend_factory::create(cfg),
-            cleaner: RefCell::new(DirCleaner::new(img_root)),
-            img_root: img_root.to_path_buf(),
+            cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
+            img_root: img_root,
             clickable_img: cfg.clickable_img,
+            use_data_uris: cfg.use_data_uris,
         };
 
         renderer
@@ -72,6 +76,43 @@ impl PlantUMLRenderer {
             format!("[![]({})]({})\n\n", img_url, img_url)
         } else {
             format!("![]({})\n\n", img_url)
+        }
+    }
+
+    fn create_datauri(image_path: &PathBuf) -> String {
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
+
+        let media_type = match image_path
+            .extension()
+            .map(|s| s.to_str())
+            .unwrap_or(Some(""))
+        {
+            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("png") => "image/png",
+            Some("svg") => "image/svg+xml",
+            Some("atxt") | Some("utxt") | Some("txt") => "text/plain",
+            _ => "",
+        };
+
+        let mut image_file =
+            fs::File::open(image_path).unwrap_or_else(|e| panic!("could not open file: {}", e));
+        let mut image_bytes_buffer = Vec::new();
+        image_file
+            .read_to_end(&mut image_bytes_buffer)
+            .unwrap_or_else(|e| panic!("could not read file: {}", e));
+        let encoded_value = encode(&image_bytes_buffer);
+
+        format!("data:{};base64,{}", media_type, encoded_value)
+    }
+
+    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> String {
+        let uri = PlantUMLRenderer::create_datauri(image_path);
+        if clickable {
+            // Note that both Edge and Firefox do not allow clicking on data URI links
+            // So this probably won't work. Kept in here regardless for consistency
+            format!("[![]({})]({})\n\n", uri, uri)
+        } else {
+            format!("![]({})\n\n", uri)
         }
     }
 
@@ -95,9 +136,12 @@ impl PlantUMLRenderer {
         }
 
         self.cleaner.borrow_mut().keep(&output_file);
+
         let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_image(&output_file)
+        } else if self.use_data_uris {
+            Self::create_image_datauri_element(&output_file, self.clickable_img)
         } else {
             Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
         }
@@ -115,6 +159,8 @@ mod tests {
     use super::*;
     use anyhow::{bail, Result};
     use pretty_assertions::assert_eq;
+    use std::fs::File;
+    use std::io::Write;
     use tempfile::tempdir;
 
     #[test]
@@ -132,6 +178,48 @@ mod tests {
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
             PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"), false)
+        );
+    }
+
+    #[test]
+    fn test_create_datauri() {
+        let temp_directory = tempdir().unwrap();
+        let content = "test content";
+
+        let svg_path = temp_directory.path().join("file.svg");
+        let mut svg_file = File::create(&svg_path).unwrap();
+        writeln!(svg_file, "{}", content).unwrap();
+        drop(svg_file); // Close and flush content to file
+        assert_eq!(
+            String::from("data:image/svg+xml;base64,dGVzdCBjb250ZW50Cg=="),
+            PlantUMLRenderer::create_datauri(&svg_path)
+        );
+
+        let png_path = temp_directory.path().join("file.png");
+        let mut png_file = File::create(&png_path).unwrap();
+        writeln!(png_file, "{}", content).unwrap();
+        drop(png_file); // Close and flush content to file
+        assert_eq!(
+            String::from("data:image/png;base64,dGVzdCBjb250ZW50Cg=="),
+            PlantUMLRenderer::create_datauri(&png_path)
+        );
+
+        let txt_path = temp_directory.path().join("file.txt");
+        let mut txt_file = File::create(&txt_path).unwrap();
+        writeln!(txt_file, "{}", content).unwrap();
+        drop(txt_file); // Close and flush content to file
+        assert_eq!(
+            String::from("data:text/plain;base64,dGVzdCBjb250ZW50Cg=="),
+            PlantUMLRenderer::create_datauri(&txt_path)
+        );
+
+        let jpeg_path = temp_directory.path().join("file.jpeg");
+        let mut jpeg_file = File::create(&jpeg_path).unwrap();
+        writeln!(jpeg_file, "{}", content).unwrap();
+        drop(jpeg_file); // Close and flush content to file
+        assert_eq!(
+            String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
+            PlantUMLRenderer::create_datauri(&jpeg_path)
         );
     }
 
@@ -155,13 +243,14 @@ mod tests {
     }
 
     #[test]
-    fn test_rendering() {
+    fn test_rendering_md_link() {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
+            use_data_uris: false,
         };
 
         let plantuml_code = "some puml code";
@@ -194,23 +283,46 @@ mod tests {
     }
 
     #[test]
-    fn test_rendering_clickable() {
+    fn test_rendering_datauri() {
         let output_dir = tempdir().unwrap();
         let renderer = PlantUMLRenderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
-            clickable_img: true,
+            clickable_img: false,
+            use_data_uris: true,
         };
 
         let plantuml_code = "some puml code";
-        let code_hash = hash_string(plantuml_code);
+
+        // svg extension
         assert_eq!(
             format!(
-                "[![](rel/url/{}.svg)](rel/url/{}.svg)\n\n",
-                code_hash, code_hash
+                "![]({})\n\n",
+                "data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn"
             ),
-            renderer.render(plantuml_code, "rel/url", "svg")
+            renderer.render(&plantuml_code, "rel/url", "svg")
+        );
+
+        // png extension
+        assert_eq!(
+            format!(
+                "![]({})\n\n",
+                "data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n"
+            ),
+            renderer.render(&plantuml_code, "rel/url", "png")
+        );
+
+        // txt extension
+        assert_eq!(
+            String::from("\n```txt\nsome puml code\ntxt```\n"),
+            renderer.render(&plantuml_code, "rel/url", "txt")
+        );
+
+        // utxt extension
+        assert_eq!(
+            String::from("\n```txt\nsome puml code\ntxt```\n"),
+            renderer.render(&plantuml_code, "rel/url", "txt")
         );
     }
 
@@ -222,6 +334,7 @@ mod tests {
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
+            use_data_uris: false,
         };
 
         assert_eq!(

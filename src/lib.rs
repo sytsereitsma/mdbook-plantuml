@@ -15,10 +15,11 @@ use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
 use crate::plantuml_renderer::PlantUMLRenderer;
 use crate::plantumlconfig::PlantUMLConfig;
+use anyhow::{bail, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct PlantUMLPreprocessor;
 
@@ -33,20 +34,7 @@ impl Preprocessor for PlantUMLPreprocessor {
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
-        let img_output_dir = &ctx
-            .root
-            .join(&ctx.config.book.src)
-            .join("mdbook-plantuml-img");
-
-        // Always create the image output dir
-        if !img_output_dir.exists() {
-            if let Err(e) = fs::create_dir_all(&img_output_dir) {
-                return Err(mdbook::errors::Error::msg(format!(
-                    "Failed to create the image output dir ({}).",
-                    e
-                )));
-            }
-        }
+        let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
 
         let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
         let res = None;
@@ -66,6 +54,33 @@ impl Preprocessor for PlantUMLPreprocessor {
     fn supports_renderer(&self, renderer: &str) -> bool {
         renderer != "not-supported"
     }
+}
+
+fn get_image_output_dir(
+    root: &PathBuf,
+    src_root: &PathBuf,
+    cfg: &PlantUMLConfig,
+) -> Result<PathBuf> {
+    let img_output_dir = {
+        if cfg.use_data_uris {
+            // Create the images in the book root dir (unmonitored by the serve command)
+            // This way the rendered images can be cached without causing additional
+            // rebuilds.
+            root.join(".mdbook-plantuml-cache")
+        } else {
+            // Create the images in the book src dir
+            root.join(&src_root).join("mdbook-plantuml-img")
+        }
+    };
+
+    // Always create the image output dir
+    if !img_output_dir.is_dir() {
+        if let Err(e) = fs::create_dir_all(&img_output_dir) {
+            bail!("Failed to create the image output dir ({}).", e);
+        }
+    }
+
+    Ok(img_output_dir)
 }
 
 fn get_relative_img_url(chapter_path: &Path) -> String {
@@ -101,6 +116,7 @@ fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    use tempfile::tempdir;
 
     #[test]
     fn test_get_relative_img_url() {
@@ -118,5 +134,62 @@ mod tests {
             String::from("../../mdbook-plantuml-img"),
             get_relative_img_url(Path::new("chapter 1/nested 1/nested 2"))
         );
+    }
+
+    #[test]
+    fn test_get_image_output_dir_data_uri() {
+        let output_dir = tempdir().unwrap();
+        let book_root = output_dir.path().to_path_buf();
+        let src_root = output_dir.path().join("src");
+
+        let cfg = PlantUMLConfig {
+            plantuml_cmd: None,
+            clickable_img: false,
+            use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
+        };
+
+        assert_eq!(
+            get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
+            book_root.as_path().join(".mdbook-plantuml-cache")
+        );
+        assert!(book_root.as_path().join(".mdbook-plantuml-cache").exists());
+        assert!(!src_root.as_path().join("mdbook-plantuml-img").exists());
+    }
+
+    #[test]
+    fn test_get_image_output_dir_no_data_uri() {
+        let output_dir = tempdir().unwrap();
+        let book_root = output_dir.path().to_path_buf();
+        let src_root = output_dir.path().join("src");
+
+        let cfg = PlantUMLConfig {
+            plantuml_cmd: None,
+            clickable_img: false,
+            use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
+        };
+
+        assert_eq!(
+            get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
+            src_root.as_path().join("mdbook-plantuml-img")
+        );
+        assert!(!book_root.as_path().join(".mdbook-plantuml-cache").exists());
+        assert!(src_root.as_path().join("mdbook-plantuml-img").exists());
+    }
+
+    #[test]
+    fn test_get_image_output_dir_creation_failure() {
+        let output_dir = tempdir().unwrap();
+        let book_root = output_dir.path().to_path_buf();
+        let src_root = output_dir.path().join("src");
+
+        let cfg = PlantUMLConfig {
+            plantuml_cmd: None,
+            clickable_img: false,
+            use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
+        };
+
+        // Create a file with the same name as the directory, this should fail the dir creation
+        fs::File::create(&book_root.as_path().join(".mdbook-plantuml-cache")).unwrap();
+        assert!(get_image_output_dir(&book_root, &src_root, &cfg).is_err());
     }
 }

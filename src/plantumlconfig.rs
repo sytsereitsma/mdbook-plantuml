@@ -12,6 +12,8 @@ pub struct PlantUMLConfig {
     /// This is convenient for large diagrams which are hard to see in the book.
     /// The default value is `false`.
     pub clickable_img: bool,
+    /// Instead of creating inlined links to image files use data URIs
+    pub use_data_uris: bool,
 }
 
 #[cfg(test)]
@@ -23,5 +25,7 @@ mod tests {
     fn default() {
         let cfg = PlantUMLConfig::default();
         assert_eq!(cfg.plantuml_cmd, None);
+        assert_eq!(cfg.clickable_img, false);
+        assert_eq!(cfg.use_data_uris, false);
     }
 }
