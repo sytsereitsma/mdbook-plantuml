@@ -69,7 +69,7 @@ A --|> B
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
 - **clickable-img:** Optional (```false``` by default). When ```true``` images can be clicked and are opened in a new tab/window.
-- **use-data-uris:** Optional (```false``` by default). When ```true``` images are rendered as inline data URIs (not requiring external files).
+- **use-data-uris:** Optional (```false``` by default). When ```true``` images are rendered as inline Data URIs (not requiring external files).
 
 ## Features
 - **plantuml-server** Add http server support only
@@ -84,6 +84,19 @@ Install with http server support:
 
 Install with https server support:
 ```cargo install mdbook-plantuml --no-default-features --features plantuml-ssl-server```
+
+## Example Data URI configuration
+```toml
+[book]
+authors = ["Chuck Norris"]
+multilingual = false
+src = "src"
+title = "mdBook PlantUML preprocessor"
+
+[preprocessor.plantuml]
+plantuml-cmd="plantuml"
+use-data-uris=true
+```
 
 ## Example server configuration
 
@@ -126,6 +139,13 @@ command = "mdbook-plantuml -l"
 ```
 
 ## Change log
+
+### 0.8.0 (2022-07-04)
+* Many thanks to @danieleades for cleanup and modernization
+* Click on an image to open it in isolation (credit @YushiOMOTE)
+* Add support for `puml` code blocks as an alternative to plantuml (native IDE support for various programs, credit @YushiOMOTE)
+* Diagram formats can now be configured per code block (e.g. png, or svg)
+* Support for [Data URLs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs), credit @ knightflower1989). This feature can be used to workaround the mdbook serve loop issue.
 
 ### 0.7.0 (2020-08-29)
 * 🏎️ Speed! Added caching to only regenerate the changed code blocks, instead of all of them.
