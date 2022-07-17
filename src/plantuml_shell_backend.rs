@@ -44,7 +44,7 @@ impl CommandExecutor for RealCommandExecutor {
             // If not done this way sh -c will ignore all data after the first
             // argument (e.g. ```sh -c plantuml source.puml``` will become
             // ```sh -c plantuml```.
-            .arg(args.join(" "))
+            .args(args)
             .output()
             .expect("Failed to start PlantUML application");
 

@@ -56,11 +56,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn get_image_output_dir(
-    root: &PathBuf,
-    src_root: &PathBuf,
-    cfg: &PlantUMLConfig,
-) -> Result<PathBuf> {
+fn get_image_output_dir(root: &Path, src_root: &PathBuf, cfg: &PlantUMLConfig) -> Result<PathBuf> {
     let img_output_dir = {
         if cfg.use_data_uris {
             // Create the images in the book root dir (unmonitored by the serve command)

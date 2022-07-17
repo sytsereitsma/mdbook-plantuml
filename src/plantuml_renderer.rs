@@ -58,7 +58,7 @@ impl PlantUMLRenderer {
         let renderer = Self {
             backend: plantuml_backend_factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
-            img_root: img_root,
+            img_root,
             clickable_img: cfg.clickable_img,
             use_data_uris: cfg.use_data_uris,
         };
