@@ -10,7 +10,13 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub trait PlantUMLRendererTrait {
-    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String;
+    fn render(
+        &self,
+        plantuml_code: &str,
+        chapter_path: &str,
+        rel_img_url: &str,
+        image_format: String,
+    ) -> String;
 }
 
 /// Create the image names with the appropriate extension and path
@@ -123,13 +129,21 @@ impl PlantUMLRenderer {
         format!("\n```txt\n{}```\n", txt)
     }
 
-    pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: &str) -> String {
+    pub fn render(
+        &self,
+        plantuml_code: &str,
+        chapter_path: &str,
+        rel_img_url: &str,
+        image_format: &str,
+    ) -> String {
         let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
-            if let Err(e) =
-                self.backend
-                    .render_from_string(plantuml_code, image_format, &output_file)
-            {
+            if let Err(e) = self.backend.render_from_string(
+                plantuml_code,
+                chapter_path,
+                image_format,
+                &output_file,
+            ) {
                 log::error!("Failed to generate PlantUML diagram.");
                 return format!("\nPlantUML rendering error:\n{}\n\n", e);
             }
@@ -149,8 +163,20 @@ impl PlantUMLRenderer {
 }
 
 impl PlantUMLRendererTrait for PlantUMLRenderer {
-    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
-        Self::render(self, plantuml_code, rel_img_url, &image_format)
+    fn render(
+        &self,
+        plantuml_code: &str,
+        chapter_path: &str,
+        rel_img_url: &str,
+        image_format: String,
+    ) -> String {
+        Self::render(
+            self,
+            plantuml_code,
+            chapter_path,
+            rel_img_url,
+            &image_format,
+        )
     }
 }
 
@@ -231,11 +257,12 @@ mod tests {
         fn render_from_string(
             &self,
             plantuml_code: &str,
+            _chapter_path: &str,
             image_format: &str,
             output_file: &Path,
         ) -> Result<()> {
             if self.is_ok {
-                std::fs::write(output_file, format!("{}\n{}", plantuml_code, image_format))?;
+                fs::write(output_file, format!("{}\n{}", plantuml_code, image_format))?;
                 return Ok(());
             }
             bail!("Oh no")
@@ -258,27 +285,27 @@ mod tests {
 
         assert_eq!(
             format!("![](rel/url/{}.svg)\n\n", code_hash),
-            renderer.render(plantuml_code, "rel/url", "svg",)
+            renderer.render(plantuml_code, ".", "rel/url", "svg")
         );
 
         // png extension
         assert_eq!(
             format!("![](rel/url/{}.png)\n\n", code_hash),
-            renderer.render(plantuml_code, "rel/url", "png",)
+            renderer.render(plantuml_code, ".", "rel/url", "png")
         );
 
         // txt extension
         assert_eq!(
             format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
                                                                * fake backend */
-            renderer.render(plantuml_code, "rel/url", "txt",)
+            renderer.render(plantuml_code, ".", "rel/url", "txt")
         );
 
         // utxt extension
         assert_eq!(
             format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
                                                                * fake backend */
-            renderer.render(plantuml_code, "rel/url", "txt",)
+            renderer.render(plantuml_code, ".", "rel/url", "txt")
         );
     }
 
@@ -301,7 +328,7 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn"
             ),
-            renderer.render(&plantuml_code, "rel/url", "svg")
+            renderer.render(&plantuml_code, ".", "rel/url", "svg")
         );
 
         // png extension
@@ -310,19 +337,19 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n"
             ),
-            renderer.render(&plantuml_code, "rel/url", "png")
+            renderer.render(&plantuml_code, ".", "rel/url", "png")
         );
 
         // txt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(&plantuml_code, "rel/url", "txt")
+            renderer.render(&plantuml_code, ".", "rel/url", "txt")
         );
 
         // utxt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(&plantuml_code, "rel/url", "txt")
+            renderer.render(&plantuml_code, ".", "rel/url", "txt")
         );
     }
 
@@ -339,7 +366,7 @@ mod tests {
 
         assert_eq!(
             String::from("\nPlantUML rendering error:\nOh no\n\n"),
-            renderer.render("", "rel/url", "svg",)
+            renderer.render("", ".", "rel/url", "svg")
         );
     }
 

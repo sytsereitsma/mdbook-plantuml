@@ -12,6 +12,7 @@ pub trait PlantUMLBackend {
     fn render_from_string(
         &self,
         plantuml_code: &str,
+        chapter_path: &str,
         image_format: &str,
         output_file: &Path,
     ) -> Result<()>;

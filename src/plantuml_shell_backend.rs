@@ -166,6 +166,7 @@ impl PlantUMLBackend for PlantUMLShell {
     fn render_from_string(
         &self,
         plantuml_code: &str,
+        _chapter_path: &str,
         image_format: &str,
         output_file: &Path,
     ) -> Result<()> {

@@ -4,22 +4,24 @@ mod dir_cleaner;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_backend_factory;
+#[cfg(feature = "exp-cmdline-pipe")]
+mod plantuml_cmdline_backend;
 mod plantuml_renderer;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod plantuml_server_backend;
+#[cfg(not(feature = "exp-cmdline-pipe"))]
 mod plantuml_shell_backend;
 mod plantumlconfig;
 mod util;
 
 use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
-
 use crate::plantuml_renderer::PlantUMLRenderer;
 use crate::plantumlconfig::PlantUMLConfig;
 use anyhow::{bail, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 pub struct PlantUMLPreprocessor;
 
@@ -33,6 +35,8 @@ impl Preprocessor for PlantUMLPreprocessor {
         ctx: &PreprocessorContext,
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
+        let workdir = env::current_dir()?;
+
         let cfg = get_plantuml_config(ctx);
         let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
 
@@ -41,9 +45,17 @@ impl Preprocessor for PlantUMLPreprocessor {
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
-                    let rel_image_url = get_relative_img_url(chapter_path);
-                    chapter.content =
-                        render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
+                    if let Some(chapter_dir) = workdir.join("src").join(chapter_path).parent() {
+                        if let Some(path) = chapter_dir.to_str() {
+                            let rel_image_url = get_relative_img_url(chapter_path);
+                            chapter.content = render_plantuml_code_blocks(
+                                &chapter.content,
+                                &renderer,
+                                path,
+                                &rel_image_url,
+                            );
+                        }
+                    }
                 }
             }
         });

@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-plantuml"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Sytse Reitsma <mdbook-plantuml@sreitsma.nl>"]
 description = "A preprocessor for mdbook which will convert plantuml code blocks into inline SVG diagrams"
 license = "MIT"
@@ -20,8 +20,9 @@ doc = false
 
 [features]
 default = ["plantuml-ssl-server"]
-plantuml-server=["reqwest", "deflate"]
-plantuml-ssl-server=["reqwest/default-tls", "deflate"]
+exp-cmdline-pipe = []
+plantuml-server = ["reqwest", "deflate"]
+plantuml-ssl-server = ["reqwest/default-tls", "deflate"]
 
 [dependencies]
 mdbook = { version = "0.4.20", default-features = false }

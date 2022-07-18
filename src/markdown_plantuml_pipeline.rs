@@ -4,10 +4,11 @@ use std::string::String;
 pub fn render_plantuml_code_blocks(
     markdown: &str,
     renderer: &impl PlantUMLRendererTrait,
+    chapter_path: &str,
     rel_image_url: &str,
 ) -> String {
     let processor = PlantUMLCodeProcessor::new(markdown);
-    processor.process(renderer, rel_image_url)
+    processor.process(renderer, chapter_path, rel_image_url)
 }
 
 /// Find the first byte not equal to the expected byte
@@ -222,7 +223,12 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
     /// * `rel_image_url` - The url of the image relative to the book output
     ///   dir.
-    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
+    pub fn process(
+        &self,
+        renderer: &impl PlantUMLRendererTrait,
+        chapter_path: &str,
+        rel_image_url: &str,
+    ) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -232,9 +238,12 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             if let Some(code_block) = self.get_next_code_block(start_pos) {
                 if code_block.is_plantuml() {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
-                    let format = code_block.get_format();
-
-                    let rendered = renderer.render(code_block.code, rel_image_url, format);
+                    let rendered = renderer.render(
+                        code_block.code,
+                        chapter_path,
+                        rel_image_url,
+                        code_block.get_format(),
+                    );
                     processed.push_str(rendered.as_str());
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
@@ -262,7 +271,7 @@ mod test {
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(&self, code_block: &str, _rel_image_url: &str, _image_format: String) -> String {
+        fn render(&self, code_block: &str, _: &str, _: &str, _: String) -> String {
             self.code_block.replace(code_block.to_string());
             String::from("rendered")
         }
@@ -373,7 +382,7 @@ mod test {
                 let renderer = FakeRenderer {
                     code_block: RefCell::new(String::new()),
                 };
-                let result = processor.process(&renderer, &String::default());
+                let result = processor.process(&renderer, ".", &String::default());
                 assert_eq!($expected_code_block, *renderer.code_block.borrow());
                 assert_eq!($rendered_output, result);
             }};
