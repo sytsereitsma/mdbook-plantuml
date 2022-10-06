@@ -7,21 +7,65 @@ use anyhow::{bail, Result};
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::path::Path;
+use std::process::Command;
+
+fn autodetect_plantuml() -> String
+{
+    let candidates = {
+        if cfg!(target_os = "windows") {        
+            vec![
+                "java -jar plantuml.jar",
+                "plantuml.exe",
+            ]
+        } else {
+            vec![
+                "java -jar plantuml.jar",
+                "plantuml",
+                "/usr/bin/plantuml",
+                "/usr/local/bin/plantuml",
+                "~/bin/plantuml",
+                "/bin/plantuml",
+                "/opt/plantuml",
+            ]
+        }    
+    };
+
+    // Stick to the default, if things go wrong the error is displayed on
+    // the rendered pages
+    let mut ret = candidates[0].to_string();
+    for cmd in &candidates {
+        let status = if cfg!(target_os = "windows") {
+            Command::new("cmd")
+                .arg("/C")
+                .arg(cmd)
+                .status()
+        } else {
+            Command::new("sh")
+                .arg("-c")
+                .arg(cmd)
+                .status()
+        };
+
+        if status.is_ok() && status.unwrap().success() {
+            ret = cmd.to_string(); 
+            break;
+        }
+    };
+
+    ret
+}
 
 /// Create an instance of the PlantUMLBackend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
-    let cmd = cfg.plantuml_cmd.as_deref().unwrap_or({
-        if cfg!(target_os = "windows") {
-            "java -jar plantuml.jar"
-        } else {
-            "/usr/bin/plantuml"
-        }
-    });
+    let cmd = match cfg.plantuml_cmd.as_deref() {
+        Some(v) => v.to_string(),
+        None => autodetect_plantuml()
+    };
 
-    create_backend(cmd)
+    create_backend(&cmd)
 }
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
