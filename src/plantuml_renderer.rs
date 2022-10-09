@@ -116,34 +116,58 @@ impl PlantUMLRenderer {
         }
     }
 
-    fn create_inline_image(image_path: &Path) -> String {
+    fn create_inline_txt_image(image_path: &Path) -> String {
         log::debug!("Creating inline image from {:?}", image_path);
         let raw_source = fs::read(image_path).unwrap();
         let txt = unsafe { String::from_utf8_unchecked(raw_source) };
         format!("\n```txt\n{}```\n", txt)
     }
 
+    // TODO: Return Result<String>
     pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: &str) -> String {
+        let mut render_or_file_error: Option<String> = None;
+
         let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
-            if let Err(e) =
-                self.backend
-                    .render_from_string(plantuml_code, image_format, &output_file)
+            match self
+                .backend
+                .render_from_string(plantuml_code, image_format, &output_file)
             {
-                log::error!("Failed to generate PlantUML diagram.");
-                return format!("\nPlantUML rendering error:\n{}\n\n", e);
+                Err(e) => {
+                    let msg = format!("PlantUML rendering error ({})", e);
+                    log::error!("{}", msg);
+                    render_or_file_error = Some(msg);
+                }
+                Ok(data) => {
+                    // Save the file for caching purposes regardless of the output format
+                    let save_result = std::fs::write(&output_file, &data);
+                    if let Err(e) = save_result {
+                        let msg = format!(
+                            "Failed to save PlantUML diagram to {} ({}).",
+                            output_file.to_string_lossy(),
+                            e
+                        );
+                        log::error!("{}", msg);
+                        render_or_file_error = Some(msg);
+                    }
+                }
             }
         }
 
-        self.cleaner.borrow_mut().keep(&output_file);
+        if render_or_file_error.is_none() {
+            // Let the dir cleaner know this file should be kept
+            self.cleaner.borrow_mut().keep(&output_file);
 
-        let extension = output_file.extension().unwrap_or_default();
-        if extension == "atxt" || extension == "utxt" {
-            Self::create_inline_image(&output_file)
-        } else if self.use_data_uris {
-            Self::create_image_datauri_element(&output_file, self.clickable_img)
+            let extension = output_file.extension().unwrap_or_default();
+            if extension == "atxt" || extension == "utxt" {
+                Self::create_inline_txt_image(&output_file)
+            } else if self.use_data_uris {
+                Self::create_image_datauri_element(&output_file, self.clickable_img)
+            } else {
+                Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
+            }
         } else {
-            Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
+            render_or_file_error.unwrap()
         }
     }
 }
@@ -233,10 +257,11 @@ mod tests {
             plantuml_code: &str,
             image_format: &str,
             output_file: &Path,
-        ) -> Result<()> {
+        ) -> Result<Vec<u8>> {
             if self.is_ok {
                 std::fs::write(output_file, format!("{}\n{}", plantuml_code, image_format))?;
-                return Ok(());
+
+                return Ok(fs::read(&output_file)?);
             }
             bail!("Oh no")
         }

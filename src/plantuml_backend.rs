@@ -14,5 +14,5 @@ pub trait PlantUMLBackend {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<()>;
+    ) -> Result<Vec<u8>>;
 }

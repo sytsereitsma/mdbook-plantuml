@@ -76,13 +76,13 @@ impl PlantUMLServer {
         output_file: &Path,
         image_format: &str,
         downloader: &dyn ImageDownloader,
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
         let image_buffer = downloader.download_image(&request_url)?;
         Self::save_downloaded_image(&image_buffer, output_file)?;
 
-        Ok(())
+        Ok(image_buffer)
     }
 }
 
@@ -98,7 +98,7 @@ impl PlantUMLBackend for PlantUMLServer {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, output_file, image_format, &downloader)
     }

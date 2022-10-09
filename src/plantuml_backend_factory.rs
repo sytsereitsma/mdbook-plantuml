@@ -104,7 +104,7 @@ impl PlantUMLNoServerErrorBackend {
 impl PlantUMLBackend for PlantUMLNoServerErrorBackend {
     /// Display an error message when the user built the plugin without server
     /// support, but does configure a server in book.toml.
-    fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<()> {
+    fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<Vec<u8>> {
         bail!(PlantUMLNoServerErrorBackend::format_message());
     }
 }
@@ -126,7 +126,7 @@ impl PlantUMLNoShellErrorBackend {
 impl PlantUMLBackend for PlantUMLNoShellErrorBackend {
     /// Display an error message when the user built the plugin without server
     /// support, but does configure a server in book.toml.
-    fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<()> {
+    fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<Vec<u8>> {
         bail!("{}", self.msg);
     }
 }

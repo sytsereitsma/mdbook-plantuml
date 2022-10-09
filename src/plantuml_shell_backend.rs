@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::plantuml_backend::PlantUMLBackend;
-use anyhow::{bail, Result};
+use anyhow::{bail, format_err, Result};
 use tempfile::{tempdir, TempDir};
 
 /// A trait class for wrapping the actual rendering command
@@ -126,7 +126,7 @@ impl PlantUMLShell {
         image_format: &str,
         output_file: &Path,
         command_executor: &dyn CommandExecutor,
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         let (puml_src, puml_image) = self.get_filenames(output_file);
         // Write diagram source file for rendering
         fs::write(puml_src.as_path(), plantuml_code).or_else(|e| {
@@ -158,7 +158,14 @@ impl PlantUMLShell {
             );
         }
 
-        Ok(())
+        match fs::read(&puml_image) {
+            Ok(data) => Ok(data),
+            Err(why) => Err(format_err!(
+                "Error reading the generated PlantUML image from {} ({}).",
+                puml_image.to_string_lossy(),
+                why
+            ))
+        }
     }
 }
 
@@ -168,7 +175,7 @@ impl PlantUMLBackend for PlantUMLShell {
         plantuml_code: &str,
         image_format: &str,
         output_file: &Path,
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         let executor = RealCommandExecutor {};
         Self::render_from_string(self, plantuml_code, image_format, output_file, &executor)
     }
