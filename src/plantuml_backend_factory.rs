@@ -7,52 +7,61 @@ use anyhow::{bail, Result};
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
-fn autodetect_plantuml() -> String
-{
-    let candidates = {
-        if cfg!(target_os = "windows") {        
-            vec![
-                "java -jar plantuml.jar",
-                "plantuml.exe",
-            ]
-        } else {
-            vec![
-                "java -jar plantuml.jar",
-                "plantuml",
-                "/usr/bin/plantuml",
-                "/usr/local/bin/plantuml",
-                "~/bin/plantuml",
-                "/bin/plantuml",
-                "/opt/plantuml",
-            ]
-        }    
-    };
-
-    // Stick to the default, if things go wrong the error is displayed on
-    // the rendered pages
-    let mut ret = candidates[0].to_string();
-    for cmd in &candidates {
-        let status = if cfg!(target_os = "windows") {
+/// Test if given PlantUML executable is a working one
+fn test_plantuml_executable(cmd: &str) -> bool {
+    let status = {
+        // Make sure to include .stdout(Stdio::null()), otherwise the process output is captured by mdbook itself, causing
+        // an error parsing the json it expects:
+        // [ERROR] (mdbook::utils): Error: Unable to parse the preprocessed book from "plantuml" processor
+        // [ERROR] (mdbook::utils):    Caused By: expected value at line 1 column 1
+        if cfg!(target_os = "windows") {
             Command::new("cmd")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null()) // When the command does not work this suppresses error output
                 .arg("/C")
                 .arg(cmd)
+                .arg("-version")
                 .status()
         } else {
             Command::new("sh")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null()) // When the command does not work this suppresses error output
                 .arg("-c")
                 .arg(cmd)
+                .arg("-version")
                 .status()
-        };
-
-        if status.is_ok() && status.unwrap().success() {
-            ret = cmd.to_string(); 
-            break;
         }
     };
 
-    ret
+    status.is_ok() && status.unwrap().success()
+}
+
+fn create_shell_backend(cfg_cmd: &Option<String>) -> Box<dyn PlantUMLBackend> {
+    let mut ret: Option<Box<dyn PlantUMLBackend>> = None;
+
+    if let Some(cmd) = cfg_cmd.as_deref() {
+        if test_plantuml_executable(cmd) {
+            ret = Some(Box::new(PlantUMLShell::new(cmd.to_string())))
+        }
+    } else {
+        let candidates = ["plantuml", "java -jar plantuml.jar"];
+        for cmd in candidates {
+            if test_plantuml_executable(cmd) {
+                ret = Some(Box::new(PlantUMLShell::new(cmd.to_string())));
+                break;
+            }
+        }
+    }
+
+    if let Some(backend) = ret {
+        backend
+    } else {
+        let backend = Box::new(PlantUMLNoShellErrorBackend::new(&cfg_cmd));
+        log::error!("{}", backend.msg);
+        backend
+    }
 }
 
 /// Create an instance of the PlantUMLBackend
@@ -60,42 +69,64 @@ fn autodetect_plantuml() -> String
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
-    let cmd = match cfg.plantuml_cmd.as_deref() {
-        Some(v) => v.to_string(),
-        None => autodetect_plantuml()
-    };
-
-    create_backend(&cmd)
-}
-
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
-    if let Ok(server_url) = Url::parse(cmd) {
-        Box::new(PlantUMLServer::new(server_url))
+    if let Some(cmd) = &cfg.plantuml_cmd {
+        if let Ok(server_url) = Url::parse(cmd) {
+            if cfg!(feature = "plantuml-ssl-server") || cfg!(feature = "plantuml-server") {
+                Box::new(PlantUMLServer::new(server_url))
+            } else {
+                log::error!(
+                    "A PlantUML server is configured, but the mdbook-plantuml plugin \
+                    is built without server support.\nPlease rebuild/reinstall the \
+                    plugin with server support, or configure the plantuml cli tool as \
+                    backend. See the the Features section in README.md"
+                );
+                Box::new(PlantUMLNoServerErrorBackend {})
+            }
+        } else {
+            create_shell_backend(&cfg.plantuml_cmd)
+        }
     } else {
-        Box::new(PlantUMLShell::new(cmd.to_string()))
-    }
-}
-
-#[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
-fn create_backend(cmd: &str) -> Box<dyn PlantUMLBackend> {
-    if cmd.starts_with("http://") || cmd.starts_with("https://") {
-        Box::new(PlantUMLNoServerErrorBackend {})
-    } else {
-        Box::new(PlantUMLShell::new(cmd.to_string()))
+        create_shell_backend(&None)
     }
 }
 
 struct PlantUMLNoServerErrorBackend;
+
+impl PlantUMLNoServerErrorBackend {
+    fn format_message() -> &'static str {
+        "A PlantUML server is configured, but the mdbook-plantuml plugin \
+                is built without server support.\nPlease rebuild/reinstall the \
+                plugin with server support, or configure the plantuml cli tool as \
+                backend. See the the Features section in README.md"
+    }
+}
+
 impl PlantUMLBackend for PlantUMLNoServerErrorBackend {
     /// Display an error message when the user built the plugin without server
     /// support, but does configure a server in book.toml.
     fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<()> {
-        bail!(
-            "A PlantUML server is configured, but the mdbook-plantuml plugin \
-            is built without server support.\nPlease rebuild/reinstall the \
-            plugin with server support, or configure the plantuml cli tool as \
-            backend. See the the Features section in README.md"
-        );
+        bail!(PlantUMLNoServerErrorBackend::format_message());
+    }
+}
+
+struct PlantUMLNoShellErrorBackend {
+    msg: String,
+}
+
+impl PlantUMLNoShellErrorBackend {
+    fn new(cmd: &Option<String>) -> PlantUMLNoShellErrorBackend {
+        PlantUMLNoShellErrorBackend {
+            msg: format!("PlantUML executable '{}' was not found, either specify one in book.toml, \
+                          or make sure the plantuml executable can be found on the path (or by java)"
+                          , cmd.as_deref().unwrap_or("")),
+        }
+    }
+}
+
+impl PlantUMLBackend for PlantUMLNoShellErrorBackend {
+    /// Display an error message when the user built the plugin without server
+    /// support, but does configure a server in book.toml.
+    fn render_from_string(&self, _: &str, _: &str, _: &Path) -> Result<()> {
+        bail!("{}", self.msg);
     }
 }

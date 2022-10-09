@@ -3,3 +3,4 @@ plantuml_*/
 src/mdbook-plantuml-img
 book/
 book.toml
+mdbook-plantuml_back-to-mdbook.json
