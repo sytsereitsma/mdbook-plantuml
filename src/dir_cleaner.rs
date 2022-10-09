@@ -39,7 +39,7 @@ impl DirCleaner {
     }
 
     pub fn keep(&mut self, img_path: &Path) {
-        log::info!("DirCleaner - Keeping {}", img_path.to_string_lossy());
+        log::debug!("DirCleaner - Keeping {}", img_path.to_string_lossy());
         self.files.remove(img_path);
     }
 
@@ -59,7 +59,7 @@ impl DirCleaner {
                     if let Ok(file_type) = entry.file_type() {
                         if file_type.is_file() {
                             files.insert(entry.path());
-                            log::info!(
+                            log::debug!(
                                 "DirCleaner - Found existing file {}",
                                 entry.path().to_string_lossy()
                             );
