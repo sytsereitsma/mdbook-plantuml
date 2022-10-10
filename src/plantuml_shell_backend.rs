@@ -1,171 +1,111 @@
-use std::env;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::Command;
-
 use crate::plantuml_backend::PlantUMLBackend;
 use anyhow::{bail, format_err, Result};
-use tempfile::{tempdir, TempDir};
+use log;
+use std::ffi::OsStr;
+use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::process::{Command, Stdio};
+use tempfile::tempdir;
 
-/// A trait class for wrapping the actual rendering command
-/// Only here to make unit testing the renderer possbile, this is cheating a
-/// bit, but the other option is not testing it at all, or partially through
-/// integration tests
-trait CommandExecutor {
-    fn execute(&self, args: &[String]) -> Result<()>;
+trait PlantUMLRunner {
+    fn run(&self, plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>>;
 }
 
-struct RealCommandExecutor;
+struct PipedPlantUMLRunner;
+impl PlantUMLRunner for PipedPlantUMLRunner {
+    fn run(&self, plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
+        let mut child = Command::new(plantuml_cmd)
+            // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
+            .arg(format!("-t{}", format))
+            .arg("-nometadata")
+            .arg("-pipe")
+            .arg("-pipeNoStderr")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn().expect("Failed to start PlantUML");
 
-impl CommandExecutor for RealCommandExecutor {
-    fn execute(&self, args: &[String]) -> Result<()> {
-        let mut cmd = if cfg!(target_os = "windows") {
-            let mut cmd = Command::new("cmd");
-            cmd.arg("/C");
-            cmd
-        } else {
-            let mut cmd = Command::new("sh");
-            cmd.arg("-c");
-            cmd
-        };
+        // Pipe the plantuml source
+        let mut stdin = child
+            .stdin
+            .take()
+            .expect("Failed to open stdin for piped rendering");
+        stdin
+            .write_all(plantuml_src.as_bytes())
+            .expect("Failed to write to stdin for piped rendering");
+        drop(stdin); // Drop stdin, because otherwise child will hang in wait_with_output, because it cannot close stdin
 
-        log::debug!("Executing '{}'", args.join(" "));
-        log::debug!(
-            "Working dir '{}'",
-            env::current_dir()
-                .unwrap_or_else(|_| PathBuf::from("."))
-                .display()
-        );
-
-        let output = cmd
-            // We're invoking through the shell, so call it like this:
-            // ```sh -c "<args>"```
-            // If not done this way sh -c will ignore all data after the first
-            // argument (e.g. ```sh -c plantuml source.puml``` will become
-            // ```sh -c plantuml```.
-            .arg(args.join(" "))
-            .output()
-            .expect("Failed to start PlantUML application");
+        // And wait for the result
+        let output = child
+            .wait_with_output()
+            .expect("Failed to get generated piped PlantUML image");
 
         if output.status.success() {
-            log::info!("Successfully generated PlantUML diagrams.");
-            log::debug!(
-                "stdout: {}",
-                String::from_utf8(output.stdout).unwrap_or_default()
-            );
-            log::debug!(
-                "stderr: {}",
-                String::from_utf8(output.stderr).unwrap_or_default()
-            );
+            // Stdout contains the image data
+            Ok(output.stdout)
         } else {
-            let msg = format!(
-                "Failed to generate PlantUML diagrams, PlantUML exited with code {} ({}).",
-                output.status.code().unwrap_or(-9999),
-                String::from_utf8(output.stderr).unwrap_or_default()
-            );
-            bail!(msg);
+            Err(format_err!(
+                "Failed to render image in piped mode (return value {})",
+                output.status
+            ))
+        }
+    }
+}
+
+struct FilePlantUMLRunner;
+/// Traditional file based renderer. Simply writes a file with the PlantUML source to disk and reads back the output file
+impl PlantUMLRunner for FilePlantUMLRunner {
+    fn run(&self, plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
+        // Generate the file in a tmpdir
+        let generation_dir = tempdir().expect("Failed to create PlantUML temp dir");
+
+        const SRC_FILE_NAME: &str = "src.puml";
+        let src_file = generation_dir.path().join(SRC_FILE_NAME);
+
+        fs::write(&src_file, plantuml_src).expect("Failed to write PlantUML source file");
+
+        Command::new(plantuml_cmd)
+            // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
+            .arg(format!("-t{}", format))
+            .arg("-nometadata")
+            .arg(&src_file.to_str().unwrap())
+            .output()
+            .expect("Failed to render image");
+
+        // PlantUML creates an output file based on the format, it is not always the same as `format` though (e.g. braille outputs a file
+        // with extension .braille.png)
+        // Just see which other file is in the directory next to our source file. That's the generated one...
+        let entries = fs::read_dir(generation_dir.path()).unwrap();
+        for entry in entries {
+            if let Ok(path) = entry {
+                if path.file_name() != SRC_FILE_NAME {
+                    let data =
+                        fs::read(path.path()).expect("Failed to read generated PlantUML image.");
+                    return Ok(data);
+                }
+            }
         }
 
-        Ok(())
+        bail!("Failed to find generated PlantUML image.");
     }
 }
 
 pub struct PlantUMLShell {
     plantuml_cmd: String,
-    generation_dir: TempDir,
 }
 
 /// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
     pub fn new(plantuml_cmd: String) -> Self {
-        Self {
-            plantuml_cmd,
-            generation_dir: tempdir().unwrap(),
-        }
-    }
-
-    /// Get the command line for rendering the given source entry
-    fn get_cmd_arguments(&self, file: &Path, image_format: &str) -> Result<Vec<String>> {
-        let mut args: Vec<String> = Vec::new();
-        args.push(self.plantuml_cmd.clone());
-        args.push(format!("-t{}", image_format));
-        args.push(String::from("-nometadata"));
-        match file.to_str() {
-            Some(s) => args.push(String::from(s)),
-            None => {
-                bail!("Failed to stringify temporary PlantUML file path.");
-            }
-        }
-
-        Ok(args)
-    }
-
-    /// Create the source and image names for the generation dir with the
-    /// appropriate extensions
-    fn get_filenames(&self, output_file: &Path) -> (PathBuf, PathBuf) {
-        let mut puml_image = self.generation_dir.path().to_path_buf();
-        puml_image.push(output_file.file_name().unwrap());
-
-        let mut puml_src = puml_image.clone();
-        // A little hack to handle the braille output extension (which is
-        // foo.braille.png for an input file foo.puml")
-        puml_src.set_extension("");
-        if puml_src.extension().unwrap_or_default() == "braille" {
-            puml_src.set_extension(""); // Strip .braille
-        }
-        puml_src.set_extension("puml");
-
-        (puml_src, puml_image)
+        Self { plantuml_cmd }
     }
 
     /// Generate an image file from the given plantuml code.
-    fn render_from_string(
-        &self,
-        plantuml_code: &str,
-        image_format: &str,
-        output_file: &Path,
-        command_executor: &dyn CommandExecutor,
-    ) -> Result<Vec<u8>> {
-        let (puml_src, puml_image) = self.get_filenames(output_file);
-        // Write diagram source file for rendering
-        fs::write(puml_src.as_path(), plantuml_code).or_else(|e| {
-            bail!("Failed to create temp file for inline diagram ({}).", e);
-        })?;
-        log::debug!("Shell conversion {:?} -> {:?}", puml_src, puml_image);
-
-        // Render the diagram, PlantUML will create a file with the same base
-        // name, and the image extension
-        let args = self.get_cmd_arguments(&puml_src, image_format)?;
-        command_executor.execute(&args).or_else(|e| {
-            bail!("Failed to render inline diagram ({}).", e);
-        })?;
-
-        if !puml_image.exists() {
-            bail!(format!(
-                "PlantUML did not generate an image, did you forget the @startuml, @enduml block \
-                 ({})?",
-                args.join(" ")
-            ));
-        }
-
-        if let Err(e) = fs::copy(&puml_image, &output_file) {
-            bail!(
-                "Error copying the generated PlantUML image {} from to {} ({}).",
-                puml_image.to_string_lossy(),
-                output_file.to_string_lossy(),
-                e
-            );
-        }
-
-        match fs::read(&puml_image) {
-            Ok(data) => Ok(data),
-            Err(why) => Err(format_err!(
-                "Error reading the generated PlantUML image from {} ({}).",
-                puml_image.to_string_lossy(),
-                why
-            ))
-        }
+    fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
+        //let runner = PipedPlantUMLRunner {};
+        let runner = FilePlantUMLRunner {};
+        return runner.run(&self.plantuml_cmd, plantuml_code, image_format);
     }
 }
 
@@ -174,10 +114,9 @@ impl PlantUMLBackend for PlantUMLShell {
         &self,
         plantuml_code: &str,
         image_format: &str,
-        output_file: &Path,
+        _output_file: &Path,
     ) -> Result<Vec<u8>> {
-        let executor = RealCommandExecutor {};
-        Self::render_from_string(self, plantuml_code, image_format, output_file, &executor)
+        Self::render_from_string(self, plantuml_code, image_format)
     }
 }
 

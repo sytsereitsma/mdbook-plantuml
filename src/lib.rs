@@ -19,6 +19,7 @@ use anyhow::{bail, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
+
 use std::path::{Path, PathBuf};
 
 pub struct PlantUMLPreprocessor;
@@ -35,6 +36,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
         let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
+        let org_cwd = std::env::current_dir()?;
 
         let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
         let res = None;
@@ -42,6 +44,13 @@ impl Preprocessor for PlantUMLPreprocessor {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
                     log::info!("Processing chapter '{}' ({:?})", chapter.name, chapter_path);
+                    let abs_chapter_dir = ctx.root.join(&ctx.config.book.src).join(&chapter_path).parent().unwrap().to_path_buf();
+
+                    // Change the working dir so the PlantUML `!include` directive can be used using relative includes
+                    if let Err(e) = std::env::set_current_dir(&abs_chapter_dir) {
+                        log::warn!("Failed to change working dir to {:?}, PlantUML might not be able to render includes {}.", chapter_path.parent(), e);
+                    }
+                    log::debug!("Changed working dir to {:?}.", abs_chapter_dir);
 
                     let rel_image_url = get_relative_img_url(chapter_path);
                     chapter.content =
@@ -49,6 +58,9 @@ impl Preprocessor for PlantUMLPreprocessor {
                 }
             }
         });
+
+        //Restore the current working dir
+        std::env::set_current_dir(org_cwd)?;
 
         res.unwrap_or(Ok(())).map(|_| book)
     }
