@@ -41,6 +41,8 @@ impl Preprocessor for PlantUMLPreprocessor {
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
+                    log::info!("Processing chapter '{}' ({:?})", chapter.name, chapter_path);
+
                     let rel_image_url = get_relative_img_url(chapter_path);
                     chapter.content =
                         render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);

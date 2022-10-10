@@ -32,14 +32,16 @@ fn main() {
     if let Some(Command::Supports { renderer }) = args.command {
         handle_supports(&preprocessor, &renderer);
     } else {
-        if args.log {
-            if let Err(e) = setup_logging() {
-                eprintln!("{}", e);
-                process::exit(2);
-            }
-        }
-        if let Err(e) = handle_preprocessing(&preprocessor) {
+        if let Err(e) = setup_logging(args.log) {
             eprintln!("{}", e);
+            process::exit(2);
+        }
+
+        log::debug!(
+            "============================== Starting preprocessor ============================"
+        );
+        if let Err(e) = handle_preprocessing(&preprocessor) {
+            log::error!("{}", e);
             process::exit(1);
         }
     }
@@ -59,8 +61,20 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
             ctx.mdbook_version
         );
     }
+
+    // Preprocess the book
     let processed_book = pre.run(&ctx, book)?;
+
+    // And let mdbook know the result
     serde_json::to_writer(io::stdout(), &processed_book)?;
+
+    // Save the output to file too (uncomment when debugging)
+    // use std::fs::File;
+    // match File::create("mdbook-plantuml_back-to-mdbook.json") {
+    //     Err(why) => eprintln!("couldn't open mdbook-plantuml_back-to-mdbook.json: {}", why),
+    //     Ok(file) => serde_json::to_writer_pretty(file, &processed_book)?,
+    // };
+
     Ok(())
 }
 
@@ -73,26 +87,38 @@ fn handle_supports(pre: &dyn Preprocessor, renderer: &str) -> ! {
     }
 }
 
-fn setup_logging() -> Result<(), Box<dyn Error>> {
+fn setup_logging(log_to_file: bool) -> Result<(), Box<dyn Error>> {
     use log::LevelFilter;
+    use log4rs::append::console::{ConsoleAppender, Target};
     use log4rs::append::file::FileAppender;
+    use log4rs::filter::threshold::ThresholdFilter;
+
     use log4rs::config::{Appender, Config, Root};
     use log4rs::encode::pattern::PatternEncoder;
 
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build("output.log")?;
+    // Whatever you do, DO NOT, log to stdout. Stdout is only for communication with mdbook
+    let log_std_err = ConsoleAppender::builder().target(Target::Stderr).build();
+    let mut config_builder = Config::builder().appender(
+        Appender::builder()
+            .filter(Box::new(ThresholdFilter::new(LevelFilter::Info)))
+            .build("logstderr", Box::new(log_std_err)),
+    );
 
-    let config = Config::builder()
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender("logfile")
-                .build(LevelFilter::Debug),
-        )?;
+    if log_to_file {
+        let logfile = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+            .build("output.log")?;
+        config_builder =
+            config_builder.appender(Appender::builder().build("logfile", Box::new(logfile)));
+    }
+
+    let config = config_builder.build(
+        Root::builder()
+            .appender("logfile")
+            .appender("logstderr")
+            .build(LevelFilter::Debug),
+    )?;
     log4rs::init_config(config)?;
-
-    log::info!("--- Started preprocessor ---");
 
     Ok(())
 }
