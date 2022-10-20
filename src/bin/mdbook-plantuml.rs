@@ -112,11 +112,14 @@ fn setup_logging(log_to_file: bool) -> Result<(), Box<dyn Error>> {
             config_builder.appender(Appender::builder().build("logfile", Box::new(logfile)));
     }
 
+    let mut root_builder = Root::builder();
+    root_builder = root_builder.appender("logstderr");
+    if log_to_file {
+        root_builder = root_builder.appender("logfile");
+    }
+
     let config = config_builder.build(
-        Root::builder()
-            .appender("logfile")
-            .appender("logstderr")
-            .build(LevelFilter::Debug),
+        root_builder.build(LevelFilter::Debug),
     )?;
     log4rs::init_config(config)?;
 
