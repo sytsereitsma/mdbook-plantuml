@@ -7,35 +7,36 @@ use anyhow::{bail, Result};
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::str;
 
 /// Test if given PlantUML executable is a working one
 fn test_plantuml_executable(cmd: &str) -> bool {
-    let status = {
-        // Make sure to include .stdout(Stdio::null()), otherwise the process output is captured by mdbook itself, causing
-        // an error parsing the json it expects:
-        // [ERROR] (mdbook::utils): Error: Unable to parse the preprocessed book from "plantuml" processor
-        // [ERROR] (mdbook::utils):    Caused By: expected value at line 1 column 1
-        if cfg!(target_os = "windows") {
-            Command::new("cmd")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null()) // When the command does not work this suppresses error output
-                .arg("/C")
-                .arg(cmd)
-                .arg("-version")
-                .status()
-        } else {
-            Command::new("sh")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null()) // When the command does not work this suppresses error output
-                .arg("-c")
-                .arg(cmd)
-                .arg("-version")
-                .status()
+    log::debug!("Testing PlantUML command {}", cmd);
+    let result = Command::new(cmd).arg("-version").output().map(|output| {
+        match str::from_utf8(&output.stdout) {
+            Ok(stdout) => {
+                if let Some(version) = stdout.lines().next() {
+                    log::info!("Detected {}", version);
+                    true
+                } else {
+                    false
+                }
+            }
+            Err(e) => {
+                log::warn!("Failed to parse '{}' stdout ({})", cmd, e);
+                false
+            }
         }
-    };
+    });
 
-    status.is_ok() && status.unwrap().success()
+    match result {
+        Ok(valid) => valid,
+        Err(e) => {
+            log::warn!("Test of '{}' failed ({})", cmd, e);
+            false
+        }
+    }
 }
 
 fn create_shell_backend(cfg_cmd: &Option<String>) -> Box<dyn PlantUMLBackend> {
