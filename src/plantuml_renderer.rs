@@ -131,7 +131,7 @@ impl PlantUMLRenderer {
         if !output_file.exists() {
             match self
                 .backend
-                .render_from_string(plantuml_code, image_format, &output_file)
+                .render_from_string(plantuml_code, image_format)
             {
                 Err(e) => {
                     let msg = format!("PlantUML rendering error ({})", e);

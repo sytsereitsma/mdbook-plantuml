@@ -1,10 +1,8 @@
+use std::path::{Path, PathBuf};
 use crate::plantuml_backend::PlantUMLBackend;
-use anyhow::{bail, format_err, Result};
-use log;
-use std::ffi::OsStr;
+use anyhow::{bail, format_err, Context, Result};
 use std::fs;
 use std::io::Write;
-use std::path::Path;
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
@@ -15,7 +13,7 @@ trait PlantUMLRunner {
 struct PipedPlantUMLRunner;
 impl PlantUMLRunner for PipedPlantUMLRunner {
     fn run(&self, plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
-        let mut child = Command::new(plantuml_cmd)
+        let child = Command::new(plantuml_cmd)
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
             .arg(format!("-t{}", format))
             .arg("-nometadata")
@@ -24,70 +22,89 @@ impl PlantUMLRunner for PipedPlantUMLRunner {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn().expect("Failed to start PlantUML");
+            .spawn();
+        if let Err(e) = child {
+            return Err(e)
+                .with_context(|| format!("Failed to start PlantUML command '{}' ", plantuml_cmd));
+        }
 
         // Pipe the plantuml source
-        let mut stdin = child
+        let mut child = child.unwrap();
+        let stdin_result = child
             .stdin
             .take()
-            .expect("Failed to open stdin for piped rendering");
-        stdin
+            .unwrap() // We can simply unwrap, because we know stdin is piped
             .write_all(plantuml_src.as_bytes())
-            .expect("Failed to write to stdin for piped rendering");
-        drop(stdin); // Drop stdin, because otherwise child will hang in wait_with_output, because it cannot close stdin
+            .and_then(|stdin| {
+                drop(stdin);
+                Ok(())
+            });
+        if let Err(e) = stdin_result {
+            return Err(e).with_context(|| "Failed to pipe PlantUML code");
+        }
 
         // And wait for the result
-        let output = child
-            .wait_with_output()
-            .expect("Failed to get generated piped PlantUML image");
-
-        if output.status.success() {
-            // Stdout contains the image data
-            Ok(output.stdout)
-        } else {
-            Err(format_err!(
-                "Failed to render image in piped mode (return value {})",
-                output.status
-            ))
+        match child.wait_with_output() {
+            Ok(output) => {
+                if output.status.success() {
+                    Ok(output.stdout)
+                } else {
+                    Err(format_err!(
+                        "Failed to render image in piped mode (return value {})",
+                        output.status
+                    ))
+                }
+            }
+            Err(e) => Err(e).with_context(|| "Failed to get generated piped PlantUML image"),
         }
     }
 }
 
 struct FilePlantUMLRunner;
+
+impl  FilePlantUMLRunner {
+    fn find_generated_file(generation_dir: &Path, src_file_name: &str) -> Result<PathBuf> {
+        // PlantUML creates an output file based on the format, it is not always the same as `format` though (e.g. braille outputs a file
+        // with extension `.braille.png`)
+        // Just see which other file is in the directory next to our source file. That's the generated one...
+        let entries = fs::read_dir(generation_dir)?;
+
+        // Now find the generated file
+        for entry in entries {
+            if let Ok(path) = entry {
+                if path.file_name() != src_file_name {
+                    return Ok(path);
+                }
+            }
+        }
+
+        bail!("Failed to find generated PlantUML image.");
+    }    
+}
+
 /// Traditional file based renderer. Simply writes a file with the PlantUML source to disk and reads back the output file
 impl PlantUMLRunner for FilePlantUMLRunner {
+
     fn run(&self, plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
         // Generate the file in a tmpdir
-        let generation_dir = tempdir().expect("Failed to create PlantUML temp dir");
+        let generation_dir = tempdir().with_context("Failed to create PlantUML tempdir")?;
 
+        // Write the PlantUML source file
         const SRC_FILE_NAME: &str = "src.puml";
         let src_file = generation_dir.path().join(SRC_FILE_NAME);
+        fs::write(&src_file, plantuml_src).with_context("Failed to write PlantUML source file")?;
 
-        fs::write(&src_file, plantuml_src).expect("Failed to write PlantUML source file");
-
+        // Call PlantUML
         Command::new(plantuml_cmd)
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
             .arg(format!("-t{}", format))
             .arg("-nometadata")
             .arg(&src_file.to_str().unwrap())
             .output()
-            .expect("Failed to render image");
+            .with_context(|| "Failed to render image")?;
 
-        // PlantUML creates an output file based on the format, it is not always the same as `format` though (e.g. braille outputs a file
-        // with extension .braille.png)
-        // Just see which other file is in the directory next to our source file. That's the generated one...
-        let entries = fs::read_dir(generation_dir.path()).unwrap();
-        for entry in entries {
-            if let Ok(path) = entry {
-                if path.file_name() != SRC_FILE_NAME {
-                    let data =
-                        fs::read(path.path()).expect("Failed to read generated PlantUML image.");
-                    return Ok(data);
-                }
-            }
-        }
-
-        bail!("Failed to find generated PlantUML image.");
+        let generated_file = FilePlantUMLRunner::find_generated_file(&generation_dir.path(), SRC_FILE_NAME)?;         
+        return fs::read(generated_file).with_context(|| "Failed to read rendered image");
     }
 }
 
@@ -100,13 +117,6 @@ impl PlantUMLShell {
     pub fn new(plantuml_cmd: String) -> Self {
         Self { plantuml_cmd }
     }
-
-    /// Generate an image file from the given plantuml code.
-    fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
-        //let runner = PipedPlantUMLRunner {};
-        let runner = FilePlantUMLRunner {};
-        return runner.run(&self.plantuml_cmd, plantuml_code, image_format);
-    }
 }
 
 impl PlantUMLBackend for PlantUMLShell {
@@ -114,15 +124,17 @@ impl PlantUMLBackend for PlantUMLShell {
         &self,
         plantuml_code: &str,
         image_format: &str,
-        _output_file: &Path,
     ) -> Result<Vec<u8>> {
-        Self::render_from_string(self, plantuml_code, image_format)
+        //let runner = PipedPlantUMLRunner {};
+        let runner = FilePlantUMLRunner {};
+        return runner.run(&self.plantuml_cmd, plantuml_code, image_format)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::util::join_path;
     use anyhow::bail;
     use pretty_assertions::assert_eq;

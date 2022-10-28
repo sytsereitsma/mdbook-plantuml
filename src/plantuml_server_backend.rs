@@ -3,9 +3,6 @@ use crate::plantuml_backend::PlantUMLBackend;
 use anyhow::{bail, Result};
 use deflate::deflate_bytes;
 use reqwest::Url;
-use std::fs;
-use std::io::prelude::*;
-use std::path::Path;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
@@ -60,29 +57,18 @@ impl PlantUMLServer {
         })
     }
 
-    /// Save the downloaded image to a file
-    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<()> {
-        let mut output_file = fs::File::create(&file_path)?;
-        output_file.write_all(image_buffer)?;
-
-        Ok(())
-    }
-
     /// The business end of this struct, generate the image using the server and
     /// return the relative image URL.
     fn render_string(
         &self,
         plantuml_code: &str,
-        output_file: &Path,
         image_format: &str,
         downloader: &dyn ImageDownloader,
     ) -> Result<Vec<u8>> {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
-        let image_buffer = downloader.download_image(&request_url)?;
-        Self::save_downloaded_image(&image_buffer, output_file)?;
 
-        Ok(image_buffer)
+        downloader.download_image(&request_url)
     }
 }
 
@@ -97,10 +83,9 @@ impl PlantUMLBackend for PlantUMLServer {
         &self,
         plantuml_code: &str,
         image_format: &str,
-        output_file: &Path,
     ) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
-        self.render_string(plantuml_code, output_file, image_format, &downloader)
+        self.render_string(plantuml_code, image_format, &downloader)
     }
 }
 

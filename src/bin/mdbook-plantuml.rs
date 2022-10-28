@@ -118,9 +118,7 @@ fn setup_logging(log_to_file: bool) -> Result<(), Box<dyn Error>> {
         root_builder = root_builder.appender("logfile");
     }
 
-    let config = config_builder.build(
-        root_builder.build(LevelFilter::Debug),
-    )?;
+    let config = config_builder.build(root_builder.build(LevelFilter::Debug))?;
     log4rs::init_config(config)?;
 
     Ok(())
