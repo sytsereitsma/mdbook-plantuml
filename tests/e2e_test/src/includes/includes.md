@@ -1,6 +1,6 @@
 # Includes
 
-These only work for the shell backends.
+These only work for the shell backends in piped mode.
 
 ## The following diagram uses the PlantUML `!include` directive
 ```plantuml

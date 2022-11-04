@@ -7,9 +7,5 @@ pub trait PlantUMLBackend {
     /// * `plantuml_code` - The present source of the code block
     /// * `image_format` - The PlantUML image output format (see -t command line
     ///   option of PlantUML)
-    fn render_from_string(
-        &self,
-        plantuml_code: &str,
-        image_format: &str,
-    ) -> Result<Vec<u8>>;
+    fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>>;
 }

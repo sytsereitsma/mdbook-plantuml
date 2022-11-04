@@ -37,29 +37,67 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
     }
 }
 
-fn create_shell_backend(cfg_cmd: &Option<String>) -> Box<dyn PlantUMLBackend> {
-    let mut ret: Option<Box<dyn PlantUMLBackend>> = None;
-
-    if let Some(cmd) = cfg_cmd.as_deref() {
-        if is_working_plantuml_cmd(cmd) {
-            ret = Some(Box::new(PlantUMLShell::new(cmd.to_string())))
-        }
+fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
+    let cfg_cmd = cfg.plantuml_cmd.as_deref().unwrap_or("");
+    let piped = cfg.piped;
+    if is_working_plantuml_cmd(&cfg_cmd) {
+        return PlantUMLShell::new(cfg_cmd.to_string(), piped);
     } else {
         let candidates = ["plantuml", "java -jar plantuml.jar"];
         for cmd in candidates {
             if is_working_plantuml_cmd(cmd) {
-                ret = Some(Box::new(PlantUMLShell::new(cmd.to_string())));
-                break;
+                return PlantUMLShell::new(cmd.to_string(), piped);
             }
         }
     }
 
-    if let Some(backend) = ret {
-        backend
-    } else {
-        panic!("PlantUML executable '{}' was not found, either specify one in book.toml, \
-                or make sure the plantuml executable can be found on the path (or by java)"
-                , cfg_cmd.as_deref().unwrap_or(""));
+    panic!(
+        "PlantUML executable '{}' was not found, either specify one in book.toml, \
+            or make sure the plantuml executable can be found on the path (or by java)",
+        cfg_cmd
+    );
+}
+
+fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
+    let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
+    if !server_address.starts_with("https:") && !server_address.starts_with("http:") {
+        return None;
+    }
+
+    if !cfg!(feature = "plantuml-ssl-server") && server_address.starts_with("https:") {
+        panic!(
+            "The PlantUML command '{}' is configured to use a PlantUML SSL server, but the mdbook-plantuml plugin \
+            is built without SSL server support.\nPlease rebuild/reinstall the \
+            plugin with SSL server support, or configure the plantuml command line tool as \
+            backend. See the the Features section in README.md",
+            &server_address
+        );
+    }
+
+    if !cfg!(feature = "plantuml-ssl-server")
+        && !cfg!(feature = "plantuml-server")
+        && server_address.starts_with("http:")
+    {
+        panic!(
+            "The PlantUML command '{}' is configured to use a PlantUML server, but the mdbook-plantuml plugin \
+            is built without server support.\nPlease rebuild/reinstall the \
+            plugin with server support, or configure the plantuml command line tool as \
+            backend. See the the Features section in README.md",
+            &server_address
+        );
+    }
+
+    #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
+    match Url::parse(&server_address) {
+        Ok(server_url) => {
+            return Some(PlantUMLServer::new(server_url));
+        }
+        Err(e) => {
+            panic!(
+                "The PlantUML command '{}' is an invalid server address ({})",
+                server_address, e
+            );
+        }
     }
 }
 
@@ -68,22 +106,9 @@ fn create_shell_backend(cfg_cmd: &Option<String>) -> Box<dyn PlantUMLBackend> {
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
-    if let Some(cmd) = &cfg.plantuml_cmd {
-        if let Ok(server_url) = Url::parse(cmd) {
-            if cfg!(feature = "plantuml-ssl-server") || cfg!(feature = "plantuml-server") {
-                Box::new(PlantUMLServer::new(server_url))
-            } else {
-                panic!(
-                    "A PlantUML server is configured, but the mdbook-plantuml plugin \
-                    is built without server support.\nPlease rebuild/reinstall the \
-                    plugin with server support, or configure the plantuml cli tool as \
-                    backend. See the the Features section in README.md"
-                );
-            }
-        } else {
-            create_shell_backend(&cfg.plantuml_cmd)
-        }
+    if let Some(server_backend) = create_server_backend(&cfg) {
+        Box::new(server_backend)
     } else {
-        create_shell_backend(&None)
+        Box::new(create_shell_backend(&cfg))
     }
 }

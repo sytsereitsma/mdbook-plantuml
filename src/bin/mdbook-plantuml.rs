@@ -1,8 +1,8 @@
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use mdbook::errors::Error as MDBookError;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
+use mdbook_plantuml::get_plantuml_config;
 use mdbook_plantuml::PlantUMLPreprocessor;
-use std::error::Error;
 use std::io;
 use std::process;
 
@@ -32,23 +32,21 @@ fn main() {
     if let Some(Command::Supports { renderer }) = args.command {
         handle_supports(&preprocessor, &renderer);
     } else {
-        if let Err(e) = setup_logging(args.log) {
-            eprintln!("{}", e);
-            process::exit(2);
-        }
-
-        log::debug!(
-            "============================== Starting preprocessor ============================"
-        );
-        if let Err(e) = handle_preprocessing(&preprocessor) {
-            log::error!("{}", e);
-            process::exit(1);
+        if let Err(e) = handle_preprocessing(&preprocessor, args.log) {
+            panic!("{}", e);
         }
     }
 }
 
-fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), MDBookError> {
+fn handle_preprocessing(pre: &dyn Preprocessor, log_to_file: bool) -> Result<()> {
     let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
+
+    let config = get_plantuml_config(&ctx);
+    setup_logging(log_to_file, config.verbose)?;
+
+    log::debug!(
+        "============================== Starting preprocessor ============================"
+    );
 
     if ctx.mdbook_version != mdbook::MDBOOK_VERSION {
         // We should probably use the `semver` crate to check compatibility
@@ -87,7 +85,7 @@ fn handle_supports(pre: &dyn Preprocessor, renderer: &str) -> ! {
     }
 }
 
-fn setup_logging(log_to_file: bool) -> Result<(), Box<dyn Error>> {
+fn setup_logging(log_to_file: bool, verbose: bool) -> Result<()> {
     use log::LevelFilter;
     use log4rs::append::console::{ConsoleAppender, Target};
     use log4rs::append::file::FileAppender;
@@ -98,11 +96,17 @@ fn setup_logging(log_to_file: bool) -> Result<(), Box<dyn Error>> {
 
     // Whatever you do, DO NOT, log to stdout. Stdout is only for communication with mdbook
     let log_std_err = ConsoleAppender::builder().target(Target::Stderr).build();
-    let mut config_builder = Config::builder().appender(
+    let mut config_builder = Config::builder().appender({
+        let log_level = if verbose {
+            LevelFilter::Debug
+        } else {
+            LevelFilter::Info
+        };
+
         Appender::builder()
-            .filter(Box::new(ThresholdFilter::new(LevelFilter::Info)))
-            .build("logstderr", Box::new(log_std_err)),
-    );
+            .filter(Box::new(ThresholdFilter::new(log_level)))
+            .build("logstderr", Box::new(log_std_err))
+    });
 
     if log_to_file {
         let logfile = FileAppender::builder()

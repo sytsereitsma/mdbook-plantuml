@@ -79,11 +79,7 @@ fn encode_diagram_source(plantuml_code: &str) -> String {
 }
 
 impl PlantUMLBackend for PlantUMLServer {
-    fn render_from_string(
-        &self,
-        plantuml_code: &str,
-        image_format: &str,
-    ) -> Result<Vec<u8>> {
+    fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, image_format, &downloader)
     }

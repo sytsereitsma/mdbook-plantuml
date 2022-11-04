@@ -37,9 +37,9 @@ impl Preprocessor for PlantUMLPreprocessor {
         let cfg = get_plantuml_config(ctx);
         let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
         let org_cwd = std::env::current_dir()?;
+        let mut errors = false;
 
         let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
-        let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
@@ -53,8 +53,12 @@ impl Preprocessor for PlantUMLPreprocessor {
                     log::debug!("Changed working dir to {:?}.", abs_chapter_dir);
 
                     let rel_image_url = get_relative_img_url(chapter_path);
-                    chapter.content =
+                    let chapter_errors;
+                    (chapter.content, chapter_errors) =
                         render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
+                    if chapter_errors {
+                        errors = true;
+                    }
                 }
             }
         });
@@ -62,7 +66,8 @@ impl Preprocessor for PlantUMLPreprocessor {
         //Restore the current working dir
         std::env::set_current_dir(org_cwd)?;
 
-        res.unwrap_or(Ok(())).map(|_| book)
+        // TODO: also return error state for further processing
+        Ok(book)
     }
 
     fn supports_renderer(&self, renderer: &str) -> bool {
@@ -108,7 +113,7 @@ fn get_relative_img_url(chapter_path: &Path) -> String {
     rel_image_url
 }
 
-fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
+pub fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
     ctx.config
         .get("preprocessor.plantuml")
         .and_then(|raw| {

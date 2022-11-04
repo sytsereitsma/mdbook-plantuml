@@ -2,15 +2,21 @@ use crate::dir_cleaner::DirCleaner;
 use crate::plantuml_backend::PlantUMLBackend;
 use crate::plantuml_backend_factory;
 use crate::plantumlconfig::PlantUMLConfig;
+use anyhow::{Context, Result};
 use base64::encode;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
-use std::io::Read;
+
 use std::path::{Path, PathBuf};
 
 pub trait PlantUMLRendererTrait {
-    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String;
+    fn render(
+        &self,
+        plantuml_code: &str,
+        rel_img_url: &str,
+        image_format: String,
+    ) -> Result<String>;
 }
 
 /// Create the image names with the appropriate extension and path
@@ -79,7 +85,7 @@ impl PlantUMLRenderer {
         }
     }
 
-    fn create_datauri(image_path: &PathBuf) -> String {
+    fn create_datauri(image_path: &PathBuf) -> Result<String> {
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
 
         let media_type = match image_path
@@ -94,86 +100,81 @@ impl PlantUMLRenderer {
             _ => "",
         };
 
-        let mut image_file =
-            fs::File::open(image_path).unwrap_or_else(|e| panic!("could not open file: {}", e));
-        let mut image_bytes_buffer = Vec::new();
-        image_file
-            .read_to_end(&mut image_bytes_buffer)
-            .unwrap_or_else(|e| panic!("could not read file: {}", e));
-        let encoded_value = encode(&image_bytes_buffer);
-
-        format!("data:{};base64,{}", media_type, encoded_value)
+        let image_data = fs::read(image_path)
+            .with_context(|| format!("Could not open image file {:?}", image_path))?;
+        let encoded_value = encode(&image_data);
+        Ok(format!("data:{};base64,{}", media_type, encoded_value))
     }
 
-    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> String {
-        let uri = PlantUMLRenderer::create_datauri(image_path);
+    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> Result<String> {
+        let uri = PlantUMLRenderer::create_datauri(image_path)?;
         if clickable {
             // Note that both Edge and Firefox do not allow clicking on data URI links
             // So this probably won't work. Kept in here regardless for consistency
-            format!("[![]({})]({})\n\n", uri, uri)
+            Ok(format!("[![]({})]({})\n\n", uri, uri))
         } else {
-            format!("![]({})\n\n", uri)
+            Ok(format!("![]({})\n\n", uri))
         }
     }
 
-    fn create_inline_txt_image(image_path: &Path) -> String {
+    fn create_inline_txt_image(image_path: &Path) -> Result<String> {
         log::debug!("Creating inline image from {:?}", image_path);
         let raw_source = fs::read(image_path).unwrap();
-        let txt = unsafe { String::from_utf8_unchecked(raw_source) };
-        format!("\n```txt\n{}```\n", txt)
+        let txt = String::from_utf8(raw_source)?;
+
+        Ok(format!("\n```txt\n{}```\n", txt))
     }
 
-    // TODO: Return Result<String>
-    pub fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: &str) -> String {
-        let mut render_or_file_error: Option<String> = None;
-
+    pub fn render(
+        &self,
+        plantuml_code: &str,
+        rel_img_url: &str,
+        image_format: &str,
+    ) -> Result<String> {
+        // When operating in data-uri mode the images are written to in .mdbook-plantuml, otherwise
+        // they are written to src/mdbook-plantuml-images (cannot write to the book output dir, because
+        // mdbook deletes the files in there after preprocessing)
         let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
-            match self
+            // File is not cached, render the image
+            let data = self
                 .backend
-                .render_from_string(plantuml_code, image_format)
-            {
-                Err(e) => {
-                    let msg = format!("PlantUML rendering error ({})", e);
-                    log::error!("{}", msg);
-                    render_or_file_error = Some(msg);
-                }
-                Ok(data) => {
-                    // Save the file for caching purposes regardless of the output format
-                    let save_result = std::fs::write(&output_file, &data);
-                    if let Err(e) = save_result {
-                        let msg = format!(
-                            "Failed to save PlantUML diagram to {} ({}).",
-                            output_file.to_string_lossy(),
-                            e
-                        );
-                        log::error!("{}", msg);
-                        render_or_file_error = Some(msg);
-                    }
-                }
-            }
+                .render_from_string(plantuml_code, image_format)?;
+
+            // Save the file even if we inline images
+            std::fs::write(&output_file, &data).with_context(|| {
+                format!(
+                    "Failed to save PlantUML diagram to {}.",
+                    output_file.to_string_lossy()
+                )
+            })?;
         }
 
-        if render_or_file_error.is_none() {
-            // Let the dir cleaner know this file should be kept
-            self.cleaner.borrow_mut().keep(&output_file);
+        // Let the dir cleaner know this file should be kept
+        self.cleaner.borrow_mut().keep(&output_file);
 
-            let extension = output_file.extension().unwrap_or_default();
-            if extension == "atxt" || extension == "utxt" {
-                Self::create_inline_txt_image(&output_file)
-            } else if self.use_data_uris {
-                Self::create_image_datauri_element(&output_file, self.clickable_img)
-            } else {
-                Self::create_md_link(rel_img_url, &output_file, self.clickable_img)
-            }
+        let extension = output_file.extension().unwrap_or_default();
+        if extension == "atxt" || extension == "utxt" {
+            Self::create_inline_txt_image(&output_file)
+        } else if self.use_data_uris {
+            Self::create_image_datauri_element(&output_file, self.clickable_img)
         } else {
-            render_or_file_error.unwrap()
+            Ok(Self::create_md_link(
+                rel_img_url,
+                &output_file,
+                self.clickable_img,
+            ))
         }
     }
 }
 
 impl PlantUMLRendererTrait for PlantUMLRenderer {
-    fn render(&self, plantuml_code: &str, rel_img_url: &str, image_format: String) -> String {
+    fn render(
+        &self,
+        plantuml_code: &str,
+        rel_img_url: &str,
+        image_format: String,
+    ) -> Result<String> {
         Self::render(self, plantuml_code, rel_img_url, &image_format)
     }
 }

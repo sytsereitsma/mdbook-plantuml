@@ -5,7 +5,7 @@ pub fn render_plantuml_code_blocks(
     markdown: &str,
     renderer: &impl PlantUMLRendererTrait,
     rel_image_url: &str,
-) -> String {
+) -> (String, bool) {
     let processor = PlantUMLCodeProcessor::new(markdown);
     processor.process(renderer, rel_image_url)
 }
@@ -169,7 +169,9 @@ struct PlantUMLCodeProcessor<'a> {
 
 impl<'a> PlantUMLCodeProcessor<'a> {
     pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor { markdown }
+        PlantUMLCodeProcessor {
+            markdown: markdown,
+        }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end
@@ -222,7 +224,8 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
     /// * `rel_image_url` - The url of the image relative to the book output
     ///   dir.
-    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
+    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> (String, bool) {
+        let mut have_errors = false;
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -235,7 +238,14 @@ impl<'a> PlantUMLCodeProcessor<'a> {
                     let format = code_block.get_format();
 
                     let rendered = renderer.render(code_block.code, rel_image_url, format);
-                    processed.push_str(rendered.as_str());
+                    match rendered {
+                        Ok(data) => processed.push_str(data.as_str()),
+                        Err(e) => {
+                            processed.push_str(format!("{}", e).as_str());
+                            log::error!("{}", e);
+                            have_errors = true;
+                        }
+                    }
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
                 }
@@ -246,7 +256,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
             }
         }
 
-        processed
+        (processed, have_errors)
     }
 }
 
