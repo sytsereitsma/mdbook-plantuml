@@ -14,6 +14,8 @@ pub struct PlantUMLConfig {
     pub clickable_img: bool,
     /// Instead of creating inlined links to image files use data URIs
     pub use_data_uris: bool,
+    /// Verbose logging (debug level)
+    pub verbose: bool,
 }
 
 #[cfg(test)]
@@ -27,5 +29,6 @@ mod tests {
         assert_eq!(cfg.plantuml_cmd, None);
         assert_eq!(cfg.clickable_img, false);
         assert_eq!(cfg.use_data_uris, false);
+        assert_eq!(cfg.verbose, false);
     }
 }

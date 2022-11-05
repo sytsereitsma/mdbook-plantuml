@@ -96,7 +96,7 @@ fn get_relative_img_url(chapter_path: &Path) -> String {
     rel_image_url
 }
 
-fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
+pub fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
     ctx.config
         .get("preprocessor.plantuml")
         .and_then(|raw| {
@@ -148,6 +148,7 @@ mod tests {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
+            verbose: false,
         };
 
         assert_eq!(
@@ -168,6 +169,7 @@ mod tests {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
+            verbose: false,
         };
 
         assert_eq!(
@@ -188,6 +190,7 @@ mod tests {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
+            verbose: false,
         };
 
         // Create a file with the same name as the directory, this should fail the dir creation
