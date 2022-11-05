@@ -34,7 +34,7 @@ C --|> D
 @enduml
 ```
 
-## Unknown output error
+## Unknown output error (defaults to png on shell and error in server)
 
 ```plantuml,format=chuck
 @startuml
