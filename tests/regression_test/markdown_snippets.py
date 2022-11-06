@@ -1,10 +1,12 @@
 
 class Snippet:
     def __init__(self, code, extra=""):
-        self.plantuml_code = code.strip()
+        self.plantuml_code = code
         if extra:
             extra = "," + extra
-        self.markdown = "```plantuml{}\n{}\n```".format(extra, self.plantuml_code)
+        # Assert we can format a valid code block without
+        assert self.plantuml_code[-1] == "\n" 
+        self.markdown = "```plantuml{}\n{}```".format(extra, self.plantuml_code)
 
 
 ab_class_diagram = Snippet("""\
