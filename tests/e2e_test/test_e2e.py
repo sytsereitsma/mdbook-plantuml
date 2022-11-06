@@ -47,7 +47,8 @@ def _build_book(book_name, open_browser=True, output_dir=None, clean=True):
     else:
         env["PATH"] = preprocessor_dir + ":" + env["PATH"]
 
-    proc = subprocess.Popen(["mdbook", "build"],
+    args = ["mdbook", "build"]
+    proc = subprocess.Popen(args,
         cwd=module_dir,
         env=env,
         stdin=subprocess.PIPE,
@@ -56,8 +57,8 @@ def _build_book(book_name, open_browser=True, output_dir=None, clean=True):
 
     stdout, stderr = proc.communicate()
     if proc.returncode != 0:
-        print("Error building mdbook-plantuml (exit code {}) with args: {}"
-            .format(proc.returncode, " ".join(args)))
+        print("Error building book {} (exit code {}) with args: {}"
+            .format(book_name, proc.returncode, " ".join(args)))
         print("Stdout:\n===============================")
         print(stdout)
 
@@ -89,6 +90,7 @@ class TestEndToEndShell(unittest.TestCase):
 
     def test_shell(self):
         assert _build_book("plantuml_shell.toml")
+        assert _build_book("plantuml_shell_not_piped.toml")
 
     def test_clickable(self):
         assert _build_book("plantuml_shell_clickable.toml")
@@ -118,4 +120,4 @@ class TestEndToEndShell(unittest.TestCase):
         self.assertLess(cached_time, uncached_time / 4)
 
     def test_shell_has_no_server(self):
-        assert _build_book("plantuml_server.toml", output_dir="plantuml_server_fail")
+        assert not _build_book("plantuml_server.toml", output_dir="plantuml_server_fail")
