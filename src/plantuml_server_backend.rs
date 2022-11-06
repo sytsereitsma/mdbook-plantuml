@@ -3,9 +3,6 @@ use crate::plantuml_backend::PlantUMLBackend;
 use anyhow::{bail, Result};
 use deflate::deflate_bytes;
 use reqwest::Url;
-use std::fs;
-use std::io::prelude::*;
-use std::path::Path;
 
 /// Helper trait for unit testing purposes (allow testing without a live server)
 trait ImageDownloader {
@@ -60,29 +57,18 @@ impl PlantUMLServer {
         })
     }
 
-    /// Save the downloaded image to a file
-    fn save_downloaded_image(image_buffer: &[u8], file_path: &Path) -> Result<()> {
-        let mut output_file = fs::File::create(&file_path)?;
-        output_file.write_all(image_buffer)?;
-
-        Ok(())
-    }
-
     /// The business end of this struct, generate the image using the server and
     /// return the relative image URL.
     fn render_string(
         &self,
         plantuml_code: &str,
-        output_file: &Path,
         image_format: &str,
         downloader: &dyn ImageDownloader,
-    ) -> Result<()> {
+    ) -> Result<Vec<u8>> {
         let encoded = encode_diagram_source(plantuml_code);
         let request_url = self.get_url(image_format, &encoded)?;
-        let image_buffer = downloader.download_image(&request_url)?;
-        Self::save_downloaded_image(&image_buffer, output_file)?;
 
-        Ok(())
+        downloader.download_image(&request_url)
     }
 }
 
@@ -93,25 +79,18 @@ fn encode_diagram_source(plantuml_code: &str) -> String {
 }
 
 impl PlantUMLBackend for PlantUMLServer {
-    fn render_from_string(
-        &self,
-        plantuml_code: &str,
-        image_format: &str,
-        output_file: &Path,
-    ) -> Result<()> {
+    fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
-        self.render_string(plantuml_code, output_file, image_format, &downloader)
+        self.render_string(plantuml_code, image_format, &downloader)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::join_path;
     use anyhow::Result;
     use pretty_assertions::assert_eq;
     use simulacrum::*;
-    use tempfile::tempdir;
 
     #[test]
     fn test_get_url() {
@@ -142,18 +121,6 @@ mod tests {
         assert_eq!("SrRGrQsnKt0100==", encode_diagram_source("C --|> D"));
     }
 
-    #[test]
-    fn test_save_downloaded_image() {
-        let tmp_dir = tempdir().unwrap();
-
-        let data: Vec<u8> = b"totemizer".to_vec();
-        let img_path = join_path(tmp_dir.path(), "somefile.ext");
-        PlantUMLServer::save_downloaded_image(&data, &img_path).unwrap();
-
-        let raw_source = fs::read(img_path).unwrap();
-        assert_eq!("totemizer", String::from_utf8_lossy(&raw_source));
-    }
-
     create_mock! {
         impl ImageDownloader for ImageDownloaderMock (self) {
             expect_download_image("download_image"):
@@ -163,10 +130,7 @@ mod tests {
 
     #[test]
     fn test_render_string() {
-        let tmp_dir = tempdir().unwrap();
-        let output_path = tmp_dir.into_path();
         let srv = PlantUMLServer::new(Url::parse("http://froboz").unwrap());
-        let output_file = join_path(output_path, "foobar.svg");
 
         let mut mock_downloader = ImageDownloaderMock::new();
         mock_downloader
@@ -177,10 +141,9 @@ mod tests {
             ))
             .returning(|_| Ok(b"the rendered image".to_vec()));
 
-        srv.render_string("C --|> D", &output_file, "svg", &mock_downloader)
+        let img_data = srv.render_string("C --|> D", "svg", &mock_downloader)
             .unwrap();
 
-        let raw_source = fs::read(output_file).unwrap();
-        assert_eq!("the rendered image", String::from_utf8_lossy(&raw_source));
+        assert_eq!("the rendered image", String::from_utf8_lossy(&img_data));
     }
 }

@@ -885,6 +885,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha1",
+ "shlex",
  "simulacrum",
  "tempfile",
 ]

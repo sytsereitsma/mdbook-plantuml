@@ -7,11 +7,19 @@ use crate::plantumlconfig::PlantUMLConfig;
 use reqwest::Url;
 use std::process::Command;
 use std::str;
+use shlex::Shlex;
 
 /// Test if given PlantUML executable is a working one
 fn is_working_plantuml_cmd(cmd: &str) -> bool {
+    let mut lex = Shlex::new(cmd);
+    let cmd_parts = lex.by_ref().collect::<Vec<_>>();
+    if lex.had_error {
+        log::warn!("PlantUML command {} is invalid.", cmd);
+        return false;
+    }    
+
     log::debug!("Testing PlantUML command {}", cmd);
-    let result = Command::new(cmd).arg("-version").output().map(|output| {
+    let result = Command::new(&cmd_parts[0]).args(&cmd_parts[1..]).arg("-version").output().map(|output| {
         match str::from_utf8(&output.stdout) {
             Ok(stdout) => {
                 // First line in stdout should be the version number
@@ -40,28 +48,39 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
 
 fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
     let cfg_cmd = cfg.plantuml_cmd.as_deref().unwrap_or("");
-    if is_working_plantuml_cmd(&cfg_cmd) {
-        return PlantUMLShell::new(cfg_cmd.to_string());
+    let piped = cfg.piped;
+    if cfg_cmd != "" {
+        if is_working_plantuml_cmd(&cfg_cmd) {
+            return PlantUMLShell::new(cfg_cmd.to_string(), piped);
+        }
+        else {
+            panic!(
+                "PlantUML executable '{}' was not found, please check the plantuml-cmd in book.toml, \
+                    or make sure the plantuml executable can be found on the path (or by java)",
+                cfg_cmd
+            );
+        }
     } else {
         let candidates = ["plantuml", "java -jar plantuml.jar"];
         for cmd in candidates {
             if is_working_plantuml_cmd(cmd) {
-                return PlantUMLShell::new(cmd.to_string());
+                return PlantUMLShell::new(cmd.to_string(), piped);
             }
         }
-    }
 
-    panic!(
-        "PlantUML executable '{}' was not found, either specify one in book.toml, \
-            or make sure the plantuml executable can be found on the path (or by java)",
-        cfg_cmd
-    );
+        panic!(
+            "PlantUML executable could not be auto detected, tried '{}'. either specify one in book.toml, \
+                or make sure the plantuml executable can be found on the path (or by java)",
+            candidates.join(",")
+        );
+    }
 }
 
-fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
-    let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
+/// Checks if a plantuml server is configured, but the application is built without server support
+/// Panics if the configured PlantUML server address is incompatible with the build features.
+fn check_server_support(server_address: &str) {
     if !server_address.starts_with("https:") && !server_address.starts_with("http:") {
-        return None;
+        return;
     }
 
     if !cfg!(feature = "plantuml-ssl-server") && server_address.starts_with("https:") {
@@ -86,8 +105,29 @@ fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
             &server_address
         );
     }
+}
 
-    #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
+
+#[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
+/// Returns None, or panics, because we have no server support
+/// Returns Option<PlantUMLShell>, because otherwise a dummy trait would need to be implemented as a placeholder
+fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLShell> {
+    let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
+    check_server_support(server_address);
+
+    None
+}
+
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
+fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
+    let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
+    if !server_address.starts_with("https:") && !server_address.starts_with("http:") {
+        return None;
+    }
+
+    // Make sure the application was built with the appropriate features (in this case potential https support)
+    check_server_support(server_address);
+
     match Url::parse(&server_address) {
         Ok(server_url) => {
             return Some(PlantUMLServer::new(server_url));
