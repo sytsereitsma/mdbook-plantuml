@@ -1,24 +1,24 @@
 use crate::plantuml_backend::PlantUMLBackend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use crate::plantuml_server_backend::PlantUMLServer;
-use crate::plantuml_shell_backend::PlantUMLShell;
+use crate::plantuml_shell_backend::{PlantUMLShell, split_shell_command};
 use crate::plantumlconfig::PlantUMLConfig;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::process::Command;
 use std::str;
-use shlex::Shlex;
 
 /// Test if given PlantUML executable is a working one
 fn is_working_plantuml_cmd(cmd: &str) -> bool {
-    let mut lex = Shlex::new(cmd);
-    let cmd_parts = lex.by_ref().collect::<Vec<_>>();
-    if lex.had_error {
-        log::warn!("PlantUML command {} is invalid.", cmd);
-        return false;
-    }    
+    let cmd_parts = match split_shell_command(cmd) {
+        Ok(cp) => cp,
+        Err(e) => {
+            log::warn!("PlantUML command {} is invalid ({}).", cmd, e);
+            return false;
+        }
+    };
 
-    log::debug!("Testing PlantUML command {}", cmd);
+    log::error!("Testing PlantUML command {} ({:?})", cmd, cmd_parts);
     let result = Command::new(&cmd_parts[0]).args(&cmd_parts[1..]).arg("-version").output().map(|output| {
         match str::from_utf8(&output.stdout) {
             Ok(stdout) => {
@@ -31,7 +31,7 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
                 }
             }
             Err(e) => {
-                log::warn!("Failed to parse '{}' stdout ({})", cmd, e);
+                log::error!("Failed to parse '{}' stdout ({})", cmd, e);
                 false
             }
         }
@@ -40,16 +40,15 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
     match result {
         Ok(valid) => valid,
         Err(e) => {
-            log::warn!("Test of '{}' failed ({})", cmd, e);
+            log::error!("Test of '{}' failed ({})", cmd, e);
             false
         }
     }
 }
 
 fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
-    let cfg_cmd = cfg.plantuml_cmd.as_deref().unwrap_or("");
     let piped = cfg.piped;
-    if cfg_cmd != "" {
+    if let Some(cfg_cmd) = &cfg.plantuml_cmd {
         if is_working_plantuml_cmd(&cfg_cmd) {
             return PlantUMLShell::new(cfg_cmd.to_string(), piped);
         }
