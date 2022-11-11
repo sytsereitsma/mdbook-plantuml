@@ -21,6 +21,7 @@ use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
 
 use std::path::{Path, PathBuf};
+use dunce;
 
 pub struct PlantUMLPreprocessor;
 
@@ -43,7 +44,7 @@ impl Preprocessor for PlantUMLPreprocessor {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
                     log::info!("Processing chapter '{}' ({:?})", chapter.name, chapter_path);
-                    let abs_chapter_dir = ctx.root.canonicalize().unwrap().join(&ctx.config.book.src).join(&chapter_path).parent().unwrap().to_path_buf();
+                    let abs_chapter_dir = dunce::canonicalize(&ctx.root).unwrap().join(&ctx.config.book.src).join(&chapter_path).parent().unwrap().to_path_buf();
 
                     // Change the working dir so the PlantUML `!include` directive can be used using relative includes
                     if let Err(e) = std::env::set_current_dir(&abs_chapter_dir) {
@@ -75,7 +76,7 @@ fn get_image_output_dir(
     cfg: &PlantUMLConfig,
 ) -> Result<PathBuf> {
     let img_output_dir: PathBuf = {
-        let canonicalized_root = root.canonicalize().with_context(|| "While determining image output dir")?;
+        let canonicalized_root = dunce::canonicalize(&root).with_context(|| "While determining image output dir")?;
         if cfg.use_data_uris {
             // Create the images in the book root dir (unmonitored by the serve command)
             // This way the rendered images can be cached without causing additional

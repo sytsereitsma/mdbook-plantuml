@@ -6,8 +6,8 @@ The tests are written as python unit tests and call on the executables.
 The regression tester calls the mdbook-plantuml executable (all features
 enabled) directly (bypassing mdbook).
 This makes it sensitive to changes in mdbook, but gives a greater level of control
-over the tests. It uses a fake plantuml script to inject errors and capture the
-preprocessor output.
+over the tests. It uses a fake plantuml script (fake_plantuml.py) to inject errors
+and capture the preprocessor output.
 
 The ```./regression_test/regenerate_book_json/regeneration_preprocessor.py```
 scripts creates a new template book in ```./regression_test/book.json```. It simply
@@ -20,17 +20,22 @@ mdbook build
 ```
 
 ## End to end (E2E) tests
-These test the full processing pipeline with all feature combinations and show
-the pages in your browser.
+These test the full processing pipeline with all feature combinations (the mdbook-plantuml
+executable is rebuilt with different features enabled/disabled) and show the pages in your browser.
 
 This is a bit of a pain, but the image names are randomly generated, so using a
 diff tool is not (easily) possible..
 
 ## Running the tests
 
+> Make sure you have a docker daemon running.
+
 ### Windows
+Simply run ```run_tests.bat```
+
+Or, manually:
 ```
-py -3 -m virtualenv venv
+py -3 -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 set PYTHONPATH=%cd%\shared_modules
@@ -39,11 +44,34 @@ set PYTHONPATH=%cd%\shared_modules
 After that run the tests:
 ```sh
 cd regression_tester
-nosetests .
+pytest
 ```
 
 And for the end to end tests:
 ```sh
 cd e2e_tests
-nosetests .
+pytest
+```
+
+### Linux
+Simply run ```run_tests.sh```
+
+Or, manually:
+```
+python3 -m venv venv
+. venv\bin\activate
+pip install -r requirements.txt
+export PYTHONPATH=$(pwd)\shared_modules
+```
+
+After that run the tests:
+```sh
+cd regression_tester
+pytest
+```
+
+And for the end to end tests:
+```sh
+cd e2e_tests
+pytest
 ```

@@ -5,24 +5,39 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
-use shlex::Shlex;
+use shlex;
 
-fn create_command(plantuml_cmd: &str) -> Command {
-    // No need to check had_errors for lex, that was already done by the backend factory
-    let mut lex = Shlex::new(plantuml_cmd);
-    let cmd_parts = lex.by_ref().collect::<Vec<_>>();
+/// Split a shell command into its parts, e.g. "python D:\\foo" will become ["Python", "D:/Foo"]
+pub fn split_shell_command(cmd: &str) ->Result<Vec<String>> {
+    let preprocessed: String = {
+        // Windows paths are converted to forward slash paths (shell_words and shlex both assume
+        // posix paths and treat the backslashes as escape characters), which would make C:\foo\bar
+        // become C:foobar
+        if cfg!(target_family = "windows") {
+            cmd.replace("\\", "/")
+        }
+        else {
+            String::from(cmd)
+        }
+    };
+
+    let cmd_parts = shlex::split(preprocessed.as_str()).ok_or(format_err!("Invalid command"))?;
+    Ok(cmd_parts)
+}
+
+fn create_command(plantuml_cmd: &str) -> Result<Command> {
+    let cmd_parts = split_shell_command(plantuml_cmd)?;
 
     let mut command = Command::new(&cmd_parts[0]);
     command.args(&cmd_parts[1..]);
 
-    command
+    Ok(command)
 }
 
 struct PipedPlantUMLRunner;
 impl PipedPlantUMLRunner {
     fn run(plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
-
-        let mut child = create_command(plantuml_cmd)
+        let mut child = create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
             .arg(format!("-t{}", format))
             .arg("-nometadata")
@@ -95,7 +110,7 @@ impl FilePlantUMLRunner {
             .with_context(|| "Failed to write PlantUML source file")?;
 
         // Call PlantUML
-        create_command(plantuml_cmd)
+        create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
             .arg(format!("-t{}", format))
             .arg("-nometadata")
@@ -145,5 +160,32 @@ mod tests {
 
         let found_file = FilePlantUMLRunner::find_generated_file(&generation_dir.path(), "somefile.txt");
         assert!(found_file.is_err());
+    }
+
+    #[test]
+    fn test_split_shell_command() {
+        assert!(split_shell_command("").unwrap().is_empty());
+
+        // String with multiple arguments
+        assert_eq!(vec![String::from("python"), String::from("foo"), String::from("bar")], split_shell_command("python foo bar").unwrap());
+
+        // Unclosed quoted string
+        assert!(split_shell_command("python \"/foo").is_err());
+
+        if cfg!(target_family = "windows") {
+            // On windows backslashes are converted to forward slashes paths
+            assert_eq!(vec![String::from("python"), String::from("D:/foo/bar")], split_shell_command("python D:\\foo\\bar").unwrap());
+            
+            // String with escaped space (escaping with backslashes is not a thing on windows)
+            assert_eq!(vec![String::from("python"), String::from("foo/"), String::from("bar")], split_shell_command("python foo\\ bar").unwrap());
+        }
+
+        // And on non windows platforms they are treated as posix paths, meaning backslashes are treated as escape characters
+        if !cfg!(target_family = "windows") {
+            assert_eq!(vec![String::from("python"), String::from("D:foobar")], split_shell_command("python D:\\foo\\bar").unwrap());
+            
+            // String with escaped spaces
+            assert_eq!(vec![String::from("python"), String::from("foo bar")], split_shell_command("python foo\\ bar").unwrap());
+        }
     }
 }
