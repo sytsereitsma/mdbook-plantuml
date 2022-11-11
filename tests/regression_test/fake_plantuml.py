@@ -1,5 +1,5 @@
 """
-A little fake application to be used as a plantuml.jar dropin
+A little fake application to be used as a PlantUML dropin
 It is used to capture the arguments plantuml is called with and returns a fake
 'image' which stores the command line plantuml would have been called with for
 that file.
@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     # Append command output to calls file
     try:
-        prev_commands = json.load(open(file_locations.get_shell_calls_file()))
+        prev_commands = json.load(open(file_locations.get_plantuml_calls_file()))
     except IOError:
         prev_commands = []
 
@@ -32,7 +32,8 @@ if __name__ == "__main__":
         
         # Dump the command line arguments and resulting image location in the
         # 'image file'. The tester can then check these for validity.
-        print(" ".join(sys.argv[1:]))
+        # Do not use print, as this will append \r\n on windows and \n on Linux, which makes testing hard
+        sys.stdout.write(" ".join(sys.argv[1:]))
 
         prev_commands.append({
             "arguments": sys.argv[1:],
@@ -52,7 +53,7 @@ if __name__ == "__main__":
 
     json.dump(
         prev_commands,
-        open(file_locations.get_shell_calls_file(), "wt"),
+        open(file_locations.get_plantuml_calls_file(), "wt"),
         indent=2
     )
 

@@ -8,7 +8,7 @@
         ],
         "language": "en",
         "multilingual": false,
-        "src": "test_output",
+        "src": ".",
         "title": "mdBook E2E test book"
       },
       "preprocessor": {
@@ -16,7 +16,7 @@
       }
     },
     "renderer": "html",
-    "mdbook_version": "0.4.2"
+    "mdbook_version": "0.4.21"
   },
   {
     "sections": [

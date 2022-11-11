@@ -5,3 +5,4 @@
 - [Image formats](./formats.md)
 - [Unclosed code block](./unclosed_code_block.md)
 - [End fence too small](./end_fence_too_small.md)
+- [Includes](./includes/includes.md)

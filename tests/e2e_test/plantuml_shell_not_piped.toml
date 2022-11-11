@@ -1,0 +1,17 @@
+[book]
+authors = ["Sytse Reitsma"]
+multilingual = false
+src = "src"
+title = "mdBook E2E test book"
+
+[build]
+build-dir = "plantuml_shell_not_piped"
+
+[output.html]
+mathjax-support = true
+
+[preprocessor.plantuml]
+plantuml-cmd="plantuml"
+use-data-uris=true
+clickable-img=true
+piped=false

@@ -1,7 +1,9 @@
+import copy
 import json
 import os
 import subprocess
 import logging
+import file_locations
 
 
 class Result:
@@ -67,16 +69,22 @@ class PreprocessorRunner:
         preprocessor_cmd = os.path.join(tester_root, "..", "..", "target",
                                         "release", "mdbook-plantuml")
         logging.info(f"Preprocessor cmd: '{preprocessor_cmd}'")
-        logging.debug(f"Book: '{json.dumps(self.__book, indent=2)}'")
+        json.dump(self.__book, open(os.path.join(file_locations.get_test_output_dir(), "book.json"), "w"), indent=2)
+
+        env = copy.deepcopy(os.environ)
+        env["RUST_BACKTRACE"]="full"
 
         proc = subprocess.Popen(
             [preprocessor_cmd],
+            env=env,
+            cwd=file_locations.get_test_output_dir(),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         stdout, stderr = proc.communicate(json.dumps(self.__book).encode(),
                                           timeout=5.0)
+        logging.error(f"{preprocessor_cmd} stderr: {stderr}")
         if proc.returncode != 0:
             logging.error(f"{preprocessor_cmd} stderr: {stderr}")
             raise subprocess.CalledProcessError(

@@ -1,4 +1,4 @@
 *.log
 venv/
 __pycache__
-.plantuml-cache
+.pytest_cache

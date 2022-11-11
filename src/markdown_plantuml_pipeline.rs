@@ -235,7 +235,13 @@ impl<'a> PlantUMLCodeProcessor<'a> {
                     let format = code_block.get_format();
 
                     let rendered = renderer.render(code_block.code, rel_image_url, format);
-                    processed.push_str(rendered.as_str());
+                    match rendered {
+                        Ok(data) => processed.push_str(data.as_str()),
+                        Err(e) => {
+                            processed.push_str(format!("{}", e).as_str());
+                            log::error!("{}", e);
+                        }
+                    }
                 } else {
                     processed.push_str(&self.markdown[start_pos..code_block.end_pos]);
                 }
@@ -253,6 +259,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use anyhow::Result;
     use pretty_assertions::assert_eq;
     use std::cell::RefCell;
 
@@ -262,9 +269,14 @@ mod test {
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(&self, code_block: &str, _rel_image_url: &str, _image_format: String) -> String {
+        fn render(
+            &self,
+            code_block: &str,
+            _rel_image_url: &str,
+            _image_format: String,
+        ) -> Result<String> {
             self.code_block.replace(code_block.to_string());
-            String::from("rendered")
+            Ok(String::from("rendered"))
         }
     }
 

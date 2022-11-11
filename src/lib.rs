@@ -15,10 +15,11 @@ use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
 use crate::plantuml_renderer::PlantUMLRenderer;
 use crate::plantumlconfig::PlantUMLConfig;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
+
 use std::path::{Path, PathBuf};
 
 pub struct PlantUMLPreprocessor;
@@ -35,22 +36,32 @@ impl Preprocessor for PlantUMLPreprocessor {
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = get_plantuml_config(ctx);
         let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
+        let org_cwd = std::env::current_dir()?;
 
         let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
-        let res = None;
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
                     log::info!("Processing chapter '{}' ({:?})", chapter.name, chapter_path);
+                    let abs_chapter_dir = dunce::canonicalize(&ctx.root).unwrap().join(&ctx.config.book.src).join(&chapter_path).parent().unwrap().to_path_buf();
+
+                    // Change the working dir so the PlantUML `!include` directive can be used using relative includes
+                    if let Err(e) = std::env::set_current_dir(&abs_chapter_dir) {
+                        log::warn!("Failed to change working dir to {:?}, PlantUML might not be able to render includes ({}).", &abs_chapter_dir, e);
+                    }
+                    log::debug!("Changed working dir to {:?}.", abs_chapter_dir);
 
                     let rel_image_url = get_relative_img_url(chapter_path);
-                    chapter.content =
-                        render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
+                    chapter.content = render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
                 }
             }
         });
 
-        res.unwrap_or(Ok(())).map(|_| book)
+        //Restore the current working dir
+        std::env::set_current_dir(org_cwd)?;
+
+        // TODO: also return error state for further processing
+        Ok(book)
     }
 
     fn supports_renderer(&self, renderer: &str) -> bool {
@@ -63,20 +74,27 @@ fn get_image_output_dir(
     src_root: &PathBuf,
     cfg: &PlantUMLConfig,
 ) -> Result<PathBuf> {
-    let img_output_dir = {
+    let img_output_dir: PathBuf = {
+        let canonicalized_root =
+            dunce::canonicalize(&root).with_context(|| "While determining image output dir")?;
         if cfg.use_data_uris {
             // Create the images in the book root dir (unmonitored by the serve command)
             // This way the rendered images can be cached without causing additional
             // rebuilds.
-            root.join(".mdbook-plantuml-cache")
+            canonicalized_root.join(".mdbook-plantuml-cache")
         } else {
             // Create the images in the book src dir
-            root.join(&src_root).join("mdbook-plantuml-img")
+            canonicalized_root
+                .join(&src_root)
+                .join("mdbook-plantuml-img")
         }
     };
 
+    log::info!("Image output/cache dir will be {:?}", &img_output_dir);
+
     // Always create the image output dir
     if !img_output_dir.is_dir() {
+        log::debug!("Image output/cache dir does not exists, creating...");
         if let Err(e) = fs::create_dir_all(&img_output_dir) {
             bail!("Failed to create the image output dir ({}).", e);
         }
@@ -149,11 +167,12 @@ mod tests {
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
             verbose: false,
+            piped: false,
         };
 
         assert_eq!(
             get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
-            book_root.as_path().join(".mdbook-plantuml-cache")
+            dunce::canonicalize(book_root.as_path().join(".mdbook-plantuml-cache")).unwrap()
         );
         assert!(book_root.as_path().join(".mdbook-plantuml-cache").exists());
         assert!(!src_root.as_path().join("mdbook-plantuml-img").exists());
@@ -170,6 +189,7 @@ mod tests {
             clickable_img: false,
             use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
             verbose: false,
+            piped: false,
         };
 
         assert_eq!(
@@ -191,6 +211,7 @@ mod tests {
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
             verbose: false,
+            piped: false,
         };
 
         // Create a file with the same name as the directory, this should fail the dir creation
