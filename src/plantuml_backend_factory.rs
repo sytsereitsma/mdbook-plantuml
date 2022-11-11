@@ -53,8 +53,8 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
 fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
     let piped = cfg.piped;
     if let Some(cfg_cmd) = &cfg.plantuml_cmd {
-        if is_working_plantuml_cmd(&cfg_cmd) {
-            return PlantUMLShell::new(cfg_cmd.to_string(), piped);
+        if is_working_plantuml_cmd(cfg_cmd) {
+            PlantUMLShell::new(cfg_cmd.to_string(), piped)
         } else {
             panic!(
                 "PlantUML executable '{}' was not found, please check the plantuml-cmd in book.toml, \
@@ -129,10 +129,8 @@ fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
     // Make sure the application was built with the appropriate features (in this case potential https support)
     check_server_support(server_address);
 
-    match Url::parse(&server_address) {
-        Ok(server_url) => {
-            return Some(PlantUMLServer::new(server_url));
-        }
+    match Url::parse(server_address) {
+        Ok(server_url) => Some(PlantUMLServer::new(server_url)),
         Err(e) => {
             panic!(
                 "The PlantUML command '{}' is an invalid server address ({})",
@@ -147,9 +145,9 @@ fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
-    if let Some(server_backend) = create_server_backend(&cfg) {
+    if let Some(server_backend) = create_server_backend(cfg) {
         Box::new(server_backend)
     } else {
-        Box::new(create_shell_backend(&cfg))
+        Box::new(create_shell_backend(cfg))
     }
 }

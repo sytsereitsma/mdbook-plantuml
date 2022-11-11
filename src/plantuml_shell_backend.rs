@@ -1,6 +1,6 @@
 use crate::plantuml_backend::PlantUMLBackend;
 use anyhow::{bail, format_err, Context, Result};
-use shlex;
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -14,13 +14,14 @@ pub fn split_shell_command(cmd: &str) -> Result<Vec<String>> {
         // posix paths and treat the backslashes as escape characters), which would make C:\foo\bar
         // become C:foobar
         if cfg!(target_family = "windows") {
-            cmd.replace("\\", "/")
+            cmd.replace('\\', "/")
         } else {
             String::from(cmd)
         }
     };
 
-    let cmd_parts = shlex::split(preprocessed.as_str()).ok_or(format_err!("Invalid command"))?;
+    let cmd_parts =
+        shlex::split(preprocessed.as_str()).ok_or_else(|| format_err!("Invalid command"))?;
     Ok(cmd_parts)
 }
 
@@ -54,10 +55,6 @@ impl PipedPlantUMLRunner {
             .take()
             .unwrap() // We can simply unwrap, because we know stdin is piped
             .write_all(plantuml_src.as_bytes())
-            .and_then(|stdin| {
-                drop(stdin);
-                Ok(())
-            })
             .with_context(|| "Failed to pipe PlantUML code")?;
 
         // And wait for the result
@@ -70,8 +67,8 @@ impl PipedPlantUMLRunner {
             Err(format_err!(
                 "Failed to render image in piped mode ({})\n  stdout: '{}'\n  stderr: '{}'",
                 output.status,
-                String::from_utf8(output.stdout).unwrap_or(String::from("")),
-                String::from_utf8(output.stderr).unwrap_or(String::from(""))
+                String::from_utf8(output.stdout).unwrap_or_else(|_| String::from("")),
+                String::from_utf8(output.stderr).unwrap_or_else(|_| String::from(""))
             ))
         }
     }
@@ -87,11 +84,9 @@ impl FilePlantUMLRunner {
         let entries = fs::read_dir(generation_dir)?;
 
         // Now find the generated file
-        for entry in entries {
-            if let Ok(path) = entry {
-                if path.file_name() != src_file_name {
-                    return Ok(path.path());
-                }
+        for path in entries.flatten() {
+            if path.file_name() != src_file_name {
+                return Ok(path.path());
             }
         }
 
@@ -118,8 +113,8 @@ impl FilePlantUMLRunner {
             .with_context(|| "Failed to render image")?;
 
         let generated_file =
-            FilePlantUMLRunner::find_generated_file(&generation_dir.path(), SRC_FILE_NAME)?;
-        return fs::read(generated_file).with_context(|| "Failed to read rendered image");
+            FilePlantUMLRunner::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
+        fs::read(generated_file).with_context(|| "Failed to read rendered image")
     }
 }
 
@@ -162,7 +157,7 @@ mod tests {
         let generation_dir = tempdir().unwrap();
 
         let found_file =
-            FilePlantUMLRunner::find_generated_file(&generation_dir.path(), "somefile.txt");
+            FilePlantUMLRunner::find_generated_file(generation_dir.path(), "somefile.txt");
         assert!(found_file.is_err());
     }
 

@@ -20,7 +20,6 @@ use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
 
-use dunce;
 use std::path::{Path, PathBuf};
 
 pub struct PlantUMLPreprocessor;

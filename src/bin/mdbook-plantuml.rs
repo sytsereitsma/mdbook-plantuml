@@ -31,10 +31,8 @@ fn main() {
     let preprocessor = PlantUMLPreprocessor;
     if let Some(Command::Supports { renderer }) = args.command {
         handle_supports(&preprocessor, &renderer);
-    } else {
-        if let Err(e) = handle_preprocessing(&preprocessor, args.log) {
-            panic!("{}", e);
-        }
+    } else if let Err(e) = handle_preprocessing(&preprocessor, args.log) {
+        panic!("{}", e);
     }
 }
 

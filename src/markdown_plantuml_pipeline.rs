@@ -169,7 +169,7 @@ struct PlantUMLCodeProcessor<'a> {
 
 impl<'a> PlantUMLCodeProcessor<'a> {
     pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor { markdown: markdown }
+        PlantUMLCodeProcessor { markdown }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end

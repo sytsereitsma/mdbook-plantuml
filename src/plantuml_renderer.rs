@@ -64,7 +64,7 @@ impl PlantUMLRenderer {
         let renderer = Self {
             backend: plantuml_backend_factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
-            img_root: img_root,
+            img_root,
             clickable_img: cfg.clickable_img,
             use_data_uris: cfg.use_data_uris,
         };
@@ -322,7 +322,7 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn"
             ),
-            renderer.render(&plantuml_code, "rel/url", "svg").unwrap()
+            renderer.render(plantuml_code, "rel/url", "svg").unwrap()
         );
 
         // png extension
@@ -331,19 +331,19 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n"
             ),
-            renderer.render(&plantuml_code, "rel/url", "png").unwrap()
+            renderer.render(plantuml_code, "rel/url", "png").unwrap()
         );
 
         // txt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(&plantuml_code, "rel/url", "txt").unwrap()
+            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
 
         // utxt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(&plantuml_code, "rel/url", "txt").unwrap()
+            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
     }
 
