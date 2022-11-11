@@ -173,7 +173,7 @@ mod tests {
 
         assert_eq!(
             get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
-            book_root.as_path().join(".mdbook-plantuml-cache")
+            dunce::canonicalize(book_root.as_path().join(".mdbook-plantuml-cache")).unwrap()
         );
         assert!(book_root.as_path().join(".mdbook-plantuml-cache").exists());
         assert!(!src_root.as_path().join("mdbook-plantuml-img").exists());
