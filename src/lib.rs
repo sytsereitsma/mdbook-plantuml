@@ -15,13 +15,13 @@ use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
 use crate::plantuml_renderer::PlantUMLRenderer;
 use crate::plantumlconfig::PlantUMLConfig;
-use anyhow::{bail, Result, Context};
+use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use std::fs;
 
-use std::path::{Path, PathBuf};
 use dunce;
+use std::path::{Path, PathBuf};
 
 pub struct PlantUMLPreprocessor;
 
@@ -76,7 +76,8 @@ fn get_image_output_dir(
     cfg: &PlantUMLConfig,
 ) -> Result<PathBuf> {
     let img_output_dir: PathBuf = {
-        let canonicalized_root = dunce::canonicalize(&root).with_context(|| "While determining image output dir")?;
+        let canonicalized_root =
+            dunce::canonicalize(&root).with_context(|| "While determining image output dir")?;
         if cfg.use_data_uris {
             // Create the images in the book root dir (unmonitored by the serve command)
             // This way the rendered images can be cached without causing additional
@@ -84,9 +85,10 @@ fn get_image_output_dir(
             canonicalized_root.join(".mdbook-plantuml-cache")
         } else {
             // Create the images in the book src dir
-            canonicalized_root.join(&src_root).join("mdbook-plantuml-img")
+            canonicalized_root
+                .join(&src_root)
+                .join("mdbook-plantuml-img")
         }
-
     };
 
     log::info!("Image output/cache dir will be {:?}", &img_output_dir);

@@ -35,7 +35,7 @@ impl Default for PlantUMLConfig {
             piped: true,
             clickable_img: false,
             use_data_uris: true,
-            verbose: false,            
+            verbose: false,
         }
     }
 }

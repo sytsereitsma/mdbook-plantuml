@@ -169,9 +169,7 @@ struct PlantUMLCodeProcessor<'a> {
 
 impl<'a> PlantUMLCodeProcessor<'a> {
     pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor {
-            markdown: markdown,
-        }
+        PlantUMLCodeProcessor { markdown: markdown }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end
@@ -261,9 +259,9 @@ impl<'a> PlantUMLCodeProcessor<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use anyhow::Result;
     use pretty_assertions::assert_eq;
     use std::cell::RefCell;
-    use anyhow::Result;
 
     struct FakeRenderer {
         /// TODO: Make this a vector
@@ -271,7 +269,12 @@ mod test {
     }
 
     impl PlantUMLRendererTrait for FakeRenderer {
-        fn render(&self, code_block: &str, _rel_image_url: &str, _image_format: String) -> Result<String> {
+        fn render(
+            &self,
+            code_block: &str,
+            _rel_image_url: &str,
+            _image_format: String,
+        ) -> Result<String> {
             self.code_block.replace(code_block.to_string());
             Ok(String::from("rendered"))
         }

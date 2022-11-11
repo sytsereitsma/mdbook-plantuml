@@ -1,22 +1,21 @@
 use crate::plantuml_backend::PlantUMLBackend;
 use anyhow::{bail, format_err, Context, Result};
+use shlex;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
-use shlex;
 
 /// Split a shell command into its parts, e.g. "python D:\\foo" will become ["Python", "D:/Foo"]
-pub fn split_shell_command(cmd: &str) ->Result<Vec<String>> {
+pub fn split_shell_command(cmd: &str) -> Result<Vec<String>> {
     let preprocessed: String = {
         // Windows paths are converted to forward slash paths (shell_words and shlex both assume
         // posix paths and treat the backslashes as escape characters), which would make C:\foo\bar
         // become C:foobar
         if cfg!(target_family = "windows") {
             cmd.replace("\\", "/")
-        }
-        else {
+        } else {
             String::from(cmd)
         }
     };
@@ -132,7 +131,11 @@ pub struct PlantUMLShell {
 /// Invokes PlantUML as a shell/cmd program.
 impl PlantUMLShell {
     pub fn new(plantuml_cmd: String, piped: bool) -> Self {
-        log::info!("Selected PlantUML shell {} (piped={})", &plantuml_cmd, piped);
+        log::info!(
+            "Selected PlantUML shell {} (piped={})",
+            &plantuml_cmd,
+            piped
+        );
         Self {
             plantuml_cmd,
             piped,
@@ -158,7 +161,8 @@ mod tests {
     fn test_find_generated_file() {
         let generation_dir = tempdir().unwrap();
 
-        let found_file = FilePlantUMLRunner::find_generated_file(&generation_dir.path(), "somefile.txt");
+        let found_file =
+            FilePlantUMLRunner::find_generated_file(&generation_dir.path(), "somefile.txt");
         assert!(found_file.is_err());
     }
 
@@ -167,25 +171,48 @@ mod tests {
         assert!(split_shell_command("").unwrap().is_empty());
 
         // String with multiple arguments
-        assert_eq!(vec![String::from("python"), String::from("foo"), String::from("bar")], split_shell_command("python foo bar").unwrap());
+        assert_eq!(
+            vec![
+                String::from("python"),
+                String::from("foo"),
+                String::from("bar")
+            ],
+            split_shell_command("python foo bar").unwrap()
+        );
 
         // Unclosed quoted string
         assert!(split_shell_command("python \"/foo").is_err());
 
         if cfg!(target_family = "windows") {
             // On windows backslashes are converted to forward slashes paths
-            assert_eq!(vec![String::from("python"), String::from("D:/foo/bar")], split_shell_command("python D:\\foo\\bar").unwrap());
-            
+            assert_eq!(
+                vec![String::from("python"), String::from("D:/foo/bar")],
+                split_shell_command("python D:\\foo\\bar").unwrap()
+            );
+
             // String with escaped space (escaping with backslashes is not a thing on windows)
-            assert_eq!(vec![String::from("python"), String::from("foo/"), String::from("bar")], split_shell_command("python foo\\ bar").unwrap());
+            assert_eq!(
+                vec![
+                    String::from("python"),
+                    String::from("foo/"),
+                    String::from("bar")
+                ],
+                split_shell_command("python foo\\ bar").unwrap()
+            );
         }
 
         // And on non windows platforms they are treated as posix paths, meaning backslashes are treated as escape characters
         if !cfg!(target_family = "windows") {
-            assert_eq!(vec![String::from("python"), String::from("D:foobar")], split_shell_command("python D:\\foo\\bar").unwrap());
-            
+            assert_eq!(
+                vec![String::from("python"), String::from("D:foobar")],
+                split_shell_command("python D:\\foo\\bar").unwrap()
+            );
+
             // String with escaped spaces
-            assert_eq!(vec![String::from("python"), String::from("foo bar")], split_shell_command("python foo\\ bar").unwrap());
+            assert_eq!(
+                vec![String::from("python"), String::from("foo bar")],
+                split_shell_command("python foo\\ bar").unwrap()
+            );
         }
     }
 }

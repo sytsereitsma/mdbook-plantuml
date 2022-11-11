@@ -253,13 +253,11 @@ mod tests {
     }
 
     impl PlantUMLBackend for BackendMock {
-        fn render_from_string(
-            &self,
-            plantuml_code: &str,
-            image_format: &str,
-        ) -> Result<Vec<u8>> {
+        fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
             if self.is_ok {
-                return Ok(Vec::from(format!("{}\n{}", plantuml_code, image_format).as_bytes()));
+                return Ok(Vec::from(
+                    format!("{}\n{}", plantuml_code, image_format).as_bytes(),
+                ));
             }
             bail!("Oh no");
         }
@@ -362,10 +360,7 @@ mod tests {
 
         let result = renderer.render("", "rel/url", "svg");
         let error_str = format!("{}", result.err().unwrap());
-        assert_eq!(
-            "Oh no",
-            error_str
-        );
+        assert_eq!("Oh no", error_str);
     }
 
     #[test]

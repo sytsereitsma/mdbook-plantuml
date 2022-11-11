@@ -1,7 +1,7 @@
 use crate::plantuml_backend::PlantUMLBackend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use crate::plantuml_server_backend::PlantUMLServer;
-use crate::plantuml_shell_backend::{PlantUMLShell, split_shell_command};
+use crate::plantuml_shell_backend::{split_shell_command, PlantUMLShell};
 use crate::plantumlconfig::PlantUMLConfig;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
@@ -19,23 +19,27 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
     };
 
     log::error!("Testing PlantUML command {} ({:?})", cmd, cmd_parts);
-    let result = Command::new(&cmd_parts[0]).args(&cmd_parts[1..]).arg("-version").output().map(|output| {
-        match str::from_utf8(&output.stdout) {
-            Ok(stdout) => {
-                // First line in stdout should be the version number
-                if let Some(version) = stdout.lines().next() {
-                    log::info!("Detected {}", version);
-                    true
-                } else {
+    let result = Command::new(&cmd_parts[0])
+        .args(&cmd_parts[1..])
+        .arg("-version")
+        .output()
+        .map(|output| {
+            match str::from_utf8(&output.stdout) {
+                Ok(stdout) => {
+                    // First line in stdout should be the version number
+                    if let Some(version) = stdout.lines().next() {
+                        log::info!("Detected {}", version);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to parse '{}' stdout ({})", cmd, e);
                     false
                 }
             }
-            Err(e) => {
-                log::error!("Failed to parse '{}' stdout ({})", cmd, e);
-                false
-            }
-        }
-    });
+        });
 
     match result {
         Ok(valid) => valid,
@@ -51,8 +55,7 @@ fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
     if let Some(cfg_cmd) = &cfg.plantuml_cmd {
         if is_working_plantuml_cmd(&cfg_cmd) {
             return PlantUMLShell::new(cfg_cmd.to_string(), piped);
-        }
-        else {
+        } else {
             panic!(
                 "PlantUML executable '{}' was not found, please check the plantuml-cmd in book.toml, \
                     or make sure the plantuml executable can be found on the path (or by java)",
@@ -105,7 +108,6 @@ fn check_server_support(server_address: &str) {
         );
     }
 }
-
 
 #[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
 /// Returns None, or panics, because we have no server support

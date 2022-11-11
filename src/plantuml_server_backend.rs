@@ -141,7 +141,8 @@ mod tests {
             ))
             .returning(|_| Ok(b"the rendered image".to_vec()));
 
-        let img_data = srv.render_string("C --|> D", "svg", &mock_downloader)
+        let img_data = srv
+            .render_string("C --|> D", "svg", &mock_downloader)
             .unwrap();
 
         assert_eq!("the rendered image", String::from_utf8_lossy(&img_data));
