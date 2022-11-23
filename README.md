@@ -66,10 +66,12 @@ A --|> B
 ````
 
 ## Options
-- **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
+- **plantuml-cmd:** Optional command override for PlantUML (by default it is attempted to auto detect "java -jar plantuml.jar" or "plantuml").
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
-- **clickable-img:** Optional (```false``` by default). When ```true``` images can be clicked and are opened in a new tab/window.
-- **use-data-uris:** Optional (```false``` by default). When ```true``` images are rendered as inline Data URIs (not requiring external files).
+- **clickable-img:** Optional (`false` by default). When `true`, images can be clicked and are opened in a new tab/window.
+- **use-data-uris:** Optional (`true` by default). When `true`, images are rendered as inline Data URIs (not requiring image files in the src dir).
+- **piped:** Optional (`true` by default). When `true`, images are rendered using PlantUML in piped mode (i.e. not needing temporary files), meaning the `!include` directive family can be used. When `false` 'legacy' mode is used, meaning temporary files are generated for image generation.
+- **verbose:** Optional (`false` by default). When `true`, debug logging is enabled.
 
 ## Features
 - **plantuml-server** Add http server support only
@@ -139,6 +141,15 @@ command = "mdbook-plantuml -l"
 ```
 
 ## Change log
+
+### 0.9.0 (2022-11-11)
+* Use PlantUML in piped mode by default, meaning the PlantUML `!include` directives can be used (thanks @albenik)
+  * Enabled by default, see the `piped` config option to disable piped mode
+* Auto detect PlantUML executable from `java -jar plantuml.jar` or `plantuml`
+* Fail when PlantUML cannot be found or is improperly configured (e.g. configure a server backend when the server feature is disabled)
+* Better feedback of the rendering process by logging to stderr (thanks @
+mini-ninja-64 for the idea)
+* Data URIs are now the default rendering mode (see use-data-uris in book config option)
 
 ### 0.8.0 (2022-07-04)
 * Many thanks to @danieleades for cleanup and modernization
