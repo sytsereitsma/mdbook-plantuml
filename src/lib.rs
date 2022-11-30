@@ -1,6 +1,7 @@
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64_plantuml;
 mod dir_cleaner;
+mod markdown_iterator;
 mod markdown_plantuml_pipeline;
 mod plantuml_backend;
 mod plantuml_backend_factory;
