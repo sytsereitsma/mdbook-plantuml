@@ -21,7 +21,7 @@ impl<'a> InfoString<'a> {
 
         // Little helper to parse a key-vaue pair. Returns None if part is None, or an empty string when trimmed
         let parse_value = |part: Option<&'a str>| {
-            if let Some(value) = part.and_then(|k| Some(k.trim())) {
+            if let Some(value) = part.map(|k| k.trim()) {
                 if !value.is_empty() {
                     return Some(value);
                 }
@@ -160,7 +160,7 @@ impl<'a> MarkdownIterator<'a> {
             }
         }
 
-        return width == opening_fence.width;
+        width == opening_fence.width
     }
 
     /// Returns a CodeFence when the line starts with a valid/expected opening or closing code fence
@@ -180,33 +180,36 @@ impl<'a> MarkdownIterator<'a> {
                     break;
                 }
             } else if c != ' ' || column >= 4 {
-                // More than 3 leading spaces, or a non space character
+                // More than 3 leading spaces, or a non space character -> not a code fence
                 break;
             }
 
             column += 1;
         }
 
-        let fence = CodeFence { fence_char, width };
+        // Not a fence, or not enough opening characters
         if fence_char == 'X' || width <= 2 {
             return None;
         }
 
+        let fence = CodeFence { fence_char, width };
+
         match fence_to_match {
             Some(opening_fence) => {
-                if opening_fence.fence_char != fence_char {
-                    // Closing fence needs to use the same fence char
-                    return None;
-                } else if opening_fence.width > width {
-                    // Closing fence needs to be at least as wide as opening fence
-                    return None;
-                } else if line.trim().len() > width {
-                    // We've found a closing fence with text behind it, this is not considered a closing fence
+                // Return None when:
+                //   * Closing fence needs to use the same fence char
+                //   * Closing fence needs to be at least as wide as opening fence
+                //   * We've found a closing fence with text behind it,
+                //     this is not considered a closing fence
+                if opening_fence.fence_char != fence_char
+                    || opening_fence.width > width
+                    || line.trim().len() > width
+                {
                     return None;
                 }
             }
             None => {
-                if Self::is_oneline_fence(&line, &fence) {
+                if Self::is_oneline_fence(line, &fence) {
                     // We've found an opening fence, but it's a oneliner
                     return None;
                 }
@@ -216,59 +219,92 @@ impl<'a> MarkdownIterator<'a> {
         Some(fence)
     }
 
-    fn process_code_block(&mut self, fence_line: &'a str, fence: CodeFence) -> Option<Block<'a>> {
+    /// Given a start and an end line construct a slice from start up to, or up to including the end line
+    /// Note that the start_line and end_line should both be slices from self.markdown.
+    /// For example "abcdefghi"
+    fn get_markdown_slice(
+        &self,
+        start_line: &'a str,
+        end_line: Option<&'a str>,
+        include_end: bool,
+    ) -> &'a str {
+        let start_idx = start_line.as_ptr() as usize - self.markdown.as_ptr() as usize;
+        if start_idx > self.markdown.len() {
+            panic!("Slice '{}' is not part of self.markdown", start_line);
+        }
+
+        // By default include all markdown to the very end
+        let mut end_idx = self.markdown.len();
+
+        // But if we have an end line take that as the end of the slice
+        if let Some(end_line) = end_line {
+            end_idx = end_line.as_ptr() as usize - self.markdown.as_ptr() as usize;
+            if end_idx > self.markdown.len() {
+                panic!("Slice '{}' is not part of self.markdown", end_line);
+            }
+
+            if include_end {
+                end_idx += end_line.len();
+            }
+        }
+
+        &self.markdown[start_idx..end_idx]
+    }
+
+    /// Read lines until we reach the end of the code block
+    /// Return a Block::Code with the parsed CodeBlock
+    fn process_code_block(&mut self, fence_line: &'a str, fence: CodeFence) -> Block<'a> {
         if self.lines_it.peek().is_none() {
-            return Some(Block::Code(CodeBlock {
-                full_block: fence_line,
+            // No more lines after te opening fence
+            return Block::Code(CodeBlock {
+                full_block: self.get_markdown_slice(fence_line, None, true),
                 info_string: InfoString::from(&fence_line[fence.width..]),
-                code: &fence_line[fence_line.len() - 1..fence_line.len() - 1],
-            }));
+                code: "",
+            });
         }
 
         let start_of_code = self.lines_it.next().unwrap();
         let mut closing_fence_line: Option<&'a str> = None;
 
-        while let Some(line) = self.lines_it.next() {
+        for line in self.lines_it.by_ref() {
             if Self::get_code_fence(line, Some(&fence)).is_some() {
                 closing_fence_line = Some(line);
                 break;
             }
         }
 
-        let start_code_idx = start_of_code.as_ptr() as usize - self.markdown.as_ptr() as usize;
-        let start_full_block_idx = fence_line.as_ptr() as usize - self.markdown.as_ptr() as usize;
-        let end_code_idx;
-        let end_full_block_idx;
+        let code;
+        let full_block;
 
         match closing_fence_line {
             Some(end_of_code) => {
-                end_code_idx = end_of_code.as_ptr() as usize - self.markdown.as_ptr() as usize;
-                if let Some(next_line) = self.lines_it.peek() {
-                    end_full_block_idx =
-                        next_line.as_ptr() as usize - self.markdown.as_ptr() as usize;
-                } else {
-                    end_full_block_idx = (end_of_code.as_ptr() as usize
-                        - self.markdown.as_ptr() as usize)
-                        + end_of_code.len();
-                }
+                code = self.get_markdown_slice(start_of_code, Some(end_of_code), false);
+
+                // Closing fence needs to include the newline, so peek the next line to include the newline
+                let end_line = self.lines_it.peek().copied(); // Peek returns Option<&&str>
+                full_block = self.get_markdown_slice(fence_line, end_line, false);
             }
-            None => {                
-                end_code_idx = self.markdown.len();
-                end_full_block_idx = self.markdown.len();
+            None => {
+                // Parsed all the way to the end of the markdown
+                code = self.get_markdown_slice(start_of_code, None, true);
+                full_block = self.get_markdown_slice(fence_line, None, true);
             }
         }
 
-        Some(Block::Code(CodeBlock {
-            full_block: &self.markdown[start_full_block_idx..end_full_block_idx],
+        Block::Code(CodeBlock {
+            full_block,
             info_string: InfoString::from(&fence_line[fence.width..]),
-            code: &self.markdown[start_code_idx..end_code_idx],
-        }))
+            code,
+        })
     }
 
-    fn process_text_block(&mut self, start_line: &'a str) -> Option<Block<'a>> {
+    /// Read lines until we reach the end of the text block
+    /// Return a Block::Text with the parsed TextBlock
+    fn process_text_block(&mut self, start_line: &'a str) -> Block<'a> {
         let mut code_fence_line: Option<&'a str> = None;
 
-        // Use peek, because when we encounter a code fence it is needed for the code block returned by the next() call.
+        // Use peek, because when we encounter a code fence it is needed for the code block returned
+        // by the next next() call.
         while let Some(line) = self.lines_it.peek() {
             if Self::get_code_fence(line, None).is_some() {
                 code_fence_line = Some(line);
@@ -279,32 +315,25 @@ impl<'a> MarkdownIterator<'a> {
             }
         }
 
-        let start_text_idx = start_line.as_ptr() as usize - self.markdown.as_ptr() as usize;
-        let end_text_idx = if let Some(end_line) = code_fence_line {
-            // Start of line, we only want the closing newline, not the fence
-            end_line.as_ptr() as usize - self.markdown.as_ptr() as usize
-        } else {
-            self.markdown.len()
-        };
-
-        Some(Block::Text(TextBlock {
-            text: &self.markdown[start_text_idx..end_text_idx],
-        }))
+        Block::Text(TextBlock {
+            text: self.get_markdown_slice(start_line, code_fence_line, false),
+        })
     }
 }
 
 impl<'a> Iterator for MarkdownIterator<'a> {
     type Item = Block<'a>;
+
     fn next(&mut self) -> Option<Block<'a>> {
         if let Some(line) = self.lines_it.next() {
             if let Some(fence) = Self::get_code_fence(line, None) {
-                return self.process_code_block(line, fence);
+                return Some(self.process_code_block(line, fence));
             } else {
-                return self.process_text_block(line);
+                return Some(self.process_text_block(line));
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -339,7 +368,7 @@ mod test {
                     Block::Code(cb) => {
                         assert_eq!($expected_code, cb.code, "Block code");
                         assert_eq!($expected_full_block, cb.full_block, "Full block");
-                    },
+                    }
                     _ => assert!(false, "expected Block::Code"),
                 }
             } else {
@@ -396,7 +425,11 @@ mod test {
     #[test]
     fn iterate_returns_nested_code_block() {
         let mut mit = MarkdownIterator::new("````\nCow\n```Chicken\n```\n````");
-        assert_code_block!("````\nCow\n```Chicken\n```\n````", "Cow\n```Chicken\n```\n", mit.next());
+        assert_code_block!(
+            "````\nCow\n```Chicken\n```\n````",
+            "Cow\n```Chicken\n```\n",
+            mit.next()
+        );
     }
 
     #[test]
@@ -653,5 +686,50 @@ mod test {
             get_image_format!("plantuml,bruh=123,format=,bruh=123")
         );
         assert_eq!("svg", get_image_format!("plantuml,bruh=123"));
+    }
+
+    #[test]
+    fn markdown_can_be_reconstructed_with_iterator() {
+        let markdown = "Some text\n\
+            And some more\n\
+            ```code\n\
+            let foo = bar;\n\
+            ```\n\
+            More text\n\
+            ```unclosed\n";
+
+        let mut reconstructed = String::new();
+        for block in MarkdownIterator::new(markdown) {
+            match block {
+                Block::Text(tb) => reconstructed.push_str(tb.text),
+                Block::Code(cb) => reconstructed.push_str(cb.full_block),
+            }
+        }
+
+        assert_eq!(markdown, reconstructed);
+    }
+
+    #[test]
+    fn get_markdown_slice() {
+        let mit = MarkdownIterator::new("abcdefgehij");
+
+        assert_eq!(
+            &mit.markdown[2..7],
+            mit.get_markdown_slice(&mit.markdown[2..4], Some(&mit.markdown[7..9]), false)
+        );
+        assert_eq!(
+            &mit.markdown[2..9],
+            mit.get_markdown_slice(&mit.markdown[2..4], Some(&mit.markdown[7..9]), true)
+        );
+
+        assert_eq!(
+            &mit.markdown[2..11],
+            mit.get_markdown_slice(&mit.markdown[2..4], None, true)
+        );
+        // include_end is ignored when end_line is None
+        assert_eq!(
+            &mit.markdown[2..11],
+            mit.get_markdown_slice(&mit.markdown[2..4], None, false)
+        );
     }
 }
