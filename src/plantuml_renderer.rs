@@ -107,7 +107,7 @@ impl PlantUMLRenderer {
     }
 
     fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> Result<String> {
-        let uri = PlantUMLRenderer::create_datauri(image_path)?;
+        let uri = Self::create_datauri(image_path)?;
         if clickable {
             // Note that both Edge and Firefox do not allow clicking on data URI links
             // So this probably won't work. Kept in here regardless for consistency

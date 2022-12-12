@@ -113,7 +113,7 @@ impl FilePlantUMLRunner {
             .with_context(|| "Failed to render image")?;
 
         let generated_file =
-            FilePlantUMLRunner::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
+            Self::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
         fs::read(generated_file).with_context(|| "Failed to read rendered image")
     }
 }

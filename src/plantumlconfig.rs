@@ -30,7 +30,7 @@ pub struct PlantUMLConfig {
 
 impl Default for PlantUMLConfig {
     fn default() -> Self {
-        PlantUMLConfig {
+        Self {
             plantuml_cmd: None,
             piped: true,
             clickable_img: false,
