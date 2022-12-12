@@ -102,7 +102,7 @@ impl PlantUMLRenderer {
 
         let image_data = fs::read(image_path)
             .with_context(|| format!("Could not open image file {:?}", image_path))?;
-        let encoded_value = encode(&image_data);
+        let encoded_value = encode(image_data);
         Ok(format!("data:{};base64,{}", media_type, encoded_value))
     }
 
@@ -142,7 +142,7 @@ impl PlantUMLRenderer {
                 .render_from_string(plantuml_code, image_format)?;
 
             // Save the file even if we inline images
-            std::fs::write(&output_file, &data).with_context(|| {
+            std::fs::write(&output_file, data).with_context(|| {
                 format!(
                     "Failed to save PlantUML diagram to {}.",
                     output_file.to_string_lossy()

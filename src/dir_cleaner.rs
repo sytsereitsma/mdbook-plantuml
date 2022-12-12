@@ -76,7 +76,7 @@ impl DirCleaner {
 impl Drop for DirCleaner {
     fn drop(&mut self) {
         for file in &self.files {
-            if let Err(e) = fs::remove_file(&file) {
+            if let Err(e) = fs::remove_file(file) {
                 log::error!(
                     "DirCleaner - Failed to remove obsolete image file '{}' ({}).",
                     file.to_string_lossy(),

@@ -108,7 +108,7 @@ impl FilePlantUMLRunner {
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
             .arg(format!("-t{}", format))
             .arg("-nometadata")
-            .arg(&src_file.to_str().unwrap())
+            .arg(src_file.to_str().unwrap())
             .output()
             .with_context(|| "Failed to render image")?;
 
