@@ -238,7 +238,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
                     match rendered {
                         Ok(data) => processed.push_str(data.as_str()),
                         Err(e) => {
-                            processed.push_str(format!("{}", e).as_str());
+                            processed.push_str(format!("{e}").as_str());
                             log::error!("{}", e);
                         }
                     }

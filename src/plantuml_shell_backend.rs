@@ -39,7 +39,7 @@ impl PipedPlantUMLRunner {
     fn run(plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
         let mut child = create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
-            .arg(format!("-t{}", format))
+            .arg(format!("-t{format}"))
             .arg("-nometadata")
             .arg("-pipe")
             .arg("-pipeNoStderr")
@@ -47,7 +47,7 @@ impl PipedPlantUMLRunner {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .with_context(|| format!("Failed to start PlantUML command '{}' ", plantuml_cmd))?;
+            .with_context(|| format!("Failed to start PlantUML command '{plantuml_cmd}' "))?;
 
         // Pipe the plantuml source
         child
@@ -106,7 +106,7 @@ impl FilePlantUMLRunner {
         // Call PlantUML
         create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
-            .arg(format!("-t{}", format))
+            .arg(format!("-t{format}"))
             .arg("-nometadata")
             .arg(src_file.to_str().unwrap())
             .output()

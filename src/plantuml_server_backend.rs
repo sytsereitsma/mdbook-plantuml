@@ -36,7 +36,7 @@ impl PlantUMLServer {
             server_url
         } else {
             let mut repath = server_url.clone();
-            repath.set_path(format!("{}/", path).as_str());
+            repath.set_path(format!("{path}/").as_str());
             repath
         };
 
@@ -45,7 +45,7 @@ impl PlantUMLServer {
 
     /// Format the PlantUML server URL using the encoded diagram and extension
     fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url> {
-        let path = format!("{}/{}", image_format, encoded_diagram);
+        let path = format!("{image_format}/{encoded_diagram}");
 
         self.server_url.join(&path).map_err(|e| {
             anyhow::format_err!(
