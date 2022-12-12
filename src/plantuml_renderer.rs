@@ -291,14 +291,14 @@ mod tests {
         // txt extension
         assert_eq!(
             format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
-                                                               * fake backend */
+                                                             * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
 
         // utxt extension
         assert_eq!(
             format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
-                                                               * fake backend */
+                                                             * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
     }

@@ -67,8 +67,8 @@ impl PipedPlantUMLRunner {
             Err(format_err!(
                 "Failed to render image in piped mode ({})\n  stdout: '{}'\n  stderr: '{}'",
                 output.status,
-                String::from_utf8(output.stdout).unwrap_or_else(|_| String::from("")),
-                String::from_utf8(output.stderr).unwrap_or_else(|_| String::from(""))
+                String::from_utf8(output.stdout).unwrap_or_default(),
+                String::from_utf8(output.stderr).unwrap_or_default(),
             ))
         }
     }
@@ -112,8 +112,7 @@ impl FilePlantUMLRunner {
             .output()
             .with_context(|| "Failed to render image")?;
 
-        let generated_file =
-            Self::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
+        let generated_file = Self::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
         fs::read(generated_file).with_context(|| "Failed to read rendered image")
     }
 }
