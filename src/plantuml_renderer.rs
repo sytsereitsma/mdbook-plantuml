@@ -93,10 +93,10 @@ impl PlantUMLRenderer {
             .map(|s| s.to_str())
             .unwrap_or(Some(""))
         {
-            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("jpg" | "jpeg") => "image/jpeg",
             Some("png") => "image/png",
             Some("svg") => "image/svg+xml",
-            Some("atxt") | Some("utxt") | Some("txt") => "text/plain",
+            Some("atxt" | "utxt" | "txt") => "text/plain",
             _ => "",
         };
 
