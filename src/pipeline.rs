@@ -6,7 +6,7 @@ pub fn render_plantuml_code_blocks(
     renderer: &impl RendererTrait,
     rel_image_url: &str,
 ) -> String {
-    let processor = PlantUMLCodeProcessor::new(markdown);
+    let processor = CodeProcessor::new(markdown);
     processor.process(renderer, rel_image_url)
 }
 
@@ -163,13 +163,13 @@ impl<'a> CodeBlock<'a> {
     }
 }
 
-struct PlantUMLCodeProcessor<'a> {
+struct CodeProcessor<'a> {
     markdown: &'a str,
 }
 
-impl<'a> PlantUMLCodeProcessor<'a> {
-    pub const fn new(markdown: &str) -> PlantUMLCodeProcessor {
-        PlantUMLCodeProcessor { markdown }
+impl<'a> CodeProcessor<'a> {
+    pub const fn new(markdown: &str) -> CodeProcessor {
+        CodeProcessor { markdown }
     }
 
     /// Returns the byte offsets of the (optional) end fence and code end
@@ -381,7 +381,7 @@ mod test {
     fn test_process_plantuml_code() {
         macro_rules! assert_plantuml_injection {
             ($markdown:expr, $expected_code_block:expr, $rendered_output:expr) => {{
-                let processor = PlantUMLCodeProcessor::new($markdown);
+                let processor = CodeProcessor::new($markdown);
                 let renderer = FakeRenderer {
                     code_block: RefCell::new(String::new()),
                 };
