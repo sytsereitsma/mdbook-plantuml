@@ -85,7 +85,7 @@ impl PlantUMLRenderer {
         }
     }
 
-    fn create_datauri(image_path: &PathBuf) -> Result<String> {
+    fn create_datauri(image_path: &Path) -> Result<String> {
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
 
         let media_type = match image_path
@@ -106,7 +106,7 @@ impl PlantUMLRenderer {
         Ok(format!("data:{media_type};base64,{encoded_value}"))
     }
 
-    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> Result<String> {
+    fn create_image_datauri_element(image_path: &Path, clickable: bool) -> Result<String> {
         let uri = Self::create_datauri(image_path)?;
         if clickable {
             // Note that both Edge and Firefox do not allow clicking on data URI links
