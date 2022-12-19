@@ -8,7 +8,7 @@ mod renderer;
 
 use crate::pipeline::render_plantuml_code_blocks;
 
-use crate::config::PlantUMLConfig;
+use crate::config::Config;
 use crate::renderer::PlantUMLRenderer;
 use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
@@ -64,7 +64,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn get_image_output_dir(root: &Path, src_root: &Path, cfg: &PlantUMLConfig) -> Result<PathBuf> {
+fn get_image_output_dir(root: &Path, src_root: &Path, cfg: &Config) -> Result<PathBuf> {
     let img_output_dir: PathBuf = {
         let canonicalized_root =
             dunce::canonicalize(root).with_context(|| "While determining image output dir")?;
@@ -105,7 +105,7 @@ fn get_relative_img_url(chapter_path: &Path) -> String {
     rel_image_url
 }
 
-pub fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
+pub fn get_plantuml_config(ctx: &PreprocessorContext) -> Config {
     ctx.config
         .get("preprocessor.plantuml")
         .and_then(|raw| {
@@ -153,7 +153,7 @@ mod tests {
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
@@ -175,7 +175,7 @@ mod tests {
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
@@ -197,7 +197,7 @@ mod tests {
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache

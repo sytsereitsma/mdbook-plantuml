@@ -8,7 +8,7 @@ fn bool_true() -> bool {
 /// The configuration options available with this backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-pub struct PlantUMLConfig {
+pub struct Config {
     /// By default it is assumed plantuml.jar is on the path
     /// Use plantuml_cmd if it is not on the path, or if you
     /// have some additional parameters.
@@ -28,7 +28,7 @@ pub struct PlantUMLConfig {
     pub verbose: bool,
 }
 
-impl Default for PlantUMLConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
             plantuml_cmd: None,
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn default() {
-        let cfg = PlantUMLConfig::default();
+        let cfg = Config::default();
         assert_eq!(cfg.plantuml_cmd, None);
         assert_eq!(cfg.piped, true);
         assert_eq!(cfg.clickable_img, false);
