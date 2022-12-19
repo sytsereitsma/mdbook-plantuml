@@ -12,14 +12,14 @@ use crate::config::Config;
 use crate::renderer::Renderer;
 use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
-use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+use mdbook::preprocess::PreprocessorContext;
 use std::fs;
 
 use std::path::{Path, PathBuf};
 
-pub struct PlantUMLPreprocessor;
+pub struct Preprocessor;
 
-impl Preprocessor for PlantUMLPreprocessor {
+impl mdbook::preprocess::Preprocessor for Preprocessor {
     fn name(&self) -> &str {
         "plantuml"
     }

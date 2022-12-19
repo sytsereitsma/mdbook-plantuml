@@ -1,6 +1,6 @@
 @startuml
 participant Application
-participant PlantUMLPreprocessor
+participant Preprocessor
 participant markdown_plantuml_pipeline
 participant CodeProcessor
 participant Renderer
@@ -8,11 +8,11 @@ participant Backend
 
 Application -> Application: main
 	Application -> Application: handle_preprocessing
-	Application -> PlantUMLPreprocessor: run
-		PlantUMLPreprocessor -> Renderer: create renderer
-		Renderer --> PlantUMLPreprocessor: renderer
+	Application -> Preprocessor: run
+		Preprocessor -> Renderer: create renderer
+		Renderer --> Preprocessor: renderer
 		loop for each chapter
-			PlantUMLPreprocessor -> markdown_plantuml_pipeline: render_plantuml_code_blocks(chapter markdown, renderer)
+			Preprocessor -> markdown_plantuml_pipeline: render_plantuml_code_blocks(chapter markdown, renderer)
 			markdown_plantuml_pipeline -> CodeProcessor: process
 			loop for each PlantUML code block
 				CodeProcessor -> Renderer: render
@@ -21,7 +21,7 @@ Application -> Application: main
 				CodeProcessor -> CodeProcessor: Replace PlantUML code block with link
 			end				
 			Renderer --> markdown_plantuml_pipeline: Patched chapter markdown
-			markdown_plantuml_pipeline --> PlantUMLPreprocessor: Patched chapter markdown
-			PlantUMLPreprocessor -> PlantUMLPreprocessor: Assign new chapter markdown
+			markdown_plantuml_pipeline --> Preprocessor: Patched chapter markdown
+			Preprocessor -> Preprocessor: Assign new chapter markdown
 		end
 @enduml

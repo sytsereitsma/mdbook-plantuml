@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_plantuml::get_plantuml_config;
-use mdbook_plantuml::PlantUMLPreprocessor;
 use std::io;
 use std::process;
 
@@ -28,7 +27,7 @@ pub enum Command {
 fn main() {
     let args = Args::parse();
 
-    let preprocessor = PlantUMLPreprocessor;
+    let preprocessor = mdbook_plantuml::Preprocessor;
     if let Some(Command::Supports { renderer }) = args.command {
         handle_supports(&preprocessor, &renderer);
     } else if let Err(e) = handle_preprocessing(&preprocessor, args.log) {
