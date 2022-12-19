@@ -1,4 +1,4 @@
-use crate::backend::PlantUMLBackend;
+use crate::backend::Backend;
 use crate::base64;
 use anyhow::{bail, Result};
 use deflate::deflate_bytes;
@@ -78,7 +78,7 @@ fn encode_diagram_source(plantuml_code: &str) -> String {
     base64::encode(&compressed)
 }
 
-impl PlantUMLBackend for PlantUMLServer {
+impl Backend for PlantUMLServer {
     fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, image_format, &downloader)

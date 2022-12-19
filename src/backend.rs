@@ -5,7 +5,7 @@ pub mod factory;
 pub mod server;
 pub mod shell;
 
-pub trait PlantUMLBackend {
+pub trait Backend {
     /// Render a PlantUML string to file and return the diagram URL path to this
     /// file (as a String) for use in a link.
     /// # Arguments

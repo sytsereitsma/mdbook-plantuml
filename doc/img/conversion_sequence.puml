@@ -4,7 +4,7 @@ participant PlantUMLPreprocessor
 participant markdown_plantuml_pipeline
 participant CodeProcessor
 participant Renderer
-participant PlantUMLBackend
+participant Backend
 
 Application -> Application: main
 	Application -> Application: handle_preprocessing
@@ -16,7 +16,7 @@ Application -> Application: main
 			markdown_plantuml_pipeline -> CodeProcessor: process
 			loop for each PlantUML code block
 				CodeProcessor -> Renderer: render
-					Renderer -> PlantUMLBackend: render_from_string
+					Renderer -> Backend: render_from_string
 				Renderer --> CodeProcessor: Markdown link to image
 				CodeProcessor -> CodeProcessor: Replace PlantUML code block with link
 			end				

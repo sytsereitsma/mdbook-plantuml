@@ -1,7 +1,7 @@
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use crate::backend::server::PlantUMLServer;
 use crate::backend::shell::{split_shell_command, PlantUMLShell};
-use crate::backend::PlantUMLBackend;
+use crate::backend::Backend;
 use crate::config::Config;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
@@ -135,11 +135,11 @@ fn create_server_backend(cfg: &Config) -> Option<PlantUMLServer> {
     }
 }
 
-/// Create an instance of the PlantUMLBackend
+/// Create an instance of the Backend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
-pub fn create(cfg: &Config) -> Box<dyn PlantUMLBackend> {
+pub fn create(cfg: &Config) -> Box<dyn Backend> {
     if let Some(server_backend) = create_server_backend(cfg) {
         Box::new(server_backend)
     } else {

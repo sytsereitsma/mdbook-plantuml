@@ -1,4 +1,4 @@
-use crate::backend::{self, PlantUMLBackend};
+use crate::backend::{self, Backend};
 use crate::config::Config;
 use crate::dir_cleaner::DirCleaner;
 use anyhow::{Context, Result};
@@ -51,7 +51,7 @@ fn hash_string(code: &str) -> String {
 }
 
 pub struct Renderer {
-    backend: Box<dyn PlantUMLBackend>,
+    backend: Box<dyn Backend>,
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
     clickable_img: bool,
@@ -251,7 +251,7 @@ mod tests {
         is_ok: bool,
     }
 
-    impl PlantUMLBackend for BackendMock {
+    impl Backend for BackendMock {
         fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
             if self.is_ok {
                 return Ok(Vec::from(

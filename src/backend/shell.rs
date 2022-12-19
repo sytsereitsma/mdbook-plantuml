@@ -1,4 +1,4 @@
-use crate::backend::PlantUMLBackend;
+use crate::backend::Backend;
 use anyhow::{bail, format_err, Context, Result};
 
 use std::fs;
@@ -137,7 +137,7 @@ impl PlantUMLShell {
     }
 }
 
-impl PlantUMLBackend for PlantUMLShell {
+impl Backend for PlantUMLShell {
     fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         if self.piped {
             PipedPlantUMLRunner::run(&self.plantuml_cmd, plantuml_code, image_format)
