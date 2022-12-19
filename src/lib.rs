@@ -9,7 +9,7 @@ mod renderer;
 use crate::pipeline::render_plantuml_code_blocks;
 
 use crate::config::Config;
-use crate::renderer::PlantUMLRenderer;
+use crate::renderer::Renderer;
 use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
@@ -33,7 +33,7 @@ impl Preprocessor for PlantUMLPreprocessor {
         let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
         let org_cwd = std::env::current_dir()?;
 
-        let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
+        let renderer = Renderer::new(&cfg, img_output_dir);
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {

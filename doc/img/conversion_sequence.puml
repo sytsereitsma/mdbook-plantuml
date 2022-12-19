@@ -3,24 +3,24 @@ participant Application
 participant PlantUMLPreprocessor
 participant markdown_plantuml_pipeline
 participant PlantUMLCodeProcessor
-participant PlantUMLRenderer
+participant Renderer
 participant PlantUMLBackend
 
 Application -> Application: main
 	Application -> Application: handle_preprocessing
 	Application -> PlantUMLPreprocessor: run
-		PlantUMLPreprocessor -> PlantUMLRenderer: create renderer
-		PlantUMLRenderer --> PlantUMLPreprocessor: renderer
+		PlantUMLPreprocessor -> Renderer: create renderer
+		Renderer --> PlantUMLPreprocessor: renderer
 		loop for each chapter
 			PlantUMLPreprocessor -> markdown_plantuml_pipeline: render_plantuml_code_blocks(chapter markdown, renderer)
 			markdown_plantuml_pipeline -> PlantUMLCodeProcessor: process
 			loop for each PlantUML code block
-				PlantUMLCodeProcessor -> PlantUMLRenderer: render
-					PlantUMLRenderer -> PlantUMLBackend: render_from_string
-				PlantUMLRenderer --> PlantUMLCodeProcessor: Markdown link to image
+				PlantUMLCodeProcessor -> Renderer: render
+					Renderer -> PlantUMLBackend: render_from_string
+				Renderer --> PlantUMLCodeProcessor: Markdown link to image
 				PlantUMLCodeProcessor -> PlantUMLCodeProcessor: Replace PlantUML code block with link
 			end				
-			PlantUMLRenderer --> markdown_plantuml_pipeline: Patched chapter markdown
+			Renderer --> markdown_plantuml_pipeline: Patched chapter markdown
 			markdown_plantuml_pipeline --> PlantUMLPreprocessor: Patched chapter markdown
 			PlantUMLPreprocessor -> PlantUMLPreprocessor: Assign new chapter markdown
 		end

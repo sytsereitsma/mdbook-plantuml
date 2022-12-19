@@ -9,7 +9,7 @@ use std::fs;
 
 use std::path::{Path, PathBuf};
 
-pub trait PlantUMLRendererTrait {
+pub trait RendererTrait {
     fn render(
         &self,
         plantuml_code: &str,
@@ -50,7 +50,7 @@ fn hash_string(code: &str) -> String {
     base16ct::lower::encode_string(&hash)
 }
 
-pub struct PlantUMLRenderer {
+pub struct Renderer {
     backend: Box<dyn PlantUMLBackend>,
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
@@ -58,7 +58,7 @@ pub struct PlantUMLRenderer {
     use_data_uris: bool,
 }
 
-impl PlantUMLRenderer {
+impl Renderer {
     pub fn new(cfg: &Config, img_root: PathBuf) -> Self {
         let renderer = Self {
             backend: backend::factory::create(cfg),
@@ -167,7 +167,7 @@ impl PlantUMLRenderer {
     }
 }
 
-impl PlantUMLRendererTrait for PlantUMLRenderer {
+impl RendererTrait for Renderer {
     fn render(
         &self,
         plantuml_code: &str,
@@ -191,17 +191,17 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
+            Renderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
         );
 
         assert_eq!(
             "![](/baz.svg)\n\n",
-            PlantUMLRenderer::create_md_link("", Path::new("baz.svg"), false)
+            Renderer::create_md_link("", Path::new("baz.svg"), false)
         );
 
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"), false)
+            Renderer::create_md_link("", Path::new("foo/baz.svg"), false)
         );
     }
 
@@ -216,7 +216,7 @@ mod tests {
         drop(svg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/svg+xml;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&svg_path).unwrap()
+            Renderer::create_datauri(&svg_path).unwrap()
         );
 
         let png_path = temp_directory.path().join("file.png");
@@ -225,7 +225,7 @@ mod tests {
         drop(png_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/png;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&png_path).unwrap()
+            Renderer::create_datauri(&png_path).unwrap()
         );
 
         let txt_path = temp_directory.path().join("file.txt");
@@ -234,7 +234,7 @@ mod tests {
         drop(txt_file); // Close and flush content to file
         assert_eq!(
             String::from("data:text/plain;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&txt_path).unwrap()
+            Renderer::create_datauri(&txt_path).unwrap()
         );
 
         let jpeg_path = temp_directory.path().join("file.jpeg");
@@ -243,7 +243,7 @@ mod tests {
         drop(jpeg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&jpeg_path).unwrap()
+            Renderer::create_datauri(&jpeg_path).unwrap()
         );
     }
 
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_rendering_md_link() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
@@ -305,7 +305,7 @@ mod tests {
     #[test]
     fn test_rendering_datauri() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
@@ -349,7 +349,7 @@ mod tests {
     #[test]
     fn test_rendering_failure() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: false }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),

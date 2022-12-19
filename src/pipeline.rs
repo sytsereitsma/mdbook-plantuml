@@ -1,9 +1,9 @@
-use crate::renderer::PlantUMLRendererTrait;
+use crate::renderer::RendererTrait;
 use std::string::String;
 
 pub fn render_plantuml_code_blocks(
     markdown: &str,
-    renderer: &impl PlantUMLRendererTrait,
+    renderer: &impl RendererTrait,
     rel_image_url: &str,
 ) -> String {
     let processor = PlantUMLCodeProcessor::new(markdown);
@@ -222,7 +222,7 @@ impl<'a> PlantUMLCodeProcessor<'a> {
     /// * `renderer` - The renderer to use for the "plantuml" code blocks
     /// * `rel_image_url` - The url of the image relative to the book output
     ///   dir.
-    pub fn process(&self, renderer: &impl PlantUMLRendererTrait, rel_image_url: &str) -> String {
+    pub fn process(&self, renderer: &impl RendererTrait, rel_image_url: &str) -> String {
         let mut processed = String::new();
         processed.reserve(self.markdown.len());
 
@@ -268,7 +268,7 @@ mod test {
         code_block: RefCell<String>,
     }
 
-    impl PlantUMLRendererTrait for FakeRenderer {
+    impl RendererTrait for FakeRenderer {
         fn render(
             &self,
             code_block: &str,
