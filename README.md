@@ -195,17 +195,3 @@ command = "mdbook-plantuml -l"
 
 ### 0.1.0 (2019-07-08)
 * First version
-
-## Building and installing on Linux
-I primarily work on Windows, and rust is not that portable yet apparently.
-
-When you get the following error while installing/building mdbook-plantuml on Linux:
-```
-failed to run custom build command for `openssl-sys v0.9.49`
-```
-
-Make sure you have libssl-dev and pkg-config installed:
-```sh
-sudo apt update
-sudo apt install libssl-dev pkg-config
-```
