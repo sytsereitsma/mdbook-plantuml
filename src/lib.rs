@@ -9,7 +9,6 @@ mod plantuml_renderer;
 mod plantuml_server_backend;
 mod plantuml_shell_backend;
 mod plantumlconfig;
-mod util;
 
 use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
 
