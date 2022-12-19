@@ -1,7 +1,6 @@
+use crate::backend::{self, PlantUMLBackend};
+use crate::config::PlantUMLConfig;
 use crate::dir_cleaner::DirCleaner;
-use crate::plantuml_backend::PlantUMLBackend;
-use crate::plantuml_backend_factory;
-use crate::plantumlconfig::PlantUMLConfig;
 use anyhow::{Context, Result};
 use base64::encode;
 use sha1::{Digest, Sha1};
@@ -62,7 +61,7 @@ pub struct PlantUMLRenderer {
 impl PlantUMLRenderer {
     pub fn new(cfg: &PlantUMLConfig, img_root: PathBuf) -> Self {
         let renderer = Self {
-            backend: plantuml_backend_factory::create(cfg),
+            backend: backend::factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
             img_root,
             clickable_img: cfg.clickable_img,

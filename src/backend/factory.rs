@@ -1,8 +1,8 @@
-use crate::plantuml_backend::PlantUMLBackend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-use crate::plantuml_server_backend::PlantUMLServer;
-use crate::plantuml_shell_backend::{split_shell_command, PlantUMLShell};
-use crate::plantumlconfig::PlantUMLConfig;
+use crate::backend::server::PlantUMLServer;
+use crate::backend::shell::{split_shell_command, PlantUMLShell};
+use crate::backend::PlantUMLBackend;
+use crate::config::PlantUMLConfig;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::process::Command;

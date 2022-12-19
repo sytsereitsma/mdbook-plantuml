@@ -1,5 +1,10 @@
 use anyhow::Result;
 
+pub mod factory;
+#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
+pub mod server;
+pub mod shell;
+
 pub trait PlantUMLBackend {
     /// Render a PlantUML string to file and return the diagram URL path to this
     /// file (as a String) for use in a link.

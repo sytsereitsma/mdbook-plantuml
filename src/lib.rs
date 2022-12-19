@@ -1,19 +1,15 @@
+mod backend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-mod base64_plantuml;
+mod base64;
+mod config;
 mod dir_cleaner;
-mod markdown_plantuml_pipeline;
-mod plantuml_backend;
-mod plantuml_backend_factory;
-mod plantuml_renderer;
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-mod plantuml_server_backend;
-mod plantuml_shell_backend;
-mod plantumlconfig;
+mod pipeline;
+mod renderer;
 
-use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
+use crate::pipeline::render_plantuml_code_blocks;
 
-use crate::plantuml_renderer::PlantUMLRenderer;
-use crate::plantumlconfig::PlantUMLConfig;
+use crate::config::PlantUMLConfig;
+use crate::renderer::PlantUMLRenderer;
 use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};

@@ -1,4 +1,4 @@
-use crate::plantuml_renderer::PlantUMLRendererTrait;
+use crate::renderer::PlantUMLRendererTrait;
 use std::string::String;
 
 pub fn render_plantuml_code_blocks(

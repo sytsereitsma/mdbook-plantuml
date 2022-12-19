@@ -1,4 +1,4 @@
-use crate::plantuml_backend::PlantUMLBackend;
+use crate::backend::PlantUMLBackend;
 use anyhow::{bail, format_err, Context, Result};
 
 use std::fs;
