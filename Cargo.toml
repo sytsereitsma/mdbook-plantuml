@@ -14,11 +14,6 @@ exclude = [
 edition = "2018"
 rust-version = "1.64.0"
 
-[[bin]]
-name = "mdbook-plantuml"
-path = "src/bin/mdbook-plantuml.rs"
-doc = false
-
 [features]
 default = ["plantuml-ssl-server"]
 plantuml-server=["reqwest", "deflate"]
