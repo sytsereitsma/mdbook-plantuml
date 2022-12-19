@@ -108,7 +108,7 @@ fn find_next_code_fence(
 /// * `fence_end` - The start offset for the search
 /// * `min_length` - Optional length of the code fence to find (used for finding
 ///   the closing)
-fn get_info_string(bytes: &[u8], fence_end: usize) -> Option<&str> {
+fn info_string(bytes: &[u8], fence_end: usize) -> Option<&str> {
     let info_start = find_first_inequal(bytes, b' ', fence_end);
     if info_start < bytes.len() {
         let mut pos = info_start;
@@ -145,7 +145,7 @@ impl<'a> CodeBlock<'a> {
         language == Some("plantuml") || language == Some("puml")
     }
 
-    fn get_format(&self) -> String {
+    fn format(&self) -> String {
         if self.code.contains("@startditaa") {
             String::from("png")
         } else {
@@ -178,7 +178,7 @@ impl<'a> CodeProcessor<'a> {
     /// # Arguments
     /// * `bytes` - The bytes array to parse
     /// * `fence_end` - Option with the byte offsets of the end fence
-    const fn get_end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
+    const fn end_positions(bytes: &[u8], fence_end: Option<(usize, usize)>) -> (usize, usize) {
         if let Some((code_end, fe)) = fence_end {
             let end_pos = {
                 let p = next_line(bytes, fe);
@@ -196,13 +196,13 @@ impl<'a> CodeProcessor<'a> {
 
     /// Get next code block in document, starting at byte offset start_pos
     /// Returns None if no more code blocks are found.
-    fn get_next_code_block(&self, start_pos: usize) -> Option<CodeBlock> {
+    fn next_code_block(&self, start_pos: usize) -> Option<CodeBlock> {
         let bytes = self.markdown.as_bytes();
         if let Some((s, e)) = find_next_code_fence(bytes, start_pos, None, None) {
-            let info_string = get_info_string(bytes, e);
+            let info_string = info_string(bytes, e);
             let code_start = next_line(bytes, e);
             let fence_end = find_next_code_fence(bytes, e, Some(e - s), Some(bytes[s]));
-            let (code_end, end_pos) = Self::get_end_positions(bytes, fence_end);
+            let (code_end, end_pos) = Self::end_positions(bytes, fence_end);
 
             Some(CodeBlock {
                 code: &self.markdown[code_start..code_end],
@@ -229,10 +229,10 @@ impl<'a> CodeProcessor<'a> {
         let bytes = self.markdown.as_bytes();
         let mut start_pos: usize = 0;
         while start_pos < bytes.len() {
-            if let Some(code_block) = self.get_next_code_block(start_pos) {
+            if let Some(code_block) = self.next_code_block(start_pos) {
                 if code_block.is_plantuml() {
                     processed.push_str(&self.markdown[start_pos..code_block.start_pos]);
-                    let format = code_block.get_format();
+                    let format = code_block.format();
 
                     let rendered = renderer.render(code_block.code, rel_image_url, format);
                     match rendered {
@@ -346,13 +346,13 @@ mod test {
     }
 
     #[test]
-    fn test_get_info_string() {
+    fn test_info_string() {
         #![allow(clippy::string_lit_as_bytes)]
-        macro_rules! assert_get_info_string {
+        macro_rules! assert_info_string {
             ($markdown:expr, $start:expr, $expected_range: expr) => {{
                 let bytes = $markdown.as_bytes();
 
-                let slice = get_info_string(bytes, $start);
+                let slice = info_string(bytes, $start);
                 if let Some((s, e)) = $expected_range {
                     assert_eq!(Some(&$markdown[s..e]), slice);
                 } else {
@@ -361,20 +361,20 @@ mod test {
             }};
         }
 
-        assert_get_info_string!("", 0, None);
-        assert_get_info_string!("  ", 0, None);
-        assert_get_info_string!("\n", 0, None);
+        assert_info_string!("", 0, None);
+        assert_info_string!("  ", 0, None);
+        assert_info_string!("\n", 0, None);
 
-        assert_get_info_string!("foobar", 0, Some((0, 6)));
-        assert_get_info_string!("foobar\n", 0, Some((0, 6)));
-        assert_get_info_string!("foobar\r\n", 0, Some((0, 6)));
-        assert_get_info_string!("foobar ", 0, Some((0, 6)));
+        assert_info_string!("foobar", 0, Some((0, 6)));
+        assert_info_string!("foobar\n", 0, Some((0, 6)));
+        assert_info_string!("foobar\r\n", 0, Some((0, 6)));
+        assert_info_string!("foobar ", 0, Some((0, 6)));
 
-        assert_get_info_string!("foobar baz", 0, Some((0, 6)));
-        assert_get_info_string!("  foobar  \n", 0, Some((2, 8)));
-        assert_get_info_string!("  foobar baz \n", 0, Some((2, 8)));
+        assert_info_string!("foobar baz", 0, Some((0, 6)));
+        assert_info_string!("  foobar  \n", 0, Some((2, 8)));
+        assert_info_string!("  foobar baz \n", 0, Some((2, 8)));
 
-        assert_get_info_string!("some```foobar", 7, Some((7, 13)));
+        assert_info_string!("some```foobar", 7, Some((7, 13)));
     }
 
     #[test]
@@ -472,7 +472,7 @@ mod test {
                     end_pos: 0,
                 };
 
-                code_block.get_format()
+                code_block.format()
             }};
         }
 

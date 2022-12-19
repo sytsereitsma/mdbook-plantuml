@@ -21,7 +21,7 @@ pub trait RendererTrait {
 /// Create the image names with the appropriate extension and path
 /// The base name of the file is a SHA1 of the code block to avoid collisions
 /// with existing and as a bonus prevent duplicate files.
-pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) -> PathBuf {
+pub fn image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) -> PathBuf {
     // See https://plantuml.com/command-line "Types of output files" for additional info
     let extension = {
         if plantuml_code.contains("@startditaa") {
@@ -133,7 +133,7 @@ impl Renderer {
         // When operating in data-uri mode the images are written to in .mdbook-plantuml, otherwise
         // they are written to src/mdbook-plantuml-images (cannot write to the book output dir, because
         // mdbook deletes the files in there after preprocessing)
-        let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
+        let output_file = image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
             // File is not cached, render the image
             let data = self
@@ -363,31 +363,31 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_filename_extension() {
-        let get_extension_from_filename = |code: &str, img_format: &str| -> String {
-            let file_path = get_image_filename(Path::new("foo"), code, img_format)
+    fn test_image_filename_extension() {
+        let extension_from_filename = |code: &str, img_format: &str| -> String {
+            let file_path = image_filename(Path::new("foo"), code, img_format)
                 .to_string_lossy()
                 .to_string();
             let firstdot = file_path.find('.').unwrap();
             file_path[firstdot + 1..].to_string()
         };
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
+        assert_eq!(String::from("svg"), extension_from_filename("", "svg"));
 
-        assert_eq!(String::from("eps"), get_extension_from_filename("", "eps"));
+        assert_eq!(String::from("eps"), extension_from_filename("", "eps"));
 
-        assert_eq!(String::from("png"), get_extension_from_filename("", "png"));
+        assert_eq!(String::from("png"), extension_from_filename("", "png"));
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", ""));
+        assert_eq!(String::from("svg"), extension_from_filename("", ""));
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
+        assert_eq!(String::from("svg"), extension_from_filename("", "svg"));
 
-        assert_eq!(String::from("atxt"), get_extension_from_filename("", "txt"));
+        assert_eq!(String::from("atxt"), extension_from_filename("", "txt"));
 
         // Plantuml does this 'braille.png' extension
         assert_eq!(
             String::from("braille.png"),
-            get_extension_from_filename("", "braille")
+            extension_from_filename("", "braille")
         );
 
         {
@@ -395,17 +395,17 @@ mod tests {
             // Note the format is overridden when rendering ditaa
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename("@startditaa", "svg")
+                extension_from_filename("@startditaa", "svg")
             );
 
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename("@startditaa", "png")
+                extension_from_filename("@startditaa", "png")
             );
 
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename(
+                extension_from_filename(
                     "Also when not at the start of the code block @startditaa",
                     "svg"
                 )
@@ -414,9 +414,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_filename() {
+    fn test_image_filename() {
         let code = "asgtfgl";
-        let file_path = get_image_filename(Path::new("foo"), code, "svg");
+        let file_path = image_filename(Path::new("foo"), code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
             hash_string(code),
