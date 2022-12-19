@@ -34,8 +34,8 @@ fn create_command(plantuml_cmd: &str) -> Result<Command> {
     Ok(command)
 }
 
-struct PipedPlantUMLRunner;
-impl PipedPlantUMLRunner {
+struct PipedRunner;
+impl PipedRunner {
     fn run(plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
         let mut child = create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
@@ -75,8 +75,8 @@ impl PipedPlantUMLRunner {
 }
 
 /// Traditional file based renderer. Simply writes a file with the PlantUML source to disk and reads back the output file
-struct FilePlantUMLRunner;
-impl FilePlantUMLRunner {
+struct FileRunner;
+impl FileRunner {
     fn find_generated_file(generation_dir: &Path, src_file_name: &str) -> Result<PathBuf> {
         // PlantUML creates an output file based on the format, it is not always the same as `format` though (e.g. braille outputs a file
         // with extension `.braille.png`)
@@ -140,9 +140,9 @@ impl PlantUMLShell {
 impl Backend for PlantUMLShell {
     fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         if self.piped {
-            PipedPlantUMLRunner::run(&self.plantuml_cmd, plantuml_code, image_format)
+            PipedRunner::run(&self.plantuml_cmd, plantuml_code, image_format)
         } else {
-            FilePlantUMLRunner::run(&self.plantuml_cmd, plantuml_code, image_format)
+            FileRunner::run(&self.plantuml_cmd, plantuml_code, image_format)
         }
     }
 }
@@ -155,8 +155,7 @@ mod tests {
     fn test_find_generated_file() {
         let generation_dir = tempdir().unwrap();
 
-        let found_file =
-            FilePlantUMLRunner::find_generated_file(generation_dir.path(), "somefile.txt");
+        let found_file = FileRunner::find_generated_file(generation_dir.path(), "somefile.txt");
         assert!(found_file.is_err());
     }
 
