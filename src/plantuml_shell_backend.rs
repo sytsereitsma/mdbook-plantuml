@@ -39,7 +39,7 @@ impl PipedPlantUMLRunner {
     fn run(plantuml_cmd: &str, plantuml_src: &str, format: &str) -> Result<Vec<u8>> {
         let mut child = create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
-            .arg(format!("-t{}", format))
+            .arg(format!("-t{format}"))
             .arg("-nometadata")
             .arg("-pipe")
             .arg("-pipeNoStderr")
@@ -47,7 +47,7 @@ impl PipedPlantUMLRunner {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .with_context(|| format!("Failed to start PlantUML command '{}' ", plantuml_cmd))?;
+            .with_context(|| format!("Failed to start PlantUML command '{plantuml_cmd}' "))?;
 
         // Pipe the plantuml source
         child
@@ -67,8 +67,8 @@ impl PipedPlantUMLRunner {
             Err(format_err!(
                 "Failed to render image in piped mode ({})\n  stdout: '{}'\n  stderr: '{}'",
                 output.status,
-                String::from_utf8(output.stdout).unwrap_or_else(|_| String::from("")),
-                String::from_utf8(output.stderr).unwrap_or_else(|_| String::from(""))
+                String::from_utf8(output.stdout).unwrap_or_default(),
+                String::from_utf8(output.stderr).unwrap_or_default(),
             ))
         }
     }
@@ -106,14 +106,13 @@ impl FilePlantUMLRunner {
         // Call PlantUML
         create_command(plantuml_cmd)?
             // There cannot be a space between -t and format! Otherwise PlantUML generates a PNG image
-            .arg(format!("-t{}", format))
+            .arg(format!("-t{format}"))
             .arg("-nometadata")
-            .arg(&src_file.to_str().unwrap())
+            .arg(src_file.to_str().unwrap())
             .output()
             .with_context(|| "Failed to render image")?;
 
-        let generated_file =
-            FilePlantUMLRunner::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
+        let generated_file = Self::find_generated_file(generation_dir.path(), SRC_FILE_NAME)?;
         fs::read(generated_file).with_context(|| "Failed to read rendered image")
     }
 }

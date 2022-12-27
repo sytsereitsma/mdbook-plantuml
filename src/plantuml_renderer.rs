@@ -79,13 +79,13 @@ impl PlantUMLRenderer {
             image_path.file_name().unwrap().to_str().unwrap()
         );
         if clickable {
-            format!("[![]({})]({})\n\n", img_url, img_url)
+            format!("[![]({img_url})]({img_url})\n\n")
         } else {
-            format!("![]({})\n\n", img_url)
+            format!("![]({img_url})\n\n")
         }
     }
 
-    fn create_datauri(image_path: &PathBuf) -> Result<String> {
+    fn create_datauri(image_path: &Path) -> Result<String> {
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs#syntax
 
         let media_type = match image_path
@@ -93,27 +93,27 @@ impl PlantUMLRenderer {
             .map(|s| s.to_str())
             .unwrap_or(Some(""))
         {
-            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("jpg" | "jpeg") => "image/jpeg",
             Some("png") => "image/png",
             Some("svg") => "image/svg+xml",
-            Some("atxt") | Some("utxt") | Some("txt") => "text/plain",
+            Some("atxt" | "utxt" | "txt") => "text/plain",
             _ => "",
         };
 
         let image_data = fs::read(image_path)
-            .with_context(|| format!("Could not open image file {:?}", image_path))?;
-        let encoded_value = encode(&image_data);
-        Ok(format!("data:{};base64,{}", media_type, encoded_value))
+            .with_context(|| format!("Could not open image file {image_path:?}"))?;
+        let encoded_value = encode(image_data);
+        Ok(format!("data:{media_type};base64,{encoded_value}"))
     }
 
-    fn create_image_datauri_element(image_path: &PathBuf, clickable: bool) -> Result<String> {
-        let uri = PlantUMLRenderer::create_datauri(image_path)?;
+    fn create_image_datauri_element(image_path: &Path, clickable: bool) -> Result<String> {
+        let uri = Self::create_datauri(image_path)?;
         if clickable {
             // Note that both Edge and Firefox do not allow clicking on data URI links
             // So this probably won't work. Kept in here regardless for consistency
-            Ok(format!("[![]({})]({})\n\n", uri, uri))
+            Ok(format!("[![]({uri})]({uri})\n\n"))
         } else {
-            Ok(format!("![]({})\n\n", uri))
+            Ok(format!("![]({uri})\n\n"))
         }
     }
 
@@ -122,7 +122,7 @@ impl PlantUMLRenderer {
         let raw_source = fs::read(image_path).unwrap();
         let txt = String::from_utf8(raw_source)?;
 
-        Ok(format!("\n```txt\n{}```\n", txt))
+        Ok(format!("\n```txt\n{txt}```\n"))
     }
 
     pub fn render(
@@ -142,7 +142,7 @@ impl PlantUMLRenderer {
                 .render_from_string(plantuml_code, image_format)?;
 
             // Save the file even if we inline images
-            std::fs::write(&output_file, &data).with_context(|| {
+            std::fs::write(&output_file, data).with_context(|| {
                 format!(
                     "Failed to save PlantUML diagram to {}.",
                     output_file.to_string_lossy()
@@ -213,7 +213,7 @@ mod tests {
 
         let svg_path = temp_directory.path().join("file.svg");
         let mut svg_file = File::create(&svg_path).unwrap();
-        writeln!(svg_file, "{}", content).unwrap();
+        writeln!(svg_file, "{content}").unwrap();
         drop(svg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/svg+xml;base64,dGVzdCBjb250ZW50Cg=="),
@@ -222,7 +222,7 @@ mod tests {
 
         let png_path = temp_directory.path().join("file.png");
         let mut png_file = File::create(&png_path).unwrap();
-        writeln!(png_file, "{}", content).unwrap();
+        writeln!(png_file, "{content}").unwrap();
         drop(png_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/png;base64,dGVzdCBjb250ZW50Cg=="),
@@ -231,7 +231,7 @@ mod tests {
 
         let txt_path = temp_directory.path().join("file.txt");
         let mut txt_file = File::create(&txt_path).unwrap();
-        writeln!(txt_file, "{}", content).unwrap();
+        writeln!(txt_file, "{content}").unwrap();
         drop(txt_file); // Close and flush content to file
         assert_eq!(
             String::from("data:text/plain;base64,dGVzdCBjb250ZW50Cg=="),
@@ -240,7 +240,7 @@ mod tests {
 
         let jpeg_path = temp_directory.path().join("file.jpeg");
         let mut jpeg_file = File::create(&jpeg_path).unwrap();
-        writeln!(jpeg_file, "{}", content).unwrap();
+        writeln!(jpeg_file, "{content}").unwrap();
         drop(jpeg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
@@ -256,7 +256,7 @@ mod tests {
         fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
             if self.is_ok {
                 return Ok(Vec::from(
-                    format!("{}\n{}", plantuml_code, image_format).as_bytes(),
+                    format!("{plantuml_code}\n{image_format}").as_bytes(),
                 ));
             }
             bail!("Oh no");
@@ -278,27 +278,27 @@ mod tests {
         let code_hash = hash_string(plantuml_code);
 
         assert_eq!(
-            format!("![](rel/url/{}.svg)\n\n", code_hash),
+            format!("![](rel/url/{code_hash}.svg)\n\n"),
             renderer.render(plantuml_code, "rel/url", "svg").unwrap()
         );
 
         // png extension
         assert_eq!(
-            format!("![](rel/url/{}.png)\n\n", code_hash),
+            format!("![](rel/url/{code_hash}.png)\n\n"),
             renderer.render(plantuml_code, "rel/url", "png").unwrap()
         );
 
         // txt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
-                                                               * fake backend */
+            format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
+                                                             * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
 
         // utxt extension
         assert_eq!(
-            format!("\n```txt\n{}\ntxt```\n", plantuml_code), /* image format is appended by
-                                                               * fake backend */
+            format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
+                                                             * fake backend */
             renderer.render(plantuml_code, "rel/url", "txt").unwrap()
         );
     }

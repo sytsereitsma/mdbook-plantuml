@@ -85,28 +85,23 @@ fn check_server_support(server_address: &str) {
         return;
     }
 
-    if !cfg!(feature = "plantuml-ssl-server") && server_address.starts_with("https:") {
-        panic!(
-            "The PlantUML command '{}' is configured to use a PlantUML SSL server, but the mdbook-plantuml plugin \
-            is built without SSL server support.\nPlease rebuild/reinstall the \
-            plugin with SSL server support, or configure the plantuml command line tool as \
-            backend. See the the Features section in README.md",
-            &server_address
-        );
-    }
+    assert!(
+        cfg!(feature = "plantuml-ssl-server") || !server_address.starts_with("https:"),
+        "The PlantUML command '{}' is configured to use a PlantUML SSL server, but the mdbook-plantuml plugin \
+        is built without SSL server support.\nPlease rebuild/reinstall the \
+        plugin with SSL server support, or configure the plantuml command line tool as \
+        backend. See the the Features section in README.md",
+        &server_address
+    );
 
-    if !cfg!(feature = "plantuml-ssl-server")
-        && !cfg!(feature = "plantuml-server")
-        && server_address.starts_with("http:")
-    {
-        panic!(
-            "The PlantUML command '{}' is configured to use a PlantUML server, but the mdbook-plantuml plugin \
-            is built without server support.\nPlease rebuild/reinstall the \
-            plugin with server support, or configure the plantuml command line tool as \
-            backend. See the the Features section in README.md",
-            &server_address
-        );
-    }
+    assert!(
+        cfg!(feature = "plantuml-ssl-server") || cfg!(feature = "plantuml-server") || !server_address.starts_with("http:"),
+        "The PlantUML command '{}' is configured to use a PlantUML server, but the mdbook-plantuml plugin \
+        is built without server support.\nPlease rebuild/reinstall the \
+        plugin with server support, or configure the plantuml command line tool as \
+        backend. See the the Features section in README.md",
+        &server_address
+    );
 }
 
 #[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]

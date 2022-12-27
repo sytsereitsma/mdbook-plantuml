@@ -12,6 +12,7 @@ exclude = [
     "tests/e2etest",
 ]
 edition = "2018"
+rust-version = "1.64.0"
 
 [[bin]]
 name = "mdbook-plantuml"
