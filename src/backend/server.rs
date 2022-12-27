@@ -1,5 +1,5 @@
-use crate::base64_plantuml;
-use crate::plantuml_backend::PlantUMLBackend;
+use crate::backend::Backend;
+use crate::base64;
 use anyhow::{bail, Result};
 use deflate::deflate_bytes;
 use reqwest::Url;
@@ -44,7 +44,7 @@ impl PlantUMLServer {
     }
 
     /// Format the PlantUML server URL using the encoded diagram and extension
-    fn get_url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url> {
+    fn url(&self, image_format: &str, encoded_diagram: &str) -> Result<Url> {
         let path = format!("{image_format}/{encoded_diagram}");
 
         self.server_url.join(&path).map_err(|e| {
@@ -66,7 +66,7 @@ impl PlantUMLServer {
         downloader: &dyn ImageDownloader,
     ) -> Result<Vec<u8>> {
         let encoded = encode_diagram_source(plantuml_code);
-        let request_url = self.get_url(image_format, &encoded)?;
+        let request_url = self.url(image_format, &encoded)?;
 
         downloader.download_image(&request_url)
     }
@@ -75,10 +75,10 @@ impl PlantUMLServer {
 /// Compress and encode the image source, return the encoed Base64-ish string
 fn encode_diagram_source(plantuml_code: &str) -> String {
     let compressed = deflate_bytes(plantuml_code.as_bytes());
-    base64_plantuml::encode(&compressed)
+    base64::encode(&compressed)
 }
 
-impl PlantUMLBackend for PlantUMLServer {
+impl Backend for PlantUMLServer {
     fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
         let downloader = RealImageDownloader {};
         self.render_string(plantuml_code, image_format, &downloader)
@@ -93,12 +93,12 @@ mod tests {
     use simulacrum::*;
 
     #[test]
-    fn test_get_url() {
+    fn test_url() {
         let srv = PlantUMLServer::new(Url::parse("http://froboz:1234/plantuml").unwrap());
 
         assert_eq!(
             Url::parse("http://froboz:1234/plantuml/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url("ext", "plantuml_encoded_string").unwrap()
+            srv.url("ext", "plantuml_encoded_string").unwrap()
         );
 
         // I cannot manage Url::parse to fail using the ext and encoded data
@@ -107,12 +107,12 @@ mod tests {
     }
 
     #[test]
-    fn test_get_url_no_path() {
+    fn test_url_no_path() {
         let srv = PlantUMLServer::new(Url::parse("http://froboz:1234").unwrap());
 
         assert_eq!(
             Url::parse("http://froboz:1234/ext/plantuml_encoded_string").unwrap(),
-            srv.get_url("ext", "plantuml_encoded_string").unwrap()
+            srv.url("ext", "plantuml_encoded_string").unwrap()
         );
     }
 

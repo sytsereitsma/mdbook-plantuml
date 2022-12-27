@@ -1,7 +1,6 @@
+use crate::backend::{self, Backend};
+use crate::config::Config;
 use crate::dir_cleaner::DirCleaner;
-use crate::plantuml_backend::PlantUMLBackend;
-use crate::plantuml_backend_factory;
-use crate::plantumlconfig::PlantUMLConfig;
 use anyhow::{Context, Result};
 use base64::encode;
 use sha1::{Digest, Sha1};
@@ -10,7 +9,7 @@ use std::fs;
 
 use std::path::{Path, PathBuf};
 
-pub trait PlantUMLRendererTrait {
+pub trait RendererTrait {
     fn render(
         &self,
         plantuml_code: &str,
@@ -22,7 +21,7 @@ pub trait PlantUMLRendererTrait {
 /// Create the image names with the appropriate extension and path
 /// The base name of the file is a SHA1 of the code block to avoid collisions
 /// with existing and as a bonus prevent duplicate files.
-pub fn get_image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) -> PathBuf {
+pub fn image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) -> PathBuf {
     // See https://plantuml.com/command-line "Types of output files" for additional info
     let extension = {
         if plantuml_code.contains("@startditaa") {
@@ -51,18 +50,18 @@ fn hash_string(code: &str) -> String {
     base16ct::lower::encode_string(&hash)
 }
 
-pub struct PlantUMLRenderer {
-    backend: Box<dyn PlantUMLBackend>,
+pub struct Renderer {
+    backend: Box<dyn Backend>,
     cleaner: RefCell<DirCleaner>,
     img_root: PathBuf,
     clickable_img: bool,
     use_data_uris: bool,
 }
 
-impl PlantUMLRenderer {
-    pub fn new(cfg: &PlantUMLConfig, img_root: PathBuf) -> Self {
+impl Renderer {
+    pub fn new(cfg: &Config, img_root: PathBuf) -> Self {
         let renderer = Self {
-            backend: plantuml_backend_factory::create(cfg),
+            backend: backend::factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
             img_root,
             clickable_img: cfg.clickable_img,
@@ -134,7 +133,7 @@ impl PlantUMLRenderer {
         // When operating in data-uri mode the images are written to in .mdbook-plantuml, otherwise
         // they are written to src/mdbook-plantuml-images (cannot write to the book output dir, because
         // mdbook deletes the files in there after preprocessing)
-        let output_file = get_image_filename(&self.img_root, plantuml_code, image_format);
+        let output_file = image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
             // File is not cached, render the image
             let data = self
@@ -168,7 +167,7 @@ impl PlantUMLRenderer {
     }
 }
 
-impl PlantUMLRendererTrait for PlantUMLRenderer {
+impl RendererTrait for Renderer {
     fn render(
         &self,
         plantuml_code: &str,
@@ -192,17 +191,17 @@ mod tests {
     fn test_create_md_link() {
         assert_eq!(
             String::from("![](foo/bar/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
+            Renderer::create_md_link("foo/bar", Path::new("/froboz/baz.svg"), false)
         );
 
         assert_eq!(
             "![](/baz.svg)\n\n",
-            PlantUMLRenderer::create_md_link("", Path::new("baz.svg"), false)
+            Renderer::create_md_link("", Path::new("baz.svg"), false)
         );
 
         assert_eq!(
             String::from("![](/baz.svg)\n\n"),
-            PlantUMLRenderer::create_md_link("", Path::new("foo/baz.svg"), false)
+            Renderer::create_md_link("", Path::new("foo/baz.svg"), false)
         );
     }
 
@@ -217,7 +216,7 @@ mod tests {
         drop(svg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/svg+xml;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&svg_path).unwrap()
+            Renderer::create_datauri(&svg_path).unwrap()
         );
 
         let png_path = temp_directory.path().join("file.png");
@@ -226,7 +225,7 @@ mod tests {
         drop(png_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/png;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&png_path).unwrap()
+            Renderer::create_datauri(&png_path).unwrap()
         );
 
         let txt_path = temp_directory.path().join("file.txt");
@@ -235,7 +234,7 @@ mod tests {
         drop(txt_file); // Close and flush content to file
         assert_eq!(
             String::from("data:text/plain;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&txt_path).unwrap()
+            Renderer::create_datauri(&txt_path).unwrap()
         );
 
         let jpeg_path = temp_directory.path().join("file.jpeg");
@@ -244,7 +243,7 @@ mod tests {
         drop(jpeg_file); // Close and flush content to file
         assert_eq!(
             String::from("data:image/jpeg;base64,dGVzdCBjb250ZW50Cg=="),
-            PlantUMLRenderer::create_datauri(&jpeg_path).unwrap()
+            Renderer::create_datauri(&jpeg_path).unwrap()
         );
     }
 
@@ -252,7 +251,7 @@ mod tests {
         is_ok: bool,
     }
 
-    impl PlantUMLBackend for BackendMock {
+    impl Backend for BackendMock {
         fn render_from_string(&self, plantuml_code: &str, image_format: &str) -> Result<Vec<u8>> {
             if self.is_ok {
                 return Ok(Vec::from(
@@ -266,7 +265,7 @@ mod tests {
     #[test]
     fn test_rendering_md_link() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
@@ -306,7 +305,7 @@ mod tests {
     #[test]
     fn test_rendering_datauri() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
@@ -350,7 +349,7 @@ mod tests {
     #[test]
     fn test_rendering_failure() {
         let output_dir = tempdir().unwrap();
-        let renderer = PlantUMLRenderer {
+        let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: false }),
             cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
@@ -364,31 +363,31 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_filename_extension() {
-        let get_extension_from_filename = |code: &str, img_format: &str| -> String {
-            let file_path = get_image_filename(Path::new("foo"), code, img_format)
+    fn test_image_filename_extension() {
+        let extension_from_filename = |code: &str, img_format: &str| -> String {
+            let file_path = image_filename(Path::new("foo"), code, img_format)
                 .to_string_lossy()
                 .to_string();
             let firstdot = file_path.find('.').unwrap();
             file_path[firstdot + 1..].to_string()
         };
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
+        assert_eq!(String::from("svg"), extension_from_filename("", "svg"));
 
-        assert_eq!(String::from("eps"), get_extension_from_filename("", "eps"));
+        assert_eq!(String::from("eps"), extension_from_filename("", "eps"));
 
-        assert_eq!(String::from("png"), get_extension_from_filename("", "png"));
+        assert_eq!(String::from("png"), extension_from_filename("", "png"));
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", ""));
+        assert_eq!(String::from("svg"), extension_from_filename("", ""));
 
-        assert_eq!(String::from("svg"), get_extension_from_filename("", "svg"));
+        assert_eq!(String::from("svg"), extension_from_filename("", "svg"));
 
-        assert_eq!(String::from("atxt"), get_extension_from_filename("", "txt"));
+        assert_eq!(String::from("atxt"), extension_from_filename("", "txt"));
 
         // Plantuml does this 'braille.png' extension
         assert_eq!(
             String::from("braille.png"),
-            get_extension_from_filename("", "braille")
+            extension_from_filename("", "braille")
         );
 
         {
@@ -396,17 +395,17 @@ mod tests {
             // Note the format is overridden when rendering ditaa
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename("@startditaa", "svg")
+                extension_from_filename("@startditaa", "svg")
             );
 
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename("@startditaa", "png")
+                extension_from_filename("@startditaa", "png")
             );
 
             assert_eq!(
                 String::from("png"),
-                get_extension_from_filename(
+                extension_from_filename(
                     "Also when not at the start of the code block @startditaa",
                     "svg"
                 )
@@ -415,9 +414,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_filename() {
+    fn test_image_filename() {
         let code = "asgtfgl";
-        let file_path = get_image_filename(Path::new("foo"), code, "svg");
+        let file_path = image_filename(Path::new("foo"), code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
             hash_string(code),

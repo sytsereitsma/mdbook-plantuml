@@ -1,8 +1,8 @@
-use crate::plantuml_backend::PlantUMLBackend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-use crate::plantuml_server_backend::PlantUMLServer;
-use crate::plantuml_shell_backend::{split_shell_command, PlantUMLShell};
-use crate::plantumlconfig::PlantUMLConfig;
+use crate::backend::server::PlantUMLServer;
+use crate::backend::shell::{split_shell_command, PlantUMLShell};
+use crate::backend::Backend;
+use crate::config::Config;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
 use std::process::Command;
@@ -50,7 +50,7 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
     }
 }
 
-fn create_shell_backend(cfg: &PlantUMLConfig) -> PlantUMLShell {
+fn create_shell_backend(cfg: &Config) -> PlantUMLShell {
     let piped = cfg.piped;
     if let Some(cfg_cmd) = &cfg.plantuml_cmd {
         if is_working_plantuml_cmd(cfg_cmd) {
@@ -107,7 +107,7 @@ fn check_server_support(server_address: &str) {
 #[cfg(not(any(feature = "plantuml-ssl-server", feature = "plantuml-server")))]
 /// Returns None, or panics, because we have no server support
 /// Returns Option<PlantUMLShell>, because otherwise a dummy trait would need to be implemented as a placeholder
-fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLShell> {
+fn create_server_backend(cfg: &Config) -> Option<PlantUMLShell> {
     let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
     check_server_support(server_address);
 
@@ -115,7 +115,7 @@ fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLShell> {
 }
 
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
+fn create_server_backend(cfg: &Config) -> Option<PlantUMLServer> {
     let server_address = cfg.plantuml_cmd.as_deref().unwrap_or("");
     if !server_address.starts_with("https:") && !server_address.starts_with("http:") {
         return None;
@@ -135,11 +135,11 @@ fn create_server_backend(cfg: &PlantUMLConfig) -> Option<PlantUMLServer> {
     }
 }
 
-/// Create an instance of the PlantUMLBackend
+/// Create an instance of the Backend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
-pub fn create(cfg: &PlantUMLConfig) -> Box<dyn PlantUMLBackend> {
+pub fn create(cfg: &Config) -> Box<dyn Backend> {
     if let Some(server_backend) = create_server_backend(cfg) {
         Box::new(server_backend)
     } else {

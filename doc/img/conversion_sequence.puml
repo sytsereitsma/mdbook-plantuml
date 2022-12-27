@@ -1,27 +1,27 @@
 @startuml
 participant Application
-participant PlantUMLPreprocessor
+participant Preprocessor
 participant markdown_plantuml_pipeline
-participant PlantUMLCodeProcessor
-participant PlantUMLRenderer
-participant PlantUMLBackend
+participant CodeProcessor
+participant Renderer
+participant Backend
 
 Application -> Application: main
 	Application -> Application: handle_preprocessing
-	Application -> PlantUMLPreprocessor: run
-		PlantUMLPreprocessor -> PlantUMLRenderer: create renderer
-		PlantUMLRenderer --> PlantUMLPreprocessor: renderer
+	Application -> Preprocessor: run
+		Preprocessor -> Renderer: create renderer
+		Renderer --> Preprocessor: renderer
 		loop for each chapter
-			PlantUMLPreprocessor -> markdown_plantuml_pipeline: render_plantuml_code_blocks(chapter markdown, renderer)
-			markdown_plantuml_pipeline -> PlantUMLCodeProcessor: process
+			Preprocessor -> markdown_plantuml_pipeline: render_plantuml_code_blocks(chapter markdown, renderer)
+			markdown_plantuml_pipeline -> CodeProcessor: process
 			loop for each PlantUML code block
-				PlantUMLCodeProcessor -> PlantUMLRenderer: render
-					PlantUMLRenderer -> PlantUMLBackend: render_from_string
-				PlantUMLRenderer --> PlantUMLCodeProcessor: Markdown link to image
-				PlantUMLCodeProcessor -> PlantUMLCodeProcessor: Replace PlantUML code block with link
+				CodeProcessor -> Renderer: render
+					Renderer -> Backend: render_from_string
+				Renderer --> CodeProcessor: Markdown link to image
+				CodeProcessor -> CodeProcessor: Replace PlantUML code block with link
 			end				
-			PlantUMLRenderer --> markdown_plantuml_pipeline: Patched chapter markdown
-			markdown_plantuml_pipeline --> PlantUMLPreprocessor: Patched chapter markdown
-			PlantUMLPreprocessor -> PlantUMLPreprocessor: Assign new chapter markdown
+			Renderer --> markdown_plantuml_pipeline: Patched chapter markdown
+			markdown_plantuml_pipeline --> Preprocessor: Patched chapter markdown
+			Preprocessor -> Preprocessor: Assign new chapter markdown
 		end
 @enduml

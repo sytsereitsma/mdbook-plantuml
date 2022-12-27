@@ -1,29 +1,25 @@
+mod backend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-mod base64_plantuml;
+mod base64;
+mod config;
 mod dir_cleaner;
-mod markdown_plantuml_pipeline;
-mod plantuml_backend;
-mod plantuml_backend_factory;
-mod plantuml_renderer;
-#[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
-mod plantuml_server_backend;
-mod plantuml_shell_backend;
-mod plantumlconfig;
+mod pipeline;
+mod renderer;
 
-use crate::markdown_plantuml_pipeline::render_plantuml_code_blocks;
+use crate::pipeline::render_plantuml_code_blocks;
 
-use crate::plantuml_renderer::PlantUMLRenderer;
-use crate::plantumlconfig::PlantUMLConfig;
+use crate::config::Config;
+use crate::renderer::Renderer;
 use anyhow::{bail, Context, Result};
 use mdbook::book::{Book, BookItem};
-use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+use mdbook::preprocess::PreprocessorContext;
 use std::fs;
 
 use std::path::{Path, PathBuf};
 
-pub struct PlantUMLPreprocessor;
+pub struct Preprocessor;
 
-impl Preprocessor for PlantUMLPreprocessor {
+impl mdbook::preprocess::Preprocessor for Preprocessor {
     fn name(&self) -> &str {
         "plantuml"
     }
@@ -33,11 +29,11 @@ impl Preprocessor for PlantUMLPreprocessor {
         ctx: &PreprocessorContext,
         mut book: Book,
     ) -> Result<Book, mdbook::errors::Error> {
-        let cfg = get_plantuml_config(ctx);
-        let img_output_dir = get_image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
+        let cfg = plantuml_config(ctx);
+        let img_output_dir = image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
         let org_cwd = std::env::current_dir()?;
 
-        let renderer = PlantUMLRenderer::new(&cfg, img_output_dir);
+        let renderer = Renderer::new(&cfg, img_output_dir);
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item {
                 if let Some(chapter_path) = &chapter.path {
@@ -50,7 +46,7 @@ impl Preprocessor for PlantUMLPreprocessor {
                     }
                     log::debug!("Changed working dir to {:?}.", abs_chapter_dir);
 
-                    let rel_image_url = get_relative_img_url(chapter_path);
+                    let rel_image_url = relative_img_url(chapter_path);
                     chapter.content = render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
                 }
             }
@@ -68,7 +64,7 @@ impl Preprocessor for PlantUMLPreprocessor {
     }
 }
 
-fn get_image_output_dir(root: &Path, src_root: &Path, cfg: &PlantUMLConfig) -> Result<PathBuf> {
+fn image_output_dir(root: &Path, src_root: &Path, cfg: &Config) -> Result<PathBuf> {
     let img_output_dir: PathBuf = {
         let canonicalized_root =
             dunce::canonicalize(root).with_context(|| "While determining image output dir")?;
@@ -98,7 +94,7 @@ fn get_image_output_dir(root: &Path, src_root: &Path, cfg: &PlantUMLConfig) -> R
     Ok(img_output_dir)
 }
 
-fn get_relative_img_url(chapter_path: &Path) -> String {
+fn relative_img_url(chapter_path: &Path) -> String {
     let nesting_level = chapter_path.components().count();
     let mut rel_image_url = String::new();
     for _ in 1..nesting_level {
@@ -109,7 +105,7 @@ fn get_relative_img_url(chapter_path: &Path) -> String {
     rel_image_url
 }
 
-pub fn get_plantuml_config(ctx: &PreprocessorContext) -> PlantUMLConfig {
+pub fn plantuml_config(ctx: &PreprocessorContext) -> Config {
     ctx.config
         .get("preprocessor.plantuml")
         .and_then(|raw| {
@@ -134,30 +130,30 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_get_relative_img_url() {
+    fn test_relative_img_url() {
         assert_eq!(
             String::from("mdbook-plantuml-img"),
-            get_relative_img_url(Path::new("chapter 1"))
+            relative_img_url(Path::new("chapter 1"))
         );
 
         assert_eq!(
             String::from("../mdbook-plantuml-img"),
-            get_relative_img_url(Path::new("chapter 1/nested 1"))
+            relative_img_url(Path::new("chapter 1/nested 1"))
         );
 
         assert_eq!(
             String::from("../../mdbook-plantuml-img"),
-            get_relative_img_url(Path::new("chapter 1/nested 1/nested 2"))
+            relative_img_url(Path::new("chapter 1/nested 1/nested 2"))
         );
     }
 
     #[test]
-    fn test_get_image_output_dir_data_uri() {
+    fn test_image_output_dir_data_uri() {
         let output_dir = tempdir().unwrap();
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
@@ -166,7 +162,7 @@ mod tests {
         };
 
         assert_eq!(
-            get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
+            image_output_dir(&book_root, &src_root, &cfg).unwrap(),
             dunce::canonicalize(book_root.as_path().join(".mdbook-plantuml-cache")).unwrap()
         );
         assert!(book_root.as_path().join(".mdbook-plantuml-cache").exists());
@@ -174,12 +170,12 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_output_dir_no_data_uri() {
+    fn test_image_output_dir_no_data_uri() {
         let output_dir = tempdir().unwrap();
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
@@ -188,7 +184,7 @@ mod tests {
         };
 
         assert_eq!(
-            get_image_output_dir(&book_root, &src_root, &cfg).unwrap(),
+            image_output_dir(&book_root, &src_root, &cfg).unwrap(),
             src_root.as_path().join("mdbook-plantuml-img")
         );
         assert!(!book_root.as_path().join(".mdbook-plantuml-cache").exists());
@@ -196,12 +192,12 @@ mod tests {
     }
 
     #[test]
-    fn test_get_image_output_dir_creation_failure() {
+    fn test_image_output_dir_creation_failure() {
         let output_dir = tempdir().unwrap();
         let book_root = output_dir.path().to_path_buf();
         let src_root = output_dir.path().join("src");
 
-        let cfg = PlantUMLConfig {
+        let cfg = Config {
             plantuml_cmd: None,
             clickable_img: false,
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
@@ -211,6 +207,6 @@ mod tests {
 
         // Create a file with the same name as the directory, this should fail the dir creation
         fs::File::create(book_root.as_path().join(".mdbook-plantuml-cache")).unwrap();
-        assert!(get_image_output_dir(&book_root, &src_root, &cfg).is_err());
+        assert!(image_output_dir(&book_root, &src_root, &cfg).is_err());
     }
 }

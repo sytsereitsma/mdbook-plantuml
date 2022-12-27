@@ -1,8 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
-use mdbook_plantuml::get_plantuml_config;
-use mdbook_plantuml::PlantUMLPreprocessor;
+use mdbook_plantuml::plantuml_config;
 use std::io;
 use std::process;
 
@@ -28,7 +27,7 @@ pub enum Command {
 fn main() {
     let args = Args::parse();
 
-    let preprocessor = PlantUMLPreprocessor;
+    let preprocessor = mdbook_plantuml::Preprocessor;
     if let Some(Command::Supports { renderer }) = args.command {
         handle_supports(&preprocessor, &renderer);
     } else if let Err(e) = handle_preprocessing(&preprocessor, args.log) {
@@ -39,7 +38,7 @@ fn main() {
 fn handle_preprocessing(pre: &dyn Preprocessor, log_to_file: bool) -> Result<()> {
     let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
 
-    let config = get_plantuml_config(&ctx);
+    let config = plantuml_config(&ctx);
     setup_logging(log_to_file, config.verbose)?;
 
     log::debug!(

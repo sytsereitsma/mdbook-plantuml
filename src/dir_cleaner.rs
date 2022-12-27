@@ -34,7 +34,7 @@ pub struct DirCleaner {
 impl DirCleaner {
     pub fn new(img_path: &Path) -> Self {
         Self {
-            files: Self::get_files(img_path),
+            files: Self::files(img_path),
         }
     }
 
@@ -43,7 +43,7 @@ impl DirCleaner {
         self.files.remove(img_path);
     }
 
-    fn get_files(img_path: &Path) -> HashSet<PathBuf> {
+    fn files(img_path: &Path) -> HashSet<PathBuf> {
         let mut files = HashSet::new();
         match std::fs::read_dir(img_path) {
             Err(e) => {
@@ -97,7 +97,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 
-    fn get_file_path(target_path: &Path, filename: &Path) -> PathBuf {
+    fn file_path(target_path: &Path, filename: &Path) -> PathBuf {
         let mut p = target_path.to_path_buf();
         p.push(filename);
         p
@@ -106,7 +106,7 @@ mod tests {
     fn seed_dir(target_path: &Path) -> HashSet<PathBuf> {
         let mut created_files = HashSet::new();
         let mut create_file = |filename: &Path, skip: bool| {
-            let p = get_file_path(target_path, filename);
+            let p = file_path(target_path, filename);
             if !skip {
                 created_files.insert(p.clone());
             }
@@ -118,7 +118,7 @@ mod tests {
         assert!(create_file(Path::new("foo.txt"), false));
         assert!(create_file(Path::new("bar.txt"), false));
         assert!(create_file(Path::new("baz.txt"), false));
-        assert!(std::fs::create_dir(get_file_path(target_path, Path::new("skipped"))).is_ok());
+        assert!(std::fs::create_dir(file_path(target_path, Path::new("skipped"))).is_ok());
         assert!(create_file(Path::new("skipped/skippedfile.txt"), true));
 
         created_files
@@ -145,7 +145,7 @@ mod tests {
         }
 
         // The directory should now be empty
-        assert!(DirCleaner::get_files(&target_path).is_empty());
+        assert!(DirCleaner::files(&target_path).is_empty());
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
             let mut cleaner = DirCleaner::new(&target_path);
 
             let mut keep = |file_name: &Path| {
-                let p = get_file_path(&target_path, file_name);
+                let p = file_path(&target_path, file_name);
                 cleaner.keep(&p);
                 expected_files.insert(p);
             };
@@ -169,6 +169,6 @@ mod tests {
         }
 
         // The directory should now be empty
-        assert_eq!(expected_files, DirCleaner::get_files(&target_path));
+        assert_eq!(expected_files, DirCleaner::files(&target_path));
     }
 }
