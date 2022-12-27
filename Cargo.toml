@@ -22,7 +22,7 @@ doc = false
 [features]
 default = ["plantuml-ssl-server"]
 plantuml-server=["reqwest", "deflate"]
-plantuml-ssl-server=["reqwest/default-tls", "deflate"]
+plantuml-ssl-server=["reqwest/rustls-tls", "deflate"]
 
 [dependencies]
 mdbook = { version = "0.4.21", default-features = false }
