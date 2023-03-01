@@ -32,7 +32,7 @@ sha1 = "0.10.5"
 base64 = "0.20.0"
 anyhow = "1.0.65"
 tempfile = "3.3.0"
-base16ct = { version = "0.1.1", features = ["alloc"] }
+base16ct = { version = "0.2.0", features = ["alloc"] }
 shlex = "1.1.0"
 dunce="1.0.3" # Alternative for std::Path::canonicalize that produces the regular paths on windows (instead of UNC paths)
 
