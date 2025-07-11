@@ -1,17 +1,20 @@
 use base64::{
     alphabet::Alphabet,
-    engine::fast_portable::{self, FastPortable},
+    engine::{general_purpose::GeneralPurpose, GeneralPurposeConfig}, Engine,
 };
 
-const ENGINE: FastPortable =
-    match Alphabet::from_str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_") {
-        Ok(alphabet) => FastPortable::from(&alphabet, fast_portable::PAD),
+const ENGINE_CONFIG: GeneralPurposeConfig = base64::engine::GeneralPurposeConfig::new()
+    .with_encode_padding(true);
+
+const ENGINE: GeneralPurpose =
+    match Alphabet::new("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_") {
+        Ok(alphabet) => GeneralPurpose::new(&alphabet, ENGINE_CONFIG),
         Err(_e) => unreachable!(),
     };
 
 /// PlantUML has its own base64 dialect
 pub fn encode(data: &[u8]) -> String {
-    base64::encode_engine(data, &ENGINE)
+    ENGINE.encode(data)
 }
 
 #[cfg(test)]
