@@ -2,7 +2,8 @@ use crate::backend::{self, Backend};
 use crate::config::Config;
 use crate::dir_cleaner::DirCleaner;
 use anyhow::{Context, Result};
-use base64::encode;
+use base64::{Engine};
+use base64::prelude::BASE64_STANDARD;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
@@ -101,7 +102,7 @@ impl Renderer {
 
         let image_data = fs::read(image_path)
             .with_context(|| format!("Could not open image file {image_path:?}"))?;
-        let encoded_value = encode(image_data);
+        let encoded_value = BASE64_STANDARD.encode(image_data);
         Ok(format!("data:{media_type};base64,{encoded_value}"))
     }
 
