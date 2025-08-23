@@ -10,7 +10,7 @@ use crate::pipeline::render_plantuml_code_blocks;
 
 use crate::config::Config;
 use crate::renderer::Renderer;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::PreprocessorContext;
 use std::fs;

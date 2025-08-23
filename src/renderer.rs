@@ -2,7 +2,7 @@ use crate::backend::{self, Backend};
 use crate::config::Config;
 use crate::dir_cleaner::DirCleaner;
 use anyhow::{Context, Result};
-use base64::{Engine};
+use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
@@ -182,7 +182,7 @@ impl RendererTrait for Renderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::{bail, Result};
+    use anyhow::{Result, bail};
     use pretty_assertions::assert_eq;
     use std::fs::File;
     use std::io::Write;

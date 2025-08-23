@@ -1,7 +1,7 @@
+use crate::backend::Backend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use crate::backend::server::PlantUMLServer;
-use crate::backend::shell::{split_shell_command, PlantUMLShell};
-use crate::backend::Backend;
+use crate::backend::shell::{PlantUMLShell, split_shell_command};
 use crate::config::Config;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 use reqwest::Url;
@@ -95,7 +95,9 @@ fn check_server_support(server_address: &str) {
     );
 
     assert!(
-        cfg!(feature = "plantuml-ssl-server") || cfg!(feature = "plantuml-server") || !server_address.starts_with("http:"),
+        cfg!(feature = "plantuml-ssl-server")
+            || cfg!(feature = "plantuml-server")
+            || !server_address.starts_with("http:"),
         "The PlantUML command '{}' is configured to use a PlantUML server, but the mdbook-plantuml plugin \
         is built without server support.\nPlease rebuild/reinstall the \
         plugin with server support, or configure the plantuml command line tool as \

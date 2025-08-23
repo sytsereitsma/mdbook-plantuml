@@ -1,6 +1,6 @@
 use crate::backend::Backend;
 use crate::base64;
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use deflate::deflate_bytes;
 use reqwest::Url;
 

@@ -182,11 +182,7 @@ impl<'a> CodeProcessor<'a> {
         if let Some((code_end, fe)) = fence_end {
             let end_pos = {
                 let p = next_line(bytes, fe);
-                if p == bytes.len() {
-                    p
-                } else {
-                    p - 1
-                }
+                if p == bytes.len() { p } else { p - 1 }
             };
             (code_end, end_pos)
         } else {
@@ -461,9 +457,7 @@ mod test {
     #[test]
     fn test_plantuml_codeblock_format_detection() {
         macro_rules! get_format {
-            ($info_str:expr) => {{
-                get_format!($info_str, "foo")
-            }};
+            ($info_str:expr) => {{ get_format!($info_str, "foo") }};
             ($info_str:expr, $code: expr) => {{
                 let code_block = CodeBlock {
                     code: $code,
