@@ -20,22 +20,23 @@ plantuml-server=["reqwest", "deflate"]
 plantuml-ssl-server=["reqwest/rustls-tls", "deflate"]
 
 [dependencies]
-mdbook = { version = "0.4", default-features = false }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-log = "0.4.17"
-clap = { version = "4.0", features = ["derive"] }
-log4rs = "1.1.1"
-reqwest = { version = "0.12", optional = true, features = ["blocking"], default-features = false }
-deflate = { version = "1.0", optional = true }
-sha1 = "0.10"
-base64 = "0.22"
-anyhow = "1.0"
-tempfile = "3.20"
-base16ct = { version = "0.2", features = ["alloc"] }
-shlex = "1.3"
-dunce = "1.0" # Alternative for std::Path::canonicalize that produces the regular paths on windows (instead of UNC paths)
+mdbook = { version = "0.4.52", default-features = false }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
+log = "0.4.27"
+clap = { version = "4.5.45", features = ["derive"] }
+# log4rs 1.3.0 and above do not pass the e2e tests. Logging appears in the stdout feedback to mdbook. Created a PR (#429) with the fix in log4rs
+log4rs = "=1.2.0"
+reqwest = { version = "0.12.23", optional = true, features = ["blocking"], default-features = false }
+deflate = { version = "1.0.0", optional = true }
+sha1 = "0.10.6"
+base64 = "0.22.1"
+anyhow = "1.0.99"
+tempfile = "3.21.0"
+base16ct = { version = "0.2.0", features = ["alloc"] }
+shlex = "1.3.0"
+dunce="1.0.5" # Alternative for std::Path::canonicalize that produces the regular paths on windows (instead of UNC paths)
 
 [dev-dependencies]
-pretty_assertions = "1.4"
-simulacrum = "0.3"
+pretty_assertions = "1.4.1"
+simulacrum = "0.3.1"
