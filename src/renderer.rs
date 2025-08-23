@@ -61,15 +61,13 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(cfg: &Config, img_root: PathBuf) -> Self {
-        let renderer = Self {
+        Self {
             backend: backend::factory::create(cfg),
             cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
             img_root,
             clickable_img: cfg.clickable_img,
             use_data_uris: cfg.use_data_uris,
-        };
-
-        renderer
+        }
     }
 
     fn create_md_link(rel_img_url: &str, image_path: &Path, clickable: bool) -> String {
