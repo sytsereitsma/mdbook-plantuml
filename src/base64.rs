@@ -1,10 +1,11 @@
 use base64::{
+    Engine,
     alphabet::Alphabet,
-    engine::{general_purpose::GeneralPurpose, GeneralPurposeConfig}, Engine,
+    engine::{GeneralPurposeConfig, general_purpose::GeneralPurpose},
 };
 
-const ENGINE_CONFIG: GeneralPurposeConfig = base64::engine::GeneralPurposeConfig::new()
-    .with_encode_padding(true);
+const ENGINE_CONFIG: GeneralPurposeConfig =
+    base64::engine::GeneralPurposeConfig::new().with_encode_padding(true);
 
 const ENGINE: GeneralPurpose =
     match Alphabet::new("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_") {

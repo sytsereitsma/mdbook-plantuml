@@ -117,10 +117,10 @@ fn info_string(bytes: &[u8], fence_end: usize) -> Option<&str> {
             pos += 1;
         }
 
-        if pos > info_start {
-            if let Ok(info) = std::str::from_utf8(&bytes[info_start..pos]) {
-                return Some(info);
-            }
+        if pos > info_start
+            && let Ok(info) = std::str::from_utf8(&bytes[info_start..pos])
+        {
+            return Some(info);
         }
     }
 
@@ -138,7 +138,7 @@ struct CodeBlock<'a> {
     end_pos: usize,
 }
 
-impl<'a> CodeBlock<'a> {
+impl CodeBlock<'_> {
     /// Returns true if this code block is plantuml (i.e. starts with plantuml or puml)
     fn is_plantuml(&self) -> bool {
         let language = self.info_string.and_then(|info| info.split(',').next());
@@ -167,8 +167,8 @@ struct CodeProcessor<'a> {
     markdown: &'a str,
 }
 
-impl<'a> CodeProcessor<'a> {
-    pub const fn new(markdown: &str) -> CodeProcessor {
+impl CodeProcessor<'_> {
+    pub const fn new(markdown: &str) -> CodeProcessor<'_> {
         CodeProcessor { markdown }
     }
 
@@ -182,11 +182,7 @@ impl<'a> CodeProcessor<'a> {
         if let Some((code_end, fe)) = fence_end {
             let end_pos = {
                 let p = next_line(bytes, fe);
-                if p == bytes.len() {
-                    p
-                } else {
-                    p - 1
-                }
+                if p == bytes.len() { p } else { p - 1 }
             };
             (code_end, end_pos)
         } else {
@@ -196,7 +192,7 @@ impl<'a> CodeProcessor<'a> {
 
     /// Get next code block in document, starting at byte offset start_pos
     /// Returns None if no more code blocks are found.
-    fn next_code_block(&self, start_pos: usize) -> Option<CodeBlock> {
+    fn next_code_block(&self, start_pos: usize) -> Option<CodeBlock<'_>> {
         let bytes = self.markdown.as_bytes();
         if let Some((s, e)) = find_next_code_fence(bytes, start_pos, None, None) {
             let info_string = info_string(bytes, e);
@@ -461,9 +457,7 @@ mod test {
     #[test]
     fn test_plantuml_codeblock_format_detection() {
         macro_rules! get_format {
-            ($info_str:expr) => {{
-                get_format!($info_str, "foo")
-            }};
+            ($info_str:expr) => {{ get_format!($info_str, "foo") }};
             ($info_str:expr, $code: expr) => {{
                 let code_block = CodeBlock {
                     code: $code,

@@ -56,14 +56,14 @@ impl DirCleaner {
             Ok(entries) => {
                 for entry in entries.flatten() {
                     // Here, `entry` is a `DirEntry`.
-                    if let Ok(file_type) = entry.file_type() {
-                        if file_type.is_file() {
-                            files.insert(entry.path());
-                            log::debug!(
-                                "DirCleaner - Found existing file {}",
-                                entry.path().to_string_lossy()
-                            );
-                        }
+                    if let Ok(file_type) = entry.file_type()
+                        && file_type.is_file()
+                    {
+                        files.insert(entry.path());
+                        log::debug!(
+                            "DirCleaner - Found existing file {}",
+                            entry.path().to_string_lossy()
+                        );
                     }
                 }
             }

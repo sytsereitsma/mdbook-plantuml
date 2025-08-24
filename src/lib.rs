@@ -10,7 +10,7 @@ use crate::pipeline::render_plantuml_code_blocks;
 
 use crate::config::Config;
 use crate::renderer::Renderer;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::PreprocessorContext;
 use std::fs;
@@ -35,8 +35,8 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
 
         let renderer = Renderer::new(&cfg, img_output_dir);
         book.for_each_mut(|item: &mut BookItem| {
-            if let BookItem::Chapter(ref mut chapter) = *item {
-                if let Some(chapter_path) = &chapter.path {
+            if let BookItem::Chapter(ref mut chapter) = *item
+                && let Some(chapter_path) = &chapter.path {
                     log::info!("Processing chapter '{}' ({:?})", chapter.name, chapter_path);
                     let abs_chapter_dir = dunce::canonicalize(&ctx.root).unwrap().join(&ctx.config.book.src).join(chapter_path).parent().unwrap().to_path_buf();
 
@@ -49,7 +49,6 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
                     let rel_image_url = relative_img_url(chapter_path);
                     chapter.content = render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
                 }
-            }
         });
 
         //Restore the current working dir
