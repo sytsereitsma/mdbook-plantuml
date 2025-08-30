@@ -21,10 +21,10 @@ impl<'a> InfoString<'a> {
 
         // Little helper to parse a key-vaue pair. Returns None if part is None, or an empty string when trimmed
         let parse_value = |part: Option<&'a str>| {
-            if let Some(value) = part.map(|k| k.trim()) {
-                if !value.is_empty() {
-                    return Some(value);
-                }
+            if let Some(value) = part.map(|k| k.trim())
+                && !value.is_empty()
+            {
+                return Some(value);
             }
 
             None
@@ -60,24 +60,24 @@ impl<'a> InfoString<'a> {
     }
 
     /// Returns true if this code block is plantuml (i.e. starts with plantuml or puml)
-    fn is_plantuml(&self) -> bool {
+    pub fn is_plantuml(&self) -> bool {
         self.language == Some("plantuml") || self.language == Some("puml")
     }
 }
 
 /// Code block representation
 pub struct CodeBlock<'a> {
-    // Full block, including opening and closing fences
-    full_block: &'a str,
-    // The code block's info string
-    info_string: InfoString<'a>,
-    // The code block's code, stripped from opening and closing fences
-    code: &'a str,
+    /// Full block, including opening and closing fences
+    pub full_block: &'a str,
+    /// The code block's info string
+    pub info_string: InfoString<'a>,
+    /// The code block's code, stripped from opening and closing fences
+    pub code: &'a str,
 }
 
 impl<'a> CodeBlock<'a> {
     /// Returns the image format (file extension) PlantUML needs to generate for this code block
-    fn get_image_format(&self) -> &'a str {
+    pub fn get_image_format(&self) -> &'a str {
         if self.code.contains("@startditaa") {
             // Ditaa only supports png
             return "png";
@@ -99,7 +99,7 @@ impl<'a> CodeBlock<'a> {
 /// Text block representation
 pub struct TextBlock<'a> {
     /// The raw text in the text block
-    text: &'a str,
+    pub text: &'a str,
 }
 
 /// The markdown block type
@@ -128,7 +128,7 @@ pub struct MarkdownIterator<'a> {
 
 impl<'a> MarkdownIterator<'a> {
     /// Construct a new markdown iterator from the given markdown source
-    pub fn new(markdown: &'a str) -> MarkdownIterator {
+    pub fn new(markdown: &'a str) -> MarkdownIterator<'a> {
         MarkdownIterator {
             markdown,
             lines_it: markdown.lines().peekable(),
@@ -654,9 +654,7 @@ mod test {
     #[test]
     fn test_plantuml_codeblock_format_detection() {
         macro_rules! get_image_format {
-            ($info_str:expr) => {{
-                get_image_format!($info_str, "foo")
-            }};
+            ($info_str:expr) => {{ get_image_format!($info_str, "foo") }};
             ($info_str:expr, $code: expr) => {{
                 let code_block = CodeBlock {
                     full_block: "",
