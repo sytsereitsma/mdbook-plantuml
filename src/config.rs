@@ -14,7 +14,10 @@ pub struct Config {
     /// have some additional parameters.
     pub plantuml_cmd: Option<String>,
     /// When the PlantUML shell is called this option enables piped mode, meaning no temporary directories
-    /// and files are needed for image generation (defaults to false).
+    /// and files are needed for image generation (defaults to true).
+    /// This also allows using the `!include` and `!includesub` directives in plantuml. The working directory
+    /// for this command is the markdown file's directory (meaning using `!include foo.puml` from `bar.md` expects
+    /// `foo.puml` to be in the same directory as `bar.md`).
     #[serde(default = "bool_true")]
     pub piped: bool,
     /// PlantUML images become clickable for zoom by setting this flag to `true`.

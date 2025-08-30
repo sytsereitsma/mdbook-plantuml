@@ -3,6 +3,7 @@ mod backend;
 mod base64;
 mod config;
 mod dir_cleaner;
+mod markdown_iterator;
 mod pipeline;
 mod renderer;
 

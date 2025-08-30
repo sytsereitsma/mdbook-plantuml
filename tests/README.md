@@ -26,9 +26,18 @@ executable is rebuilt with different features enabled/disabled) and show the pag
 This is a bit of a pain, but the image names are randomly generated, so using a
 diff tool is not (easily) possible..
 
-## Running the tests
+## Prerequisites for running the tests
+
+* Docker client
+* mdbook
+* plantuml
 
 > Make sure you have a docker daemon running.
+ 
+ ```
+ docker pull plantuml/plantuml-server:jetty
+ docker run -d -p 8080:8080 plantuml/plantuml-server:jetty
+ ```
 
 ### Windows
 Simply run ```run_tests.bat```

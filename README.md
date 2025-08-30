@@ -1,5 +1,7 @@
 # mdBook PlantUML
 
+> Release candidate. Please report any issues you find.
+
 mdBook preprocessor to render [PlantUML](http://plantuml.com/) code blocks as images in your book.
 
 ## Contents
@@ -69,11 +71,14 @@ A --|> B
 - **plantuml-cmd:** Optional command override for PlantUML (defaults to "java -jar plantuml.jar" on Windows and "/usr/bin/plantuml" on Linux).
   When a URL is provided it is assumed you want to generate the images using a PlantUML server implementation.
 - **clickable-img:** Optional (```false``` by default). When ```true``` images can be clicked and are opened in a new tab/window.
-- **use-data-uris:** Optional (```false``` by default). When ```true``` images are rendered as inline Data URIs (not requiring external files).
+- **use-data-uris:** Optional (```true``` by default). When ```true``` images are rendered as inline Data URIs (not requiring external files).
+- **piped:** Optional (```true``` by default). When ```true``` plantuml (shell only) is executed in piped mode, enabling the use of `!include` and `!includesub` directives in PlantUML.
 
 ## Features
 - **plantuml-server** Add http server support only
 - **plantuml-ssl-server** Add https server support (default)
+
+> Note that any data you send to the server may be logged or monitored by a third party. So beware of sending sensitive information to plantuml servers that are not under your control.
 
 Examples:
 Install without server support:
@@ -139,6 +144,12 @@ command = "mdbook-plantuml -l"
 ```
 
 ## Change log
+
+### 1.0.0-rc.1 (2025-08-30)
+* Added piped plantuml processing mode (enabled by default), this allows rendering without temporary directories and files.
+* Support for `!include` and `!includesub` directives in PlantUML (requires piped mode, does not work with the plantuml server), thanks @albenik.
+* Improved markdown parsing, instead of naive u8 raw byte parsing UTF-8 strings are now parsed
+* Data URIs are now enabled by default
 
 ### 0.8.0 (2022-07-04)
 * Many thanks to @danieleades for cleanup and modernization
