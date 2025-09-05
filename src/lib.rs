@@ -1,12 +1,11 @@
 mod backend;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 mod base64;
+mod cache_cleaner;
 mod config;
-mod dir_cleaner;
 mod markdown_iterator;
 mod pipeline;
 mod renderer;
-
 use crate::pipeline::render_plantuml_code_blocks;
 
 use crate::config::Config;
