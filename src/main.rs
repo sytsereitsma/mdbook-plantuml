@@ -44,6 +44,11 @@ fn handle_preprocessing(pre: &dyn Preprocessor, log_to_file: bool) -> Result<()>
     log::debug!(
         "============================== Starting preprocessor ============================"
     );
+    log::info!(
+        "{} version {}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
 
     if ctx.mdbook_version != mdbook::MDBOOK_VERSION {
         // We should probably use the `semver` crate to check compatibility

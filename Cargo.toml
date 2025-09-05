@@ -36,6 +36,7 @@ tempfile = "3.21.0"
 base16ct = { version = "0.2.0", features = ["alloc"] }
 shlex = "1.3.0"
 dunce="1.0.5" # Alternative for std::Path::canonicalize that produces the regular paths on windows (instead of UNC paths)
+regex = "1.11.2"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

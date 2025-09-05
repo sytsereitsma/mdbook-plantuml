@@ -1,13 +1,12 @@
 use crate::backend::{self, Backend};
+use crate::cache_cleaner::CacheCleaner;
 use crate::config::Config;
-use crate::dir_cleaner::DirCleaner;
 use anyhow::{Context, Result};
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use sha1::{Digest, Sha1};
 use std::cell::RefCell;
 use std::fs;
-
 use std::path::{Path, PathBuf};
 
 pub trait RendererTrait {
@@ -40,20 +39,41 @@ pub fn image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) 
             image_format
         }
     };
-    let mut output_file = img_root.join(hash_string(plantuml_code));
+    let mut output_file = img_root.join(create_hash_from_code(plantuml_code));
     output_file.set_extension(extension);
 
     output_file
 }
 
-fn hash_string(code: &str) -> String {
-    let hash = Sha1::new_with_prefix(code).finalize();
-    base16ct::lower::encode_string(&hash)
+/// Create a SHA1 hash from the given PlantUML code
+/// When the code contains !include or !includesub rules try to load the include files and add
+/// them to the hash so that changes in those files are picked up by the caching system.
+fn create_hash_from_code(code: &str) -> String {
+    let mut hash = Sha1::new_with_prefix(code);
+
+    let include_regex = regex::Regex::new(r"(?m)^\s*!(include|includesub)\s+([^\s!]+)")
+        .map_err(|e| {
+            log::error!("Failed to compile regex: {}", e);
+            e
+        })
+        .unwrap();
+
+    for cap in include_regex.captures_iter(code) {
+        let include_path = cap.get(2).unwrap().as_str();
+        if let Ok(include_data) = fs::read_to_string(include_path) {
+            hash.update(include_data);
+        } else {
+            // Do not fail the rendering when an include file cannot be read
+            log::warn!("Could not read included file: {}", include_path);
+        }
+    }
+
+    base16ct::lower::encode_string(&hash.finalize())
 }
 
 pub struct Renderer {
     backend: Box<dyn Backend>,
-    cleaner: RefCell<DirCleaner>,
+    cleaner: RefCell<CacheCleaner>,
     img_root: PathBuf,
     clickable_img: bool,
     use_data_uris: bool,
@@ -63,7 +83,7 @@ impl Renderer {
     pub fn new(cfg: &Config, img_root: PathBuf) -> Self {
         Self {
             backend: backend::factory::create(cfg),
-            cleaner: RefCell::new(DirCleaner::new(img_root.as_path())),
+            cleaner: RefCell::new(CacheCleaner::new(img_root.as_path())),
             img_root,
             clickable_img: cfg.clickable_img,
             use_data_uris: cfg.use_data_uris,
@@ -134,6 +154,7 @@ impl Renderer {
         // mdbook deletes the files in there after preprocessing)
         let output_file = image_filename(&self.img_root, plantuml_code, image_format);
         if !output_file.exists() {
+            log::debug!("Regenerating image file {:?}", output_file);
             // File is not cached, render the image
             let data = self
                 .backend
@@ -146,6 +167,8 @@ impl Renderer {
                     output_file.to_string_lossy()
                 )
             })?;
+        } else {
+            log::debug!("Using cached image file {:?}", output_file);
         }
 
         // Let the dir cleaner know this file should be kept
@@ -266,14 +289,14 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
-            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            cleaner: RefCell::new(CacheCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
             use_data_uris: false,
         };
 
         let plantuml_code = "some puml code";
-        let code_hash = hash_string(plantuml_code);
+        let code_hash = create_hash_from_code(plantuml_code);
 
         assert_eq!(
             format!("![](rel/url/{code_hash}.svg)\n\n"),
@@ -306,7 +329,7 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: true }),
-            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            cleaner: RefCell::new(CacheCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
             use_data_uris: true,
@@ -350,7 +373,7 @@ mod tests {
         let output_dir = tempdir().unwrap();
         let renderer = Renderer {
             backend: Box::new(BackendMock { is_ok: false }),
-            cleaner: RefCell::new(DirCleaner::new(output_dir.path())),
+            cleaner: RefCell::new(CacheCleaner::new(output_dir.path())),
             img_root: output_dir.path().to_path_buf(),
             clickable_img: false,
             use_data_uris: false,
@@ -418,9 +441,85 @@ mod tests {
         let file_path = image_filename(Path::new("foo"), code, "svg");
         assert_eq!(PathBuf::from("foo"), file_path.parent().unwrap());
         assert_eq!(
-            hash_string(code),
+            create_hash_from_code(code),
             file_path.file_stem().unwrap().to_str().unwrap()
         );
         assert_eq!(PathBuf::from("svg"), file_path.extension().unwrap());
+    }
+
+    #[test]
+    fn test_create_hash_from_code_no_include() {
+        let code = "@startuml\nAlice -> Bob: Hello\n@enduml";
+        let hash = create_hash_from_code(code);
+        assert_eq!("79b57dbdefc431bfab3f4f17c032d39823cbd210", hash);
+
+        // Different code, different hash
+        let code = "@startuml\nBob -> Alice: Hello\n@enduml";
+        let hash = create_hash_from_code(code);
+        assert_eq!("059720b7027e8d7af44cdbabee7d47ae1277cd83", hash);
+    }
+
+    #[test]
+    fn test_create_hash_from_code_includes() {
+        // This test is a bit tricky. The tempdir is different every time, which means the include/includesub
+        // paths are different every time, which in turn means the hash will be different every time.
+        // So first do a run with some include files, check the hash, then change the include files
+        // and check the hash changes.
+        let include_dir = tempdir().unwrap();
+        let include_file_path = include_dir.path().join("include.puml");
+        let include_sub_file_path = include_dir.path().join("include_sub.puml");
+
+        let write_file = |path: &Path, content: &str| -> Result<()> {
+            let mut file = File::create(path)?;
+            file.write_all(content.as_bytes())?;
+            Ok(())
+        };
+
+        let create_baseline = || -> String {
+            write_file(&include_file_path, "goats").unwrap();
+            write_file(&include_sub_file_path, "easels").unwrap();
+
+            format!(
+                "@startuml\n  !include {}\n!includesub {}!FOO\nAlice -> Bob: Hello\n@enduml",
+                include_file_path.display(),
+                include_sub_file_path.display()
+            )
+        };
+
+        let code = create_baseline();
+        let baseline_hash = create_hash_from_code(&code);
+
+        // Now change the include file, the hash should change
+        write_file(&include_file_path, "goats with pants").unwrap();
+        let include_hash = create_hash_from_code(&code);
+        assert_ne!(baseline_hash, include_hash);
+
+        // Now change the includesub file, the hash should change
+        write_file(&include_sub_file_path, "easels with hats").unwrap();
+        let includesub_hash = create_hash_from_code(&code);
+        assert_ne!(include_hash, includesub_hash);
+
+        // Finally change the code block itself, the hash should change
+        let code = code.to_owned() + "\n' A comment";
+        let hash = create_hash_from_code(&code);
+        assert_ne!(includesub_hash, hash);
+
+        // As a final check reset to the baseline code and files, the hash should be the same as the original
+        let code = create_baseline();
+        let final_hash = create_hash_from_code(&code);
+        assert_eq!(baseline_hash, final_hash);
+    }
+
+    #[test]
+    fn test_create_hash_from_code_includes_when_includes_cannot_be_found() {
+        // Two include files that do not exist are referenced
+        let code = "@startuml\n!include not-here.puml\n!includesub not-here-either.puml!FOO\nAlice -> Bob: Hello\n@enduml";
+        let hash = create_hash_from_code(&code);
+        assert_eq!("9183290693ec58cf6897b718a376e5b898a17f88", hash);
+
+        // Change the code block itself, the hash should change
+        let code = code.to_owned() + "\n' A comment";
+        let hash = create_hash_from_code(&code);
+        assert_eq!("07bdd9d54b4662ef657b0b94f147641d4f9c464b", hash);
     }
 }
