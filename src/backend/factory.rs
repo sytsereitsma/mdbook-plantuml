@@ -18,7 +18,8 @@ fn is_working_plantuml_cmd(cmd: &str) -> bool {
         }
     };
 
-    log::error!("Testing PlantUML command {} ({:?})", cmd, cmd_parts);
+    log::info!("Testing PlantUML command {} ({:?})", cmd, cmd_parts);
+
     let result = Command::new(&cmd_parts[0])
         .args(&cmd_parts[1..])
         .arg("-version")
