@@ -61,9 +61,12 @@ impl PipedRunner {
         let output = child
             .wait_with_output()
             .with_context(|| "Failed to get generated piped PlantUML image")?;
-        if output.status.success() {
+
+        // If the command was successful and there is no stderr output, otherwise stderr contains the error message
+        if output.status.success() && output.stderr.is_empty() {
             Ok(output.stdout)
         } else {
+            log::error!("Failed to render image in piped mode ({})", output.status);
             Err(format_err!(
                 "Failed to render image in piped mode ({})\n  stdout: '{}'\n  stderr: '{}'",
                 output.status,
@@ -126,7 +129,7 @@ pub struct PlantUMLShell {
 impl PlantUMLShell {
     pub fn new(plantuml_cmd: String, piped: bool) -> Self {
         log::info!(
-            "Selected PlantUML shell {} (piped={})",
+            "Selected PlantUML shell '{}' (piped={})",
             &plantuml_cmd,
             piped
         );
