@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 fn bool_true() -> bool {
     true
 }
+fn bool_false() -> bool {
+    false
+}
 
 /// The configuration options available with this backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +32,13 @@ pub struct Config {
     pub use_data_uris: bool,
     /// Verbose logging (debug level)
     pub verbose: bool,
+    /// Suppress error messages and output the image generation errors in the generated document
+    /// instead. This is useful when you want to avoid aborting the book build due to PlantUML errors.
+    /// If set to true, errors are logged and the book build will fail upon the first rendering error
+    /// The default is false.
+    /// The MDBOOK_PLANTUML_FAIL_ON_ERROR=1 (or 0) environment variable to overrides this setting.
+    #[serde(default = "bool_false")]
+    pub fail_on_error: bool,
 }
 
 impl Default for Config {
@@ -39,6 +49,7 @@ impl Default for Config {
             clickable_img: false,
             use_data_uris: true,
             verbose: false,
+            fail_on_error: false,
         }
     }
 }
@@ -56,5 +67,6 @@ mod tests {
         assert_eq!(cfg.clickable_img, false);
         assert_eq!(cfg.use_data_uris, true);
         assert_eq!(cfg.verbose, false);
+        assert_eq!(cfg.fail_on_error, false);
     }
 }

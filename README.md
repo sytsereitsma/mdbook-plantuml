@@ -73,6 +73,8 @@ A --|> B
 - **clickable-img:** Optional (```false``` by default). When ```true``` images can be clicked and are opened in a new tab/window.
 - **use-data-uris:** Optional (```true``` by default). When ```true``` images are rendered as inline Data URIs (not requiring external files).
 - **piped:** Optional (```true``` by default). When ```true``` plantuml (shell only) is executed in piped mode, enabling the use of `!include` and `!includesub` directives in PlantUML.
+- **fail-on-error:** Optional (```false``` by default). When ```true``` any rendering error will cause the preprocessor to fail and the book build will be aborted. When ```false``` any rendering error will be replaced with an error message in the output book. Can be overridden with the environment variable `MDBOOK_PLANTUML_FAIL_ON_ERROR` (0 = false, 1 = true).
+
 
 ## Features
 - **plantuml-server** Add http server support only

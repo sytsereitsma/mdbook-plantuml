@@ -31,9 +31,21 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
     ) -> Result<Book, mdbook::errors::Error> {
         let cfg = plantuml_config(ctx);
         let img_output_dir = image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
-        let org_cwd = std::env::current_dir()?;
+        let fail_on_error = std::env::var("MDBOOK_PLANTUML_FAIL_ON_ERROR")
+            .ok()
+            .and_then(|v| v.parse::<i32>().ok())
+            .map(|v| v != 0)
+            .unwrap_or(cfg.fail_on_error);
+        log::debug!(
+            "Fail on error: {} (MDBOOK_PLANTUML_FAIL_ON_ERROR={:?}, cfg={})",
+            fail_on_error,
+            std::env::var("MDBOOK_PLANTUML_FAIL_ON_ERROR"),
+            cfg.fail_on_error
+        );
 
+        let org_cwd = std::env::current_dir().expect("Failed to get current dir");
         let renderer = Renderer::new(&cfg, img_output_dir);
+
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(ref mut chapter) = *item
                 && let Some(chapter_path) = &chapter.path {
@@ -47,7 +59,7 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
                     log::debug!("Changed working dir to {:?}.", abs_chapter_dir);
 
                     let rel_image_url = relative_img_url(chapter_path);
-                    chapter.content = render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url);
+                    chapter.content = render_plantuml_code_blocks(&chapter.content, &renderer, &rel_image_url, fail_on_error).unwrap();
                 }
         });
 
@@ -158,6 +170,7 @@ mod tests {
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
             verbose: false,
             piped: false,
+            fail_on_error: false,
         };
 
         assert_eq!(
@@ -180,6 +193,7 @@ mod tests {
             use_data_uris: false, // false = Create src_root/.mdbook-plantuml-cache
             verbose: false,
             piped: false,
+            fail_on_error: false,
         };
 
         assert_eq!(
@@ -202,6 +216,7 @@ mod tests {
             use_data_uris: true, // true = Create book_root/.mdbook-plantuml-cache
             verbose: false,
             piped: false,
+            fail_on_error: false,
         };
 
         // Create a file with the same name as the directory, this should fail the dir creation
