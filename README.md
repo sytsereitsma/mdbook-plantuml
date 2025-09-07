@@ -58,6 +58,13 @@ A --|> B
 @enduml
 ```
 
+A diagram in inlined svg format (which allows usage of the links in the svg)
+```plantuml,format=svg,inline
+@startuml
+[[http://plantuml.com PlantUML]]
+@enduml
+```
+
 Force png format:
 ```plantuml,format=png
 @startuml

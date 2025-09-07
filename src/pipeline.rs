@@ -37,9 +37,14 @@ fn process_block<'a>(
         Block::Code(code_block) => {
             if code_block.info_string.is_plantuml() {
                 let image_format = code_block.get_image_format();
-                let rendered =
-                    renderer.render(code_block.code, rel_image_url, image_format.to_string());
+                let inline = code_block.info_string.is_inline();
 
+                let rendered = renderer.render(
+                    code_block.code,
+                    rel_image_url,
+                    image_format.to_string(),
+                    inline,
+                );
                 match rendered {
                     Ok(data) => Ok(ProcessedBlockResult::Full(data)),
                     Err(e) => {
@@ -70,6 +75,7 @@ mod test {
         pub code: RefCell<Option<String>>,
         pub rel_image_url: RefCell<Option<String>>,
         pub image_format: RefCell<Option<String>>,
+        pub inline: RefCell<Option<bool>>,
         pub result: Option<String>, // Can't clone Result, so use Option (None is error)
     }
 
@@ -79,16 +85,24 @@ mod test {
                 code: RefCell::new(None),
                 rel_image_url: RefCell::new(None),
                 image_format: RefCell::new(None),
+                inline: RefCell::new(None),
                 result: Some(String::from("\nFake renderer was here\n")),
             }
         }
     }
 
     impl RendererTrait for FakeRenderer {
-        fn render(&self, code: &str, rel_image_url: &str, image_format: String) -> Result<String> {
+        fn render(
+            &self,
+            code: &str,
+            rel_image_url: &str,
+            image_format: String,
+            inline: bool,
+        ) -> Result<String> {
             self.code.replace(Some(code.to_string()));
             self.rel_image_url.replace(Some(rel_image_url.to_string()));
             self.image_format.replace(Some(image_format));
+            self.inline.replace(Some(inline));
 
             match self.result {
                 Some(ref s) => Ok(s.clone()),
@@ -129,6 +143,7 @@ fn main() {
             renderer.image_format.borrow().as_ref(),
             Some(&String::from("svg"))
         );
+        assert_eq!(renderer.inline.borrow().as_ref(), Some(&false));
 
         assert_eq!(
             result.unwrap(),
