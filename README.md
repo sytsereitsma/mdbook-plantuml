@@ -23,12 +23,12 @@ src = "src"
 title = "mdBook PlantUML preprocessor"
 
 [preprocessor.plantuml]
-plantuml-cmd="plantuml.exe"
-```
+plantuml-cmd="plantuml.jar"  # or plantuml, or /usr/bin/plantuml, /usr/local/bin/plantuml, etc...
 
-The above assumes both the mdbook-preprocessor and the plantuml executable are on your path.
+The above assumes both the mdbook-preprocessor and the plantuml executable/jar file are on your path.
 
 Then simply add a PlantUML code block in your book text:
+
 ````markdown
 Some text here
 
@@ -39,7 +39,6 @@ A --|> B
 ```
 
 Some more text.
-
 ````
 
 The plantuml code block will be replaced an image reference to an SVG image if
@@ -56,6 +55,13 @@ A diagram in UTF-8 text format (inlined automatically)
 ```plantuml,format=utxt
 @startuml
 A --|> B
+@enduml
+```
+
+A diagram in inlined svg format (which allows usage of the links in the svg)
+```plantuml,format=svg,inline
+@startuml
+[[http://plantuml.com PlantUML]]
 @enduml
 ```
 

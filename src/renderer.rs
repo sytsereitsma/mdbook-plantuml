@@ -15,6 +15,8 @@ pub trait RendererTrait {
         plantuml_code: &str,
         rel_img_url: &str,
         image_format: String,
+        // Try to inline the image (only works for SVG images)
+        inline: bool,
     ) -> Result<String>;
 }
 
@@ -143,11 +145,20 @@ impl Renderer {
         Ok(format!("\n```txt\n{txt}```\n"))
     }
 
+    fn create_inline_svg_image(image_path: &Path) -> Result<String> {
+        log::debug!("Creating inline svg image from {:?}", image_path);
+        let raw_source = fs::read(image_path).unwrap();
+        let svg = String::from_utf8(raw_source)?;
+
+        Ok(svg)
+    }
+
     pub fn render(
         &self,
         plantuml_code: &str,
         rel_img_url: &str,
         image_format: &str,
+        inline: bool,
     ) -> Result<String> {
         // When operating in data-uri mode the images are written to in .mdbook-plantuml, otherwise
         // they are written to src/mdbook-plantuml-images (cannot write to the book output dir, because
@@ -177,6 +188,9 @@ impl Renderer {
         let extension = output_file.extension().unwrap_or_default();
         if extension == "atxt" || extension == "utxt" {
             Self::create_inline_txt_image(&output_file)
+        } else if extension == "svg" && inline {
+            // Inlining SVG images allows the use of links embedded in the SVG
+            Self::create_inline_svg_image(&output_file)
         } else if self.use_data_uris {
             Self::create_image_datauri_element(&output_file, self.clickable_img)
         } else {
@@ -195,8 +209,9 @@ impl RendererTrait for Renderer {
         plantuml_code: &str,
         rel_img_url: &str,
         image_format: String,
+        inline: bool,
     ) -> Result<String> {
-        Self::render(self, plantuml_code, rel_img_url, &image_format)
+        Self::render(self, plantuml_code, rel_img_url, &image_format, inline)
     }
 }
 
@@ -300,27 +315,65 @@ mod tests {
 
         assert_eq!(
             format!("![](rel/url/{code_hash}.svg)\n\n"),
-            renderer.render(plantuml_code, "rel/url", "svg").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "svg", false)
+                .unwrap()
         );
 
         // png extension
         assert_eq!(
             format!("![](rel/url/{code_hash}.png)\n\n"),
-            renderer.render(plantuml_code, "rel/url", "png").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "png", false)
+                .unwrap()
         );
 
         // txt extension
         assert_eq!(
             format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
                                                              * fake backend */
-            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "txt", false)
+                .unwrap()
         );
 
         // utxt extension
         assert_eq!(
             format!("\n```txt\n{plantuml_code}\ntxt```\n"), /* image format is appended by
                                                              * fake backend */
-            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "txt", false)
+                .unwrap()
+        );
+    }
+    #[test]
+    fn test_rendering_inline_svg() {
+        let output_dir = tempdir().unwrap();
+        let renderer = Renderer {
+            backend: Box::new(BackendMock { is_ok: true }),
+            cleaner: RefCell::new(CacheCleaner::new(output_dir.path())),
+            img_root: output_dir.path().to_path_buf(),
+            clickable_img: false,
+            use_data_uris: false,
+        };
+
+        let plantuml_code = "some puml code";
+
+        // With inlining
+        assert_eq!(
+            format!("{}{}", plantuml_code, "\nsvg"),
+            renderer
+                .render(plantuml_code, "rel/url", "svg", true)
+                .unwrap()
+        );
+
+        // Without inlining
+        let code_hash = create_hash_from_code(plantuml_code);
+        assert_eq!(
+            format!("![](rel/url/{code_hash}.svg)\n\n"),
+            renderer
+                .render(plantuml_code, "rel/url", "svg", false)
+                .unwrap()
         );
     }
 
@@ -343,7 +396,9 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/svg+xml;base64,c29tZSBwdW1sIGNvZGUKc3Zn"
             ),
-            renderer.render(plantuml_code, "rel/url", "svg").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "svg", false)
+                .unwrap()
         );
 
         // png extension
@@ -352,19 +407,25 @@ mod tests {
                 "![]({})\n\n",
                 "data:image/png;base64,c29tZSBwdW1sIGNvZGUKcG5n"
             ),
-            renderer.render(plantuml_code, "rel/url", "png").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "png", false)
+                .unwrap()
         );
 
         // txt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "txt", false)
+                .unwrap()
         );
 
         // utxt extension
         assert_eq!(
             String::from("\n```txt\nsome puml code\ntxt```\n"),
-            renderer.render(plantuml_code, "rel/url", "txt").unwrap()
+            renderer
+                .render(plantuml_code, "rel/url", "txt", false)
+                .unwrap()
         );
     }
 
@@ -379,7 +440,7 @@ mod tests {
             use_data_uris: false,
         };
 
-        let result = renderer.render("", "rel/url", "svg");
+        let result = renderer.render("", "rel/url", "svg", false);
         let error_str = format!("{}", result.err().unwrap());
         assert_eq!("Oh no", error_str);
     }

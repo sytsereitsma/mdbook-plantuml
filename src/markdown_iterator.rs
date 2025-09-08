@@ -19,7 +19,7 @@ impl<'a> InfoString<'a> {
             config: HashMap::new(),
         };
 
-        // Little helper to parse a key-vaue pair. Returns None if part is None, or an empty string when trimmed
+        // Little helper to parse a key-value pair. Returns None if part is None, or an empty string when trimmed
         let parse_value = |part: Option<&'a str>| {
             if let Some(value) = part.map(|k| k.trim())
                 && !value.is_empty()
@@ -32,7 +32,7 @@ impl<'a> InfoString<'a> {
 
         // Extract the config key value pairs.
         // First element in the list is always the language (unless the first list item contains a '=')
-        // info string separator char was ',', but commonmark specifeis this should be a space. Left ','
+        // info string separator char was ',', but commonmark specifies this should be a space. Left ','
         // separator support for BW compatibility
         let mut check_language = true;
         for part in created.info_string.split(&[',', ' ']) {
@@ -62,6 +62,10 @@ impl<'a> InfoString<'a> {
     /// Returns true if this code block is plantuml (i.e. starts with plantuml or puml)
     pub fn is_plantuml(&self) -> bool {
         self.language == Some("plantuml") || self.language == Some("puml")
+    }
+
+    pub fn is_inline(&self) -> bool {
+        self.config.contains_key("inline")
     }
 }
 
@@ -649,6 +653,12 @@ mod test {
             HashMap::from([("abc", None), ("qq", None), ("def", Some("12"))])
         );
         assert_eq!(info.info_string, "rs abc= qq def=12");
+
+        let info = InfoString::from("plantuml,inline");
+        assert!(info.is_inline());
+
+        let info = InfoString::from("plantuml,format=svg");
+        assert!(!info.is_inline());
     }
 
     #[test]

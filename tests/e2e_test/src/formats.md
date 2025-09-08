@@ -34,6 +34,14 @@ C --|> D
 @enduml
 ```
 
+## Inlined SVG with a link
+
+```plantuml,format=svg,inline
+@startuml
+actor Bob [[http://plantuml.com/sequence]]
+@enduml
+```
+
 ## Unknown output error (defaults to png on shell and error in server)
 
 ```plantuml,format=chuck
