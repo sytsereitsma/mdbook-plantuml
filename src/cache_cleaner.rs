@@ -141,13 +141,13 @@ mod tests {
 
         if let Ok(entries) = std::fs::read_dir(target_path) {
             for entry in entries.flatten() {
-                if let Ok(file_type) = entry.file_type() {
-                    if file_type.is_file() {
-                        // Strip the target_path prefix
-                        let path = entry.path();
-                        let stripped = path.strip_prefix(target_path).unwrap();
-                        found_files.insert(stripped.to_path_buf());
-                    }
+                if let Ok(file_type) = entry.file_type()
+                    && file_type.is_file()
+                {
+                    // Strip the target_path prefix
+                    let path = entry.path();
+                    let stripped = path.strip_prefix(target_path).unwrap();
+                    found_files.insert(stripped.to_path_buf());
                 }
             }
         }

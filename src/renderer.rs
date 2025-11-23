@@ -575,12 +575,12 @@ mod tests {
     fn test_create_hash_from_code_includes_when_includes_cannot_be_found() {
         // Two include files that do not exist are referenced
         let code = "@startuml\n!include not-here.puml\n!includesub not-here-either.puml!FOO\nAlice -> Bob: Hello\n@enduml";
-        let hash = create_hash_from_code(&code);
+        let hash = create_hash_from_code(code);
         assert_eq!("9183290693ec58cf6897b718a376e5b898a17f88", hash);
 
         // Change the code block itself, the hash should change
         let code = code.to_owned() + "\n' A comment";
-        let hash = create_hash_from_code(&code);
+        let hash = create_hash_from_code(code.as_str());
         assert_eq!("07bdd9d54b4662ef657b0b94f147641d4f9c464b", hash);
     }
 }

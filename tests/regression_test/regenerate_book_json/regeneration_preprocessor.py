@@ -10,12 +10,8 @@ if __name__ == "__main__":
     book = json.loads(json_data)
 
     # Correct the book's root
-    tester_root = os.path.dirname(__file__)
-    tester_root = os.path.abspath(os.path.join(tester_root, ".."))
-    book[0]["root"] = tester_root
-
-    # output stuff to test_output rather than 'src'
-    book[0]["config"]["book"]["src"] = "test_output"
+    book[0]["root"] = "."
+    book[0]["config"]["book"]["src"] = "."
 
     # Replace this preprocessor with the plantuml preprocessor
     book[0]["config"]["preprocessor"] = {
