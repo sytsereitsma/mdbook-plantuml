@@ -16,7 +16,7 @@ class Result:
 
     @property
     def root_chapter(self):
-        return self.json["sections"][0]["Chapter"]
+        return self.json["items"][0]["Chapter"]
 
     @property
     def nested_chapter(self):
@@ -62,7 +62,7 @@ class PreprocessorRunner:
         self.__book[0]["config"]["preprocessor"]["plantuml"] = config
 
     def set_content(self, chapter):
-        self.__book[1]["sections"][0] = chapter.to_dict()
+        self.__book[1]["items"][0] = chapter.to_dict()
 
     def run(self):
         tester_root = os.path.dirname(__file__)
