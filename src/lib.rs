@@ -11,15 +11,18 @@ use crate::pipeline::render_plantuml_code_blocks;
 use crate::config::Config;
 use crate::renderer::Renderer;
 use anyhow::{Context, Result, bail};
-use mdbook::book::{Book, BookItem};
-use mdbook::preprocess::PreprocessorContext;
+use mdbook_preprocessor::{
+    PreprocessorContext,
+    book::{Book, BookItem},
+};
+use serde_json::Value;
 use std::fs;
 
 use std::path::{Path, PathBuf};
 
 pub struct Preprocessor;
 
-impl mdbook::preprocess::Preprocessor for Preprocessor {
+impl mdbook_preprocessor::Preprocessor for Preprocessor {
     fn name(&self) -> &str {
         "plantuml"
     }
@@ -28,7 +31,7 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
         &self,
         ctx: &PreprocessorContext,
         mut book: Book,
-    ) -> Result<Book, mdbook::errors::Error> {
+    ) -> Result<Book, mdbook_preprocessor::errors::Error> {
         let cfg = plantuml_config(ctx);
         let img_output_dir = image_output_dir(&ctx.root, &ctx.config.book.src, &cfg)?;
         let fail_on_error = std::env::var("MDBOOK_PLANTUML_FAIL_ON_ERROR")
@@ -70,8 +73,8 @@ impl mdbook::preprocess::Preprocessor for Preprocessor {
         Ok(book)
     }
 
-    fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer != "not-supported"
+    fn supports_renderer(&self, renderer: &str) -> Result<bool, anyhow::Error> {
+        Ok(renderer != "not-supported")
     }
 }
 
@@ -119,15 +122,15 @@ fn relative_img_url(chapter_path: &Path) -> String {
 pub fn plantuml_config(ctx: &PreprocessorContext) -> Config {
     ctx.config
         .get("preprocessor.plantuml")
-        .and_then(|raw| {
-            raw.clone()
-                .try_into()
+        .ok()
+        .and_then(|opt| opt)
+        .and_then(|val: Value| {
+            serde_json::from_value(val)
                 .map_err(|e| {
                     log::warn!(
                         "Failed to get config from book.toml, using default configuration ({}).",
                         e
                     );
-                    e
                 })
                 .ok()
         })
