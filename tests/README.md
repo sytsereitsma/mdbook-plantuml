@@ -40,7 +40,7 @@ diff tool is not (easily) possible..
  ```
 
 ### Windows
-Simply run ```run_tests.bat```
+Simply run ```run_tests.ps1```
 
 Or, manually:
 ```
