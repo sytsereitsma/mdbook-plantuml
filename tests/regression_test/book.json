@@ -3,23 +3,24 @@
     "root": ".",
     "config": {
       "book": {
+        "title": "mdBook E2E test book",
         "authors": [
           "Sytse Reitsma"
         ],
+        "description": null,
         "language": "en",
-        "multilingual": false,
-        "src": ".",
-        "title": "mdBook E2E test book"
+        "text-direction": null,
+        "src": "."
       },
       "preprocessor": {
         "plantuml": {}
       }
     },
     "renderer": "html",
-    "mdbook_version": "0.4.21"
+    "mdbook_version": "0.5.1"
   },
   {
-    "sections": [
+    "items": [
       {
         "Chapter": {
           "name": "Chapter 1",
@@ -38,6 +39,7 @@
                 ],
                 "sub_items": [],
                 "path": "nested/nested_chapter.md",
+                "source_path": "nested/nested_chapter.md",
                 "parent_names": [
                   "Chapter 1"
                 ]
@@ -45,10 +47,10 @@
             }
           ],
           "path": "chapter_1.md",
+          "source_path": "chapter_1.md",
           "parent_names": []
         }
       }
-    ],
-    "__non_exhaustive": null
+    ]
   }
 ]
