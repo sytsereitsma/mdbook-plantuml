@@ -153,6 +153,12 @@ command = "mdbook-plantuml -l"
 
 ## Change log
 
+### 2.0.0-rc.1 (2025-12-03)
+* Mdbook 5.0 support, this breaks compatibility for mdbook versions < 5.0
+* Allow inlining of svg images (see the `inline` format option)
+* Added fail on error option (see the `fail-on-error` config option)
+* Bugfix: `include` and `includesub` files were not cached correctly 
+
 ### 1.0.0-rc.1 (2025-08-30)
 * Added piped plantuml processing mode (enabled by default), this allows rendering without temporary directories and files.
 * Support for `!include` and `!includesub` directives in PlantUML (requires piped mode, does not work with the plantuml server), thanks @albenik.
