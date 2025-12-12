@@ -1,4 +1,26 @@
-# PowerShell version of run_tests.bat
+
+function IsPlantUMLServerRunning {
+    # First we create the request.
+    $HTTP_Request = [System.Net.WebRequest]::Create("http://localhost:8080/")
+
+    # We then get a response from the site.
+    $HTTP_Response = $HTTP_Request.GetResponse()
+
+    # We then get the HTTP code as an integer.
+    $HTTP_Status = [int]$HTTP_Response.StatusCode
+
+    $ok = $false
+
+    If ($HTTP_Status -eq 200) {
+        $ok = $true
+    }
+
+    # Finally, we clean up the http request by closing it.
+    If ($HTTP_Response -ne $null) { $HTTP_Response.Close() }
+    
+    return $ok
+}
+
 # Setup virtual environment if not exists
 if (!(Test-Path "venv")) {
     Write-Host "Setting up venv"
@@ -37,6 +59,11 @@ if (-not $dockerRunning) {
     docker run -it -d -p 8080:8080 plantuml/plantuml-server:jetty
 } else {
     Write-Host "Docker plantuml server already running"
+}
+
+if (-not (IsPlantUMLServerRunning)) {
+    Write-Error "Docker plantuml server not responding, please check the docker container"
+    exit 1
 }
 
 Push-Location e2e_test

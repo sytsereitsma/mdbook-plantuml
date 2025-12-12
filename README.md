@@ -153,6 +153,13 @@ command = "mdbook-plantuml -l"
 
 ## Change log
 
+### 2.0.0 (2025-12-12)
+* !! Mdbook 5.0 support, this breaks compatibility for mdbook versions < 5.0 !!
+* See also the 2.0.0-rc.1 and 1.0.0-rc.1 release notes
+* Fix warning when including sprites
+* Fix false warning loading the config
+* Fix https server support for native certificate stores (thanks @pellico)
+  
 ### 2.0.0-rc.1 (2025-12-03)
 * Mdbook 5.0 support, this breaks compatibility for mdbook versions < 5.0
 * Allow inlining of svg images (see the `inline` format option)
