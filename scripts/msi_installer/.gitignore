@@ -1,0 +1,4 @@
+version.wxi
+bin/
+obj/
+*.wixproj

@@ -1,0 +1,22 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?include version.wxi?> <!-- version.wxi is a generated file that sets the MDBOOK_PLANTUML_VERSION variable -->
+  <Package Id="mdbook_plantuml" Name="mdbook-plantuml"
+           Manufacturer="Sytse Reitsma" Version="$(var.MdbookPlantUMLVersion)">
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="mdbook-plantuml">
+        <Component Id="MainExecutable" Guid="$(var.MdbookPlantUMLGuid)">
+          <File Id="mdbookPlantumlExe" Source="../../target/release/mdbook-plantuml.exe" KeyPath="yes"/>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="ProductFeature" Title="mdbook-plantuml" Level="1">
+      <ComponentRef Id="MainExecutable"/>
+      <Feature Id="AddToPathFeature" Title="Add to PATH" Level="32767" Display="expand" TypicalDefault="install">
+        <ComponentRef Id="AddToPathComponent"/>
+      </Feature>
+    </Feature>
+    <Component Id="AddToPathComponent" Guid="110b922c-6436-4f8f-bbcf-282fe8a0da7a">
+      <Environment Id="AddToPathEnv" Name="PATH" Action="set" Part="last" System="yes" Value="[INSTALLFOLDER]"/>
+    </Component>
+  </Package>
+</Wix>
