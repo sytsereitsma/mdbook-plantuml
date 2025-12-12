@@ -1,6 +1,7 @@
 use crate::backend::{self, Backend};
 use crate::cache_cleaner::CacheCleaner;
 use crate::config::Config;
+use crate::include_iterator::IncludeIterator;
 use anyhow::{Context, Result};
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
@@ -52,21 +53,18 @@ pub fn image_filename(img_root: &Path, plantuml_code: &str, image_format: &str) 
 /// them to the hash so that changes in those files are picked up by the caching system.
 fn create_hash_from_code(code: &str) -> String {
     let mut hash = Sha1::new_with_prefix(code);
+    let include_iter = IncludeIterator::new(code);
 
-    let include_regex = regex::Regex::new(r"(?m)^\s*!(include|includesub)\s+([^\s!]+)")
-        .map_err(|e| {
-            log::error!("Failed to compile regex: {}", e);
-            e
-        })
-        .unwrap();
-
-    for cap in include_regex.captures_iter(code) {
-        let include_path = cap.get(2).unwrap().as_str();
-        if let Ok(include_data) = fs::read_to_string(include_path) {
+    for include_file in include_iter {
+        if let Ok(include_data) = fs::read_to_string(include_file) {
             hash.update(include_data);
         } else {
             // Do not fail the rendering when an include file cannot be read
-            log::warn!("Could not read included file: {}", include_path);
+            // Sprites do not represent files on the filesystem
+            log::warn!(
+                "Could not read included file '{}' for caching (if the include is a sprite or non-filesystem url this is expected behavior)",
+                include_file
+            );
         }
     }
 
