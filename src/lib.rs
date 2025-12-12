@@ -3,6 +3,7 @@ mod backend;
 mod base64;
 mod cache_cleaner;
 mod config;
+mod include_iterator;
 mod markdown_iterator;
 mod pipeline;
 mod renderer;
@@ -118,10 +119,13 @@ fn relative_img_url(chapter_path: &Path) -> String {
 
 pub fn plantuml_config(ctx: &PreprocessorContext) -> Config {
     match ctx.config.get::<Config>("preprocessor.plantuml") {
-        Ok(cfg_opt) => {
-            log::warn!("Failed to get config from book.toml, using default configuration.");
-            cfg_opt.unwrap_or_default()
-        }
+        Ok(cfg_opt) => match &cfg_opt {
+            Some(cfg) => {
+                log::info!("Using configuration from book.toml: {:?}", cfg);
+                cfg.clone()
+            }
+            None => Config::default(),
+        },
         Err(e) => {
             log::warn!(
                 "Failed to get config from book.toml, using default configuration ({}).",
