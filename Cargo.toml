@@ -17,7 +17,7 @@ rust-version = "1.88.0"
 [features]
 default = ["plantuml-ssl-server"]
 plantuml-server=["reqwest", "deflate"]
-plantuml-ssl-server=["reqwest/rustls-tls", "deflate"]
+plantuml-ssl-server=["reqwest/rustls-tls","reqwest/rustls-tls-native-roots" ,"deflate"]
 
 [dependencies]
 mdbook-preprocessor = { version = "0.5", default-features = false }
