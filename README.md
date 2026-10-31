@@ -85,6 +85,7 @@ A --|> B
 ## Features
 - **plantuml-server** Add http server support only
 - **plantuml-ssl-server** Add https server support (default)
+- **plantuml-rs** Add the built-in pure Rust renderer [plantuml-rs](https://github.com/bjornharrtell/plantuml-rs) (no Java, Graphviz or network needed). Opt in by setting `plantuml-cmd="plantuml-rs"`. Only the `svg` format is supported, and `!include` of files is not.
 
 > Note that any data you send to the server may be logged or monitored by a third party. So beware of sending sensitive information to plantuml servers that are not under your control.
 
@@ -94,6 +95,9 @@ Install without server support:
 
 Install with http server support:
 ```cargo install mdbook-plantuml --no-default-features --features plantuml-server```
+
+Install with the built-in plantuml-rs renderer:
+```cargo install mdbook-plantuml --features plantuml-rs```
 
 Install with https server support:
 ```cargo install mdbook-plantuml --no-default-features --features plantuml-ssl-server```
