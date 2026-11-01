@@ -556,45 +556,40 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "graphviz-pure"
-version = "0.2.2"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "866ee419e7c056093fc86367cb1d1c0236452106127301aa31fd198843120da3"
+checksum = "566df7d2e76f60bcbbbe4c8cefa74dd06cb601b0a1683c775424625e11ba4695"
 dependencies = [
  "graphviz-pure-core",
  "graphviz-pure-geom",
  "graphviz-pure-layout",
  "graphviz-pure-parser",
  "graphviz-pure-render",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
 ]
 
 [[package]]
 name = "graphviz-pure-core"
-version = "0.2.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40b6b40146493018d257d325461f2873937c2a12e311fca364af75d331c07fda"
+checksum = "d78f5a6a1f159d20ce687e6fb515c495bdb31c2f0099c88699aaba1ab7f43200"
 dependencies = [
  "libm",
- "serde",
- "thiserror 2.0.12",
 ]
 
 [[package]]
 name = "graphviz-pure-geom"
-version = "0.2.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92153ebc24cced1287f8260ccaf56f4546c152b9b253aa193690d2b3a37e2b48"
+checksum = "2b929d3c4c307e9bc3c21e895651bc3203325d5d04a05271973b6a2f5bebcde3"
 dependencies = [
  "graphviz-pure-core",
 ]
 
 [[package]]
 name = "graphviz-pure-layout"
-version = "0.2.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ea028d36061bf25f09df7144c4d5d6b47f068385a66284d942252f76567a234"
+checksum = "c6494dc40711f621c4c64418a88ca255c698a927dc45f8985e1ce19dbec0899e"
 dependencies = [
  "graphviz-pure-core",
  "graphviz-pure-geom",
@@ -602,25 +597,23 @@ dependencies = [
 
 [[package]]
 name = "graphviz-pure-parser"
-version = "0.2.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "162e039f5af0f664db84fde65894c3dd8ab9389156049edad227ff6845ec442a"
+checksum = "d1bac6be31a398f1dffdc41ef2cffe6d0da11e507bed3db48980d59f7ec8241f"
 dependencies = [
  "graphviz-pure-core",
- "thiserror 2.0.12",
 ]
 
 [[package]]
 name = "graphviz-pure-render"
-version = "0.2.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bfc6a10e12b47db2a91fb0c715985e4643f697148c7794a1cfef469aa1bb370"
+checksum = "9e031fc7389656529635de1d8d9d32f9e069c3f7542fcb2b29db6a98767ab057"
 dependencies = [
  "graphviz-pure-core",
  "graphviz-pure-geom",
+ "graphviz-pure-layout",
  "graphviz-pure-parser",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1226,9 +1219,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "plantuml-core"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4d9601dc1bdab1a6547d8d72bcf688ed7b7ce12f4d408be623583c2e429073c"
+checksum = "b86791627b00f739ade3d464fb822bdeb016cc86fe0a7021b2057a28e7dd117f"
 dependencies = [
  "fancy-regex",
  "graphviz-pure",
