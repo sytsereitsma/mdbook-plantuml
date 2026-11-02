@@ -1219,9 +1219,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "plantuml-core"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b86791627b00f739ade3d464fb822bdeb016cc86fe0a7021b2057a28e7dd117f"
+checksum = "3d4784bd683ebd75cdf880bff474ea4ad70391f6509a1bf7da7ea1430ef8df0d"
 dependencies = [
  "fancy-regex",
  "graphviz-pure",
