@@ -1,6 +1,8 @@
 use anyhow::Result;
 
 pub mod factory;
+#[cfg(feature = "plantuml-rs")]
+pub mod plantuml_rs;
 #[cfg(any(feature = "plantuml-ssl-server", feature = "plantuml-server"))]
 pub mod server;
 pub mod shell;

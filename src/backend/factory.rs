@@ -138,11 +138,32 @@ fn create_server_backend(cfg: &Config) -> Option<PlantUMLServer> {
     }
 }
 
+/// The plantuml-cmd value that selects the built-in plantuml-rs renderer
+const PLANTUML_RS_CMD: &str = "plantuml-rs";
+
+#[cfg(feature = "plantuml-rs")]
+fn create_plantuml_rs_backend() -> Box<dyn Backend> {
+    Box::new(crate::backend::plantuml_rs::PlantUMLRs)
+}
+
+#[cfg(not(feature = "plantuml-rs"))]
+fn create_plantuml_rs_backend() -> Box<dyn Backend> {
+    panic!(
+        "The PlantUML command '{PLANTUML_RS_CMD}' selects the built-in plantuml-rs renderer, but the \
+        mdbook-plantuml plugin is built without the plantuml-rs feature.\nPlease rebuild/reinstall the \
+        plugin with the plantuml-rs feature. See the the Features section in README.md"
+    );
+}
+
 /// Create an instance of the Backend
 /// # Arguments
 /// * `img_root` - The path to the directory where to store the images
 /// * `cfg` - The configuration options
 pub fn create(cfg: &Config) -> Box<dyn Backend> {
+    if cfg.plantuml_cmd.as_deref() == Some(PLANTUML_RS_CMD) {
+        return create_plantuml_rs_backend();
+    }
+
     if let Some(server_backend) = create_server_backend(cfg) {
         Box::new(server_backend)
     } else {
